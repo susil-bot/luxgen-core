@@ -21,7 +21,7 @@ yarn-error.log*
 lerna-debug.log*
 
 # Runtime data
-pids
+pids/
 *.pid
 *.seed
 *.pid.lock
@@ -119,8 +119,38 @@ temp/
 ehthumbs.db
 Thumbs.db
 
+# Database files
+*.sqlite
+*.db
+
+# Upload files
+uploads/
+public/uploads/
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+
 # Docker
 .dockerignore
 
+# Backup files
+*.bak
+*.backup
+
+# Test files
+test-results/
+coverage/
+
+# Build artifacts
+build/
+dist/
+
+# Package files
+*.tar.gz
+*.zip
+
 # Local development files
 *.local
+.local/
