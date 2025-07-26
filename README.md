@@ -1,4 +1,4 @@
-# Trainer Platform Backend API
+# LuxGen Core - Trainer Platform Backend API
 
 A robust Node.js/Express backend API for the Trainer Platform, featuring multi-tenancy, user management, polling systems, and real-time analytics.
 
@@ -42,8 +42,8 @@ A robust Node.js/Express backend API for the Trainer Platform, featuring multi-t
 
 1. **Clone the repository**
 ```bash
-git clone <your-backend-repo-url>
-cd trainer-backend
+git clone https://github.com/susil-bot/luxgen-core.git
+cd luxgen-core
 ```
 
 2. **Install dependencies**
@@ -165,7 +165,7 @@ npm run test:coverage
 # Application
 NODE_ENV=development
 PORT=3001
-APP_NAME=Trainer Platform Backend
+APP_NAME=LuxGen Core Backend
 
 # Database
 MONGODB_URL=mongodb+srv://username:password@cluster.mongodb.net/trainer_platform
@@ -196,8 +196,8 @@ CORS_ORIGIN=http://localhost:3000
 
 ### Docker
 ```bash
-docker build -t trainer-backend .
-docker run -p 3001:3001 trainer-backend
+docker build -t luxgen-core .
+docker run -p 3001:3001 luxgen-core
 ```
 
 ### Render
@@ -231,4 +231,4 @@ This project is licensed under the MIT License.
 
 ## 🆘 Support
 
-For support, email support@trainerplatform.com or create an issue in the repository. 
+For support, email support@luxgen.com or create an issue in the repository.
