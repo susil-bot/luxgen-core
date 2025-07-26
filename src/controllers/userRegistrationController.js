@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { authLogger } = require('../utils/logger');
 
 /**
  * Register a new user with multi-tenant support
@@ -456,11 +457,27 @@ exports.changePassword = async (req, res) => {
  * Login user
  */
 exports.loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  const startTime = Date.now();
+  const { email, password } = req.body;
+  
+  // Log login attempt
+  console.log(`🔐 Login attempt for email: ${email}`);
+  authLogger.login(email, false, {
+    ip: req.ip,
+    userAgent: req.get('User-Agent'),
+    timestamp: new Date().toISOString()
+  });
 
+  try {
     // Validate required fields
     if (!email || !password) {
+      console.log(`❌ Login failed: Missing email or password for ${email}`);
+      authLogger.failed(email, 'Missing email or password', {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        timestamp: new Date().toISOString()
+      });
+      
       return res.status(400).json({
         success: false,
         message: 'Email and password are required'
@@ -470,6 +487,13 @@ exports.loginUser = async (req, res) => {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      console.log(`❌ Login failed: Invalid email format for ${email}`);
+      authLogger.failed(email, 'Invalid email format', {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        timestamp: new Date().toISOString()
+      });
+      
       return res.status(400).json({
         success: false,
         message: 'Invalid email format'
@@ -479,27 +503,52 @@ exports.loginUser = async (req, res) => {
     // Find user by email
     const user = await User.findOne({ email, isActive: true });
     if (!user) {
+      console.log(`❌ Login failed: User not found or inactive for ${email}`);
+      authLogger.failed(email, 'User not found or inactive', {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        timestamp: new Date().toISOString()
+      });
+      
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       });
     }
+
+    console.log(`👤 User found: ${user.firstName} ${user.lastName} (${user.role})`);
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      console.log(`❌ Login failed: Invalid password for ${email}`);
+      authLogger.failed(email, 'Invalid password', {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        userId: user._id,
+        timestamp: new Date().toISOString()
+      });
+      
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       });
     }
 
+    console.log(`✅ Password verified for user: ${user.email}`);
+
     // Update last login
     user.lastLogin = new Date();
     await user.save();
+    console.log(`📅 Last login updated for user: ${user.email}`);
 
     // Get tenant information
     const tenant = await require('../models/Tenant').findById(user.tenantId);
+    if (tenant) {
+      console.log(`🏢 Tenant found: ${tenant.name} (${tenant.slug})`);
+    } else {
+      console.log(`⚠️ No tenant found for user: ${user.email}`);
+    }
 
     // Generate JWT token with tenant information
     const jwtToken = jwt.sign(
@@ -513,6 +562,21 @@ exports.loginUser = async (req, res) => {
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
+
+    const responseTime = Date.now() - startTime;
+    console.log(`🎉 Login successful for ${email} (${responseTime}ms)`);
+    
+    // Log successful login
+    authLogger.login(email, true, {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      userId: user._id,
+      role: user.role,
+      tenantId: user.tenantId,
+      tenantSlug: tenant?.slug,
+      responseTime,
+      timestamp: new Date().toISOString()
+    });
 
     res.status(200).json({
       success: true,
@@ -537,7 +601,19 @@ exports.loginUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
+    const responseTime = Date.now() - startTime;
+    console.error(`💥 Login error for ${email}:`, error.message);
+    console.error(`⏱️ Response time: ${responseTime}ms`);
+    
+    // Log login error
+    authLogger.failed(email, 'Server error', {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      error: error.message,
+      responseTime,
+      timestamp: new Date().toISOString()
+    });
+    
     res.status(500).json({
       success: false,
       message: 'Login failed',
