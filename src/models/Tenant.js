@@ -11,7 +11,6 @@ const tenantSchema = new mongoose.Schema({
   slug: {
     type: String,
     required: true,
-    unique: true,
     lowercase: true,
     trim: true,
     match: /^[a-z0-9-]+$/
@@ -152,6 +151,19 @@ const tenantSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: {
+    type: Date,
+    default: null
+  },
+  deletedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   verificationToken: String,
   verificationExpires: Date,
   
@@ -187,6 +199,7 @@ tenantSchema.index({ slug: 1 });
 tenantSchema.index({ contactEmail: 1 });
 tenantSchema.index({ 'subscription.status': 1 });
 tenantSchema.index({ status: 1 });
+tenantSchema.index({ isDeleted: 1 });
 tenantSchema.index({ createdAt: -1 });
 tenantSchema.index({ 'usage.lastActivity': -1 });
 
@@ -249,25 +262,36 @@ tenantSchema.pre('save', function(next) {
   next();
 });
 
-// Static method to find active tenants
+// Static method to find active tenants (excluding deleted)
 tenantSchema.statics.findActive = function() {
-  return this.find({ status: 'active' });
+  return this.find({ status: 'active', isDeleted: false });
 };
 
-// Static method to find tenants by subscription status
+// Static method to find tenants by subscription status (excluding deleted)
 tenantSchema.statics.findBySubscriptionStatus = function(status) {
-  return this.find({ 'subscription.status': status });
+  return this.find({ 'subscription.status': status, isDeleted: false });
 };
 
-// Static method to find tenants expiring soon
+// Static method to find tenants expiring soon (excluding deleted)
 tenantSchema.statics.findExpiringSoon = function(days = 7) {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() + days);
   
   return this.find({
     'subscription.status': 'active',
-    'subscription.endDate': { $lte: cutoffDate }
+    'subscription.endDate': { $lte: cutoffDate },
+    isDeleted: false
   });
+};
+
+// Static method to find all tenants including deleted ones
+tenantSchema.statics.findAllIncludingDeleted = function() {
+  return this.find({});
+};
+
+// Static method to find only deleted tenants
+tenantSchema.statics.findDeleted = function() {
+  return this.find({ isDeleted: true });
 };
 
 // Instance method to check feature access
@@ -316,6 +340,27 @@ tenantSchema.methods.generateVerificationToken = function() {
   this.verificationToken = crypto.randomBytes(32).toString('hex');
   this.verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
   return this.save();
+};
+
+// Instance method to soft delete tenant
+tenantSchema.methods.softDelete = function(deletedBy = null) {
+  this.isDeleted = true;
+  this.deletedAt = new Date();
+  this.deletedBy = deletedBy;
+  return this.save();
+};
+
+// Instance method to restore deleted tenant
+tenantSchema.methods.restore = function() {
+  this.isDeleted = false;
+  this.deletedAt = null;
+  this.deletedBy = null;
+  return this.save();
+};
+
+// Instance method to permanently delete tenant
+tenantSchema.methods.permanentDelete = function() {
+  return this.deleteOne();
 };
 
 module.exports = mongoose.model('Tenant', tenantSchema); 

@@ -1,58 +1,52 @@
-const UserRegistration = require('../models/UserRegistration');
 const User = require('../models/User');
-const UserDetails = require('../models/UserDetails');
-const TenantSchema = require('../models/TenantSchema');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
 /**
- * Register a new user
+ * Register a new user with multi-tenant support
  */
 exports.registerUser = async (req, res) => {
   try {
     const {
       email,
       password,
-      confirmPassword,
       firstName,
       lastName,
       phone,
       company,
-      jobTitle,
-      department,
-      industry,
-      companySize,
-      tenantId,
-      tenantDomain,
+      role,
       marketingConsent,
-      termsAccepted,
-      privacyPolicyAccepted,
-      utmSource,
-      utmMedium,
-      utmCampaign,
-      userAgent,
-      ipAddress,
-      deviceType
+      tenantSlug,  // New: Allow tenant selection
+      tenantId     // New: Alternative tenant identification
     } = req.body;
 
     // Validate required fields
-    if (!email || !password || !firstName || !lastName || !tenantId) {
+    if (!email || !password || !firstName || !lastName) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields'
+        message: 'Missing required fields: email, password, firstName, lastName'
       });
     }
 
-    // Check if passwords match
-    if (password !== confirmPassword) {
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
       return res.status(400).json({
         success: false,
-        message: 'Password confirmation does not match'
+        message: 'Invalid email format'
       });
     }
 
-    // Check if user already exists
-    const existingUser = await UserRegistration.findByEmail(email);
+    // Validate password strength
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Check if user already exists (globally)
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -60,58 +54,104 @@ exports.registerUser = async (req, res) => {
       });
     }
 
-    // Verify tenant exists
-    const tenant = await TenantSchema.findOne({ _id: tenantId });
-    if (!tenant) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid tenant'
+    // Multi-tenant logic: Find the correct tenant
+    let tenant;
+    
+    if (tenantId) {
+      // Direct tenant ID provided
+      tenant = await require('../models/Tenant').findOne({ 
+        _id: tenantId, 
+        status: 'active', 
+        isDeleted: false 
+      });
+    } else if (tenantSlug) {
+      // Tenant slug provided
+      tenant = await require('../models/Tenant').findOne({ 
+        slug: tenantSlug, 
+        status: 'active', 
+        isDeleted: false 
+      });
+    } else {
+      // Fallback to default tenant (for backward compatibility)
+      tenant = await require('../models/Tenant').findOne({ 
+        status: 'active', 
+        isDeleted: false 
       });
     }
 
-    // Create registration record
-    const registration = new UserRegistration({
-      email,
-      password,
-      confirmPassword,
+    if (!tenant) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or inactive tenant. Please provide a valid tenant slug or contact administrator.'
+      });
+    }
+
+    // Check if user already exists in this specific tenant
+    const existingTenantUser = await User.findOne({ 
+      email, 
+      tenantId: tenant._id 
+    });
+    
+    if (existingTenantUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists in this organization'
+      });
+    }
+
+    // Create user with tenant association
+    const user = new User({
+      tenantId: tenant._id,
       firstName,
       lastName,
+      email,
+      password,
+      role: role || 'user',
       phone,
       company,
-      jobTitle,
-      department,
-      industry,
-      companySize,
-      tenantId,
-      tenantDomain,
-      marketingConsent,
-      termsAccepted,
-      privacyPolicyAccepted,
-      utmSource,
-      utmMedium,
-      utmCampaign,
-      userAgent,
-      ipAddress,
-      deviceType,
-      registrationSource: req.headers['user-agent'] ? 'web' : 'api'
+      marketingConsent: marketingConsent || false,
+      isActive: true,
+      isVerified: true, // Skip email verification for now
+      lastLogin: new Date(),
+      registrationSource: 'api',
+      userAgent: req.headers['user-agent'],
+      ipAddress: req.ip,
+      deviceType: req.headers['user-agent']?.includes('Mobile') ? 'mobile' : 'desktop'
     });
 
-    // Generate email verification token
-    await registration.generateEmailVerificationToken();
+    await user.save();
 
-    // Save registration
-    await registration.save();
-
-    // Send verification email (implement email service)
-    // await sendVerificationEmail(registration.email, registration.emailVerificationToken);
+    // Generate JWT token with tenant information
+    const jwtToken = jwt.sign(
+      { 
+        userId: user._id, 
+        email: user.email, 
+        role: user.role, 
+        tenantId: user.tenantId,
+        tenantSlug: tenant.slug
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    );
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful. Please check your email to verify your account.',
+      message: 'User registered successfully',
       data: {
-        registrationId: registration._id,
-        email: registration.email,
-        status: registration.status
+        user: {
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          isActive: user.isActive,
+          tenant: {
+            id: tenant._id,
+            name: tenant.name,
+            slug: tenant.slug
+          }
+        },
+        token: jwtToken
       }
     });
 
@@ -132,8 +172,8 @@ exports.verifyEmail = async (req, res) => {
   try {
     const { token } = req.params;
 
-    const registration = await UserRegistration.findByEmailVerificationToken(token);
-    if (!registration) {
+    const user = await User.findOne({ emailVerificationToken: token });
+    if (!user) {
       return res.status(400).json({
         success: false,
         message: 'Invalid or expired verification token'
@@ -141,47 +181,22 @@ exports.verifyEmail = async (req, res) => {
     }
 
     // Verify email
-    await registration.verifyEmail();
-
-    // Create user account
-    const user = new User({
-      tenantId: registration.tenantId,
-      firstName: registration.firstName,
-      lastName: registration.lastName,
-      email: registration.email,
-      password: registration.password,
-      role: registration.role,
-      phone: registration.phone,
-      department: registration.department,
-      position: registration.jobTitle,
-      isActive: true
-    });
-
+    user.verifyEmail();
     await user.save();
 
-    // Create user details
-    const userDetails = new UserDetails({
-      userId: user._id,
-      // Copy relevant data from registration
-      phone: registration.phone,
-      company: registration.company,
-      jobTitle: registration.jobTitle,
-      department: registration.department,
-      industry: registration.industry,
-      companySize: registration.companySize
-    });
+    // Get tenant information
+    const tenant = await require('../models/Tenant').findById(user.tenantId);
 
-    await userDetails.save();
-
-    // Generate JWT token
+    // Generate JWT token with tenant information
     const jwtToken = jwt.sign(
       { 
         userId: user._id, 
         email: user.email, 
         role: user.role, 
-        tenantId: user.tenantId 
+        tenantId: user.tenantId,
+        tenantSlug: tenant?.slug
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
 
@@ -189,7 +204,14 @@ exports.verifyEmail = async (req, res) => {
       success: true,
       message: 'Email verified successfully',
       data: {
-        user: user.getPublicProfile(),
+        user: {
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          isActive: user.isActive
+        },
         token: jwtToken
       }
     });
@@ -211,15 +233,15 @@ exports.resendVerificationEmail = async (req, res) => {
   try {
     const { email } = req.body;
 
-    const registration = await UserRegistration.findByEmail(email);
-    if (!registration) {
+    const user = await User.findByEmail(email);
+    if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Registration not found'
+        message: 'User not found'
       });
     }
 
-    if (registration.emailVerified) {
+    if (user.isVerified) {
       return res.status(400).json({
         success: false,
         message: 'Email is already verified'
@@ -227,10 +249,11 @@ exports.resendVerificationEmail = async (req, res) => {
     }
 
     // Generate new verification token
-    await registration.generateEmailVerificationToken();
+    user.generateEmailVerificationToken();
+    await user.save();
 
-    // Send verification email
-    // await sendVerificationEmail(registration.email, registration.emailVerificationToken);
+    // Send verification email (implement email service)
+    // await sendVerificationEmail(user.email, user.emailVerificationToken);
 
     res.json({
       success: true,
@@ -248,213 +271,277 @@ exports.resendVerificationEmail = async (req, res) => {
 };
 
 /**
- * Get registration status
+ * Forgot password
  */
-exports.getRegistrationStatus = async (req, res) => {
+exports.forgotPassword = async (req, res) => {
   try {
-    const { registrationId } = req.params;
+    const { email } = req.body;
 
-    const registration = await UserRegistration.findById(registrationId);
-    if (!registration) {
+    const user = await User.findByEmail(email);
+    if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Registration not found'
+        message: 'User not found'
       });
     }
 
+    // Generate password reset token
+    user.generatePasswordResetToken();
+    await user.save();
+
+    // Send password reset email (implement email service)
+    // await sendPasswordResetEmail(user.email, user.passwordResetToken);
+
     res.json({
       success: true,
-      data: {
-        status: registration.status,
-        emailVerified: registration.emailVerified,
-        phoneVerified: registration.phoneVerified,
-        registrationStep: registration.registrationStep,
-        registrationCompleted: registration.registrationCompleted
-      }
+      message: 'Password reset email sent successfully'
     });
 
   } catch (error) {
-    console.error('Get registration status error:', error);
+    console.error('Forgot password error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get registration status',
+      message: 'Failed to send password reset email',
       error: error.message
     });
   }
 };
 
 /**
- * Update registration step
+ * Reset password
  */
-exports.updateRegistrationStep = async (req, res) => {
+exports.resetPassword = async (req, res) => {
   try {
-    const { registrationId } = req.params;
-    const { step, data } = req.body;
+    const { token } = req.params;
+    const { newPassword } = req.body;
 
-    const registration = await UserRegistration.findById(registrationId);
-    if (!registration) {
-      return res.status(404).json({
+    const user = await User.findOne({ passwordResetToken: token });
+    if (!user) {
+      return res.status(400).json({
         success: false,
-        message: 'Registration not found'
+        message: 'Invalid or expired reset token'
       });
     }
 
-    // Update registration with step data
-    Object.assign(registration, data);
-    registration.registrationStep = step;
-
-    if (step === 5) {
-      registration.registrationCompleted = true;
-    }
-
-    await registration.save();
+    // Reset password
+    user.resetPassword(newPassword);
+    await user.save();
 
     res.json({
       success: true,
-      message: 'Registration step updated successfully',
-      data: {
-        registrationStep: registration.registrationStep,
-        registrationCompleted: registration.registrationCompleted
-      }
+      message: 'Password reset successfully'
     });
 
   } catch (error) {
-    console.error('Update registration step error:', error);
+    console.error('Reset password error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update registration step',
+      message: 'Failed to reset password',
       error: error.message
     });
   }
 };
 
 /**
- * Get pending registrations (admin only)
+ * Get user profile
  */
-exports.getPendingRegistrations = async (req, res) => {
+exports.getProfile = async (req, res) => {
   try {
-    const { tenantId } = req.params;
-    const { page = 1, limit = 10, status } = req.query;
-
-    const query = { tenantId };
-    if (status) {
-      query.status = status;
+    const user = await User.findById(req.user.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
     }
-
-    const registrations = await UserRegistration.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .select('-password -confirmPassword');
-
-    const total = await UserRegistration.countDocuments(query);
 
     res.json({
       success: true,
-      data: {
-        registrations,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-        total
-      }
+      data: user
     });
 
   } catch (error) {
-    console.error('Get pending registrations error:', error);
+    console.error('Get profile error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get pending registrations',
+      message: 'Failed to get profile',
       error: error.message
     });
   }
 };
 
 /**
- * Approve registration (admin only)
+ * Update user profile
  */
-exports.approveRegistration = async (req, res) => {
+exports.updateProfile = async (req, res) => {
   try {
-    const { registrationId } = req.params;
-
-    const registration = await UserRegistration.findById(registrationId);
-    if (!registration) {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Registration not found'
+        message: 'User not found'
       });
     }
 
-    registration.status = 'active';
-    await registration.save();
-
-    // Create user account
-    const user = new User({
-      tenantId: registration.tenantId,
-      firstName: registration.firstName,
-      lastName: registration.lastName,
-      email: registration.email,
-      password: registration.password,
-      role: registration.role,
-      phone: registration.phone,
-      department: registration.department,
-      position: registration.jobTitle,
-      isActive: true
+    // Update allowed fields
+    const allowedFields = ['firstName', 'lastName', 'phone', 'company', 'jobTitle', 'department', 'bio', 'addresses', 'preferences'];
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        user[field] = req.body[field];
+      }
     });
 
     await user.save();
 
     res.json({
       success: true,
-      message: 'Registration approved successfully',
-      data: {
-        userId: user._id,
-        email: user.email
-      }
+      message: 'Profile updated successfully',
+      data: user
     });
 
   } catch (error) {
-    console.error('Approve registration error:', error);
+    console.error('Update profile error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to approve registration',
+      message: 'Failed to update profile',
       error: error.message
     });
   }
 };
 
 /**
- * Reject registration (admin only)
+ * Change password
  */
-exports.rejectRegistration = async (req, res) => {
+exports.changePassword = async (req, res) => {
   try {
-    const { registrationId } = req.params;
-    const { reason } = req.body;
+    const { currentPassword, newPassword } = req.body;
 
-    const registration = await UserRegistration.findById(registrationId);
-    if (!registration) {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Registration not found'
+        message: 'User not found'
       });
     }
 
-    registration.status = 'rejected';
-    registration.metadata.set('rejectionReason', reason);
-    await registration.save();
+    // Verify current password
+    const isPasswordValid = await user.comparePassword(currentPassword);
+    if (!isPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
 
     res.json({
       success: true,
-      message: 'Registration rejected successfully'
+      message: 'Password changed successfully'
     });
 
   } catch (error) {
-    console.error('Reject registration error:', error);
+    console.error('Change password error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to reject registration',
+      message: 'Failed to change password',
       error: error.message
     });
   }
 };
 
-module.exports = exports; 
+/**
+ * Login user
+ */
+exports.loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validate required fields
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email, isActive: true });
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
+
+    // Get tenant information
+    const tenant = await require('../models/Tenant').findById(user.tenantId);
+
+    // Generate JWT token with tenant information
+    const jwtToken = jwt.sign(
+      { 
+        userId: user._id, 
+        email: user.email, 
+        role: user.role, 
+        tenantId: user.tenantId,
+        tenantSlug: tenant?.slug
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        user: {
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          isActive: user.isActive,
+          isVerified: user.isVerified,
+          tenant: {
+            id: tenant?._id,
+            name: tenant?.name,
+            slug: tenant?.slug
+          }
+        },
+        token: jwtToken
+      }
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Login failed',
+      error: error.message
+    });
+  }
+};

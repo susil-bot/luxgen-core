@@ -31,7 +31,7 @@ class DatabaseManager {
         port: process.env.POSTGRES_PORT || 5432,
         database: process.env.POSTGRES_DB || 'trainer_platform',
         user: process.env.POSTGRES_USER || 'trainer_user',
-        password: process.env.POSTGRES_PASSWORD || 'trainer_password_2024',
+        password: process.env.POSTGRES_PASSWORD || '',
         max: 20, // Maximum number of clients in the pool
         min: 2,  // Minimum number of clients in the pool
         idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
@@ -73,37 +73,51 @@ class DatabaseManager {
 
       console.log('🔌 Connecting to MongoDB...');
       
-      const mongoUri = process.env.MONGODB_URL || 'mongodb://trainer_admin:mongo_password_2024@localhost:27017/trainer_platform?authSource=admin';
+      const mongoUri = process.env.MONGODB_URL || 'mongodb://localhost:27017/luxgen_trainer_platform';
       
       const connectionOptions = {
-        maxPoolSize: 10,
-        minPoolSize: 2,
-        serverSelectionTimeoutMS: 30000,
-        socketTimeoutMS: 45000,
+        maxPoolSize: 5,
+        minPoolSize: 1,
+        serverSelectionTimeoutMS: 60000,
+        socketTimeoutMS: 60000,
         bufferCommands: false,
-        maxIdleTimeMS: 30000,
+        maxIdleTimeMS: 60000,
         retryWrites: true,
         w: 'majority',
         readPreference: 'primary',
-        heartbeatFrequencyMS: 10000,
-        family: 4
+        heartbeatFrequencyMS: 30000,
+        family: 4,
+        connectTimeoutMS: 60000,
+        serverApi: {
+          version: '1',
+          strict: true,
+          deprecationErrors: true,
+        }
       };
 
-      const connection = await mongoose.connect(mongoUri, connectionOptions);
-      
+      const connection = await mongoose.connect(mongoUri, {
+        ...connectionOptions,
+        dbName: 'luxgen_trainer_platform'
+      });
+
       this.connections.mongodb.connection = connection;
       this.connections.mongodb.isConnected = true;
 
       console.log('✅ MongoDB connected successfully');
 
       // Set up event handlers
-      mongoose.connection.on('error', (err) => {
-        console.error('❌ MongoDB connection error:', err);
+      mongoose.connection.on('disconnected', () => {
+        console.log('⚠️ MongoDB disconnected');
         this.connections.mongodb.isConnected = false;
       });
 
-      mongoose.connection.on('disconnected', () => {
-        console.log('⚠️ MongoDB disconnected');
+      mongoose.connection.on('reconnected', () => {
+        console.log('✅ MongoDB reconnected');
+        this.connections.mongodb.isConnected = true;
+      });
+
+      mongoose.connection.on('close', () => {
+        console.log('🔌 MongoDB connection closed');
         this.connections.mongodb.isConnected = false;
       });
 
@@ -124,16 +138,35 @@ class DatabaseManager {
 
       console.log('🔌 Connecting to Redis...');
       
+      const redisUrl = process.env.REDIS_URL || `redis://${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || 6379}`;
+      
       const client = Redis.createClient({
-        url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
-        socket: {
-          connectTimeout: 10000,
-          lazyConnect: true
+        url: redisUrl,
+        password: process.env.REDIS_PASSWORD || undefined,
+        retry_strategy: (options) => {
+          if (options.error && options.error.code === 'ECONNREFUSED') {
+            return new Error('The server refused the connection');
+          }
+          if (options.total_retry_time > 1000 * 60 * 60) {
+            return new Error('Retry time exhausted');
+          }
+          if (options.attempt > 10) {
+            return undefined;
+          }
+          return Math.min(options.attempt * 100, 3000);
         }
       });
 
+      await client.connect();
+
+      this.connections.redis.client = client;
+      this.connections.redis.isConnected = true;
+
+      console.log('✅ Redis connected successfully');
+
+      // Set up event handlers
       client.on('error', (err) => {
-        console.error('❌ Redis error:', err);
+        console.error('⚠️ Redis disconnected:', err);
         this.connections.redis.isConnected = false;
       });
 
@@ -142,14 +175,6 @@ class DatabaseManager {
         this.connections.redis.isConnected = true;
       });
 
-      client.on('disconnect', () => {
-        console.log('⚠️ Redis disconnected');
-        this.connections.redis.isConnected = false;
-      });
-
-      await client.connect();
-      
-      this.connections.redis.client = client;
       return client;
     } catch (error) {
       console.error('❌ Failed to connect to Redis:', error.message);
@@ -157,46 +182,43 @@ class DatabaseManager {
     }
   }
 
-  // Initialize all databases
+  // Initialize all database connections
   async initialize() {
-    console.log('🚀 Initializing database connections...');
-    
     try {
-      // Connect to all databases in parallel
-      const [postgresPool, mongoConnection, redisClient] = await Promise.allSettled([
-        this.connectPostgres(),
-        this.connectMongoDB(),
-        this.connectRedis()
-      ]);
-
-      // Log connection results
-      if (postgresPool.status === 'fulfilled') {
+      console.log('🚀 Initializing database connections...');
+      
+      // Connect to PostgreSQL
+      try {
+        await this.connectPostgres();
         console.log('✅ PostgreSQL: Connected');
-      } else {
-        console.error('❌ PostgreSQL: Failed to connect');
+      } catch (error) {
+        console.log('❌ PostgreSQL: Failed to connect');
       }
-
-      if (mongoConnection.status === 'fulfilled') {
+      
+      // Connect to MongoDB
+      try {
+        await this.connectMongoDB();
         console.log('✅ MongoDB: Connected');
-      } else {
-        console.error('❌ MongoDB: Failed to connect');
+      } catch (error) {
+        console.log('❌ MongoDB: Failed to connect');
       }
-
-      if (redisClient.status === 'fulfilled') {
+      
+      // Connect to Redis
+      try {
+        await this.connectRedis();
         console.log('✅ Redis: Connected');
-      } else {
-        console.error('❌ Redis: Failed to connect');
+      } catch (error) {
+        console.log('❌ Redis: Failed to connect');
       }
-
+      
+      console.log('🎉 Database initialization completed');
+      
       // Start health monitoring
       this.startHealthCheck();
-
-      // Set up graceful shutdown
-      this.setupGracefulShutdown();
-
-      console.log('🎉 Database initialization completed');
+      
+      return true;
     } catch (error) {
-      console.error('💥 Database initialization failed:', error);
+      console.error('❌ Database initialization failed:', error.message);
       throw error;
     }
   }
@@ -204,54 +226,57 @@ class DatabaseManager {
   // Health check for all databases
   async healthCheck() {
     const health = {
-      timestamp: new Date().toISOString(),
-      postgres: { status: 'unknown', message: '' },
-      mongodb: { status: 'unknown', message: '' },
-      redis: { status: 'unknown', message: '' }
+      postgres: { status: 'unknown', error: null },
+      mongodb: { status: 'unknown', error: null },
+      redis: { status: 'unknown', error: null },
+      timestamp: new Date().toISOString()
     };
 
     // Check PostgreSQL
-    try {
-      if (this.connections.postgres.isConnected && this.connections.postgres.pool) {
+    if (this.connections.postgres.isConnected && this.connections.postgres.pool) {
+      try {
         const client = await this.connections.postgres.pool.connect();
         await client.query('SELECT 1');
         client.release();
-        health.postgres = { status: 'healthy', message: 'Connection OK' };
-      } else {
-        health.postgres = { status: 'disconnected', message: 'Not connected' };
+        health.postgres.status = 'healthy';
+      } catch (error) {
+        health.postgres.status = 'unhealthy';
+        health.postgres.error = error.message;
       }
-    } catch (error) {
-      health.postgres = { status: 'unhealthy', message: error.message };
+    } else {
+      health.postgres.status = 'disconnected';
     }
 
     // Check MongoDB
-    try {
-      if (this.connections.mongodb.isConnected) {
-        await mongoose.connection.db.admin().ping();
-        health.mongodb = { status: 'healthy', message: 'Connection OK' };
-      } else {
-        health.mongodb = { status: 'disconnected', message: 'Not connected' };
+    if (this.connections.mongodb.isConnected && this.connections.mongodb.connection) {
+      try {
+        await this.connections.mongodb.connection.db.admin().ping();
+        health.mongodb.status = 'healthy';
+      } catch (error) {
+        health.mongodb.status = 'unhealthy';
+        health.mongodb.error = error.message;
       }
-    } catch (error) {
-      health.mongodb = { status: 'unhealthy', message: error.message };
+    } else {
+      health.mongodb.status = 'disconnected';
     }
 
     // Check Redis
-    try {
-      if (this.connections.redis.isConnected && this.connections.redis.client) {
+    if (this.connections.redis.isConnected && this.connections.redis.client) {
+      try {
         await this.connections.redis.client.ping();
-        health.redis = { status: 'healthy', message: 'Connection OK' };
-      } else {
-        health.redis = { status: 'disconnected', message: 'Not connected' };
+        health.redis.status = 'healthy';
+      } catch (error) {
+        health.redis.status = 'unhealthy';
+        health.redis.error = error.message;
       }
-    } catch (error) {
-      health.redis = { status: 'unhealthy', message: error.message };
+    } else {
+      health.redis.status = 'disconnected';
     }
 
     return health;
   }
 
-  // Start health check monitoring
+  // Start periodic health checks
   startHealthCheck() {
     if (this.healthCheckTimer) {
       clearInterval(this.healthCheckTimer);
@@ -260,10 +285,12 @@ class DatabaseManager {
     this.healthCheckTimer = setInterval(async () => {
       try {
         const health = await this.healthCheck();
-        const unhealthy = Object.values(health).filter(h => h.status === 'unhealthy');
+        const allHealthy = health.postgres.status === 'healthy' && 
+                          health.mongodb.status === 'healthy' && 
+                          health.redis.status === 'healthy';
         
-        if (unhealthy.length > 0) {
-          console.warn('⚠️ Database health check issues:', unhealthy);
+        if (!allHealthy) {
+          console.warn('⚠️ Database health check failed:', health);
         }
       } catch (error) {
         console.error('❌ Health check error:', error.message);
@@ -273,7 +300,7 @@ class DatabaseManager {
     console.log('🏥 Database health monitoring started');
   }
 
-  // Stop health check monitoring
+  // Stop health checks
   stopHealthCheck() {
     if (this.healthCheckTimer) {
       clearInterval(this.healthCheckTimer);
@@ -282,37 +309,39 @@ class DatabaseManager {
     }
   }
 
-  // Setup graceful shutdown
+  // Graceful shutdown
   setupGracefulShutdown() {
     const gracefulShutdown = async (signal) => {
       console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
       
       try {
+        // Stop health checks
         this.stopHealthCheck();
         
         // Close PostgreSQL connections
         if (this.connections.postgres.pool) {
           await this.connections.postgres.pool.end();
+          this.connections.postgres.isConnected = false;
           console.log('✅ PostgreSQL connections closed');
         }
         
         // Close MongoDB connection
         if (this.connections.mongodb.connection) {
-          await mongoose.disconnect();
+          await mongoose.connection.close();
+          this.connections.mongodb.isConnected = false;
           console.log('✅ MongoDB connection closed');
         }
         
         // Close Redis connection
         if (this.connections.redis.client) {
           await this.connections.redis.client.quit();
+          this.connections.redis.isConnected = false;
           console.log('✅ Redis connection closed');
         }
         
         console.log('✅ Graceful shutdown completed');
-        process.exit(0);
       } catch (error) {
         console.error('❌ Error during graceful shutdown:', error);
-        process.exit(1);
       }
     };
 
@@ -320,15 +349,17 @@ class DatabaseManager {
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   }
 
-  // Get database connections
+  // Get PostgreSQL pool
   getPostgresPool() {
     return this.connections.postgres.pool;
   }
 
+  // Get MongoDB connection
   getMongoConnection() {
     return this.connections.mongodb.connection;
   }
 
+  // Get Redis client
   getRedisClient() {
     return this.connections.redis.client;
   }
@@ -343,51 +374,48 @@ class DatabaseManager {
     };
   }
 
-  // Test all database connections
+  // Test all connections
   async testConnections() {
     const results = {
-      postgres: { success: false, message: '' },
-      mongodb: { success: false, message: '' },
-      redis: { success: false, message: '' }
+      postgres: { success: false, error: null },
+      mongodb: { success: false, error: null },
+      redis: { success: false, error: null }
     };
 
     // Test PostgreSQL
-    try {
-      if (this.connections.postgres.pool) {
+    if (this.connections.postgres.pool) {
+      try {
         const client = await this.connections.postgres.pool.connect();
         await client.query('SELECT version()');
         client.release();
-        results.postgres = { success: true, message: 'Connection test passed' };
+        results.postgres.success = true;
+      } catch (error) {
+        results.postgres.error = error.message;
       }
-    } catch (error) {
-      results.postgres = { success: false, message: error.message };
     }
 
     // Test MongoDB
-    try {
-      if (this.connections.mongodb.connection) {
-        await mongoose.connection.db.admin().ping();
-        results.mongodb = { success: true, message: 'Connection test passed' };
+    if (this.connections.mongodb.connection) {
+      try {
+        await this.connections.mongodb.connection.db.admin().ping();
+        results.mongodb.success = true;
+      } catch (error) {
+        results.mongodb.error = error.message;
       }
-    } catch (error) {
-      results.mongodb = { success: false, message: error.message };
     }
 
     // Test Redis
-    try {
-      if (this.connections.redis.client) {
+    if (this.connections.redis.client) {
+      try {
         await this.connections.redis.client.ping();
-        results.redis = { success: true, message: 'Connection test passed' };
+        results.redis.success = true;
+      } catch (error) {
+        results.redis.error = error.message;
       }
-    } catch (error) {
-      results.redis = { success: false, message: error.message };
     }
 
     return results;
   }
 }
 
-// Create singleton instance
-const databaseManager = new DatabaseManager();
-
-module.exports = databaseManager; 
+module.exports = new DatabaseManager(); 

@@ -7,8 +7,7 @@ const MONGODB_URL = process.env.MONGODB_URL || 'mongodb+srv://sobhanasusil064:<d
 // Import models
 const User = require('../src/models/User');
 const Tenant = require('../src/models/Tenant');
-const UserDetails = require('../src/models/UserDetails');
-const UserRegistration = require('../src/models/UserRegistration');
+
 const Poll = require('../src/models/Poll');
 const TenantSchema = require('../src/models/TenantSchema');
 
@@ -56,8 +55,7 @@ class MongoDBSetup {
       const collections = [
         'tenants',
         'users', 
-        'userdetails',
-        'userregistrations',
+
         'polls',
         'tenantschemas'
       ];

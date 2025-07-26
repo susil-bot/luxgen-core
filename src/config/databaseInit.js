@@ -43,32 +43,22 @@ class DatabaseInitializer {
   async runMigrations() {
     console.log('🔄 Running database migrations...');
     
-    const postgresPool = databaseManager.getPostgresPool();
     const mongoConnection = databaseManager.getMongoConnection();
     
-    if (!postgresPool || !mongoConnection) {
-      throw new Error('Database connections not available');
+    if (!mongoConnection) {
+      throw new Error('MongoDB connection not available');
     }
 
-    // Create migrations table if it doesn't exist
-    await this.createMigrationsTable(postgresPool);
-    
-    // Get applied migrations
-    const appliedMigrations = await this.getAppliedMigrations(postgresPool);
-    
     // Run pending migrations
     for (const migration of this.migrations) {
-      if (!appliedMigrations.includes(migration.name)) {
-        console.log(`📦 Running migration: ${migration.name}`);
-        
-        try {
-          await migration.up(postgresPool, mongoConnection);
-          await this.recordMigration(postgresPool, migration.name);
-          console.log(`✅ Migration completed: ${migration.name}`);
-        } catch (error) {
-          console.error(`❌ Migration failed: ${migration.name}`, error);
-          throw error;
-        }
+      console.log(`📦 Running migration: ${migration.name}`);
+      
+      try {
+        await migration.up(null, mongoConnection);
+        console.log(`✅ Migration completed: ${migration.name}`);
+      } catch (error) {
+        console.error(`❌ Migration failed: ${migration.name}`, error);
+        throw error;
       }
     }
     
@@ -116,13 +106,12 @@ class DatabaseInitializer {
   async runSeeders() {
     console.log('🌱 Running database seeders...');
     
-    const postgresPool = databaseManager.getPostgresPool();
     const mongoConnection = databaseManager.getMongoConnection();
     
     for (const seeder of this.seeders) {
       console.log(`🌱 Running seeder: ${seeder.name}`);
       try {
-        await seeder.run(postgresPool, mongoConnection);
+        await seeder.run(null, mongoConnection);
         console.log(`✅ Seeder completed: ${seeder.name}`);
       } catch (error) {
         console.error(`❌ Seeder failed: ${seeder.name}`, error);
@@ -135,167 +124,12 @@ class DatabaseInitializer {
 
   // Setup default migrations
   setupDefaultMigrations() {
-    // Users table migration
-    this.addMigration('create_users_table', async (pool) => {
-      const client = await pool.connect();
-      try {
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            email VARCHAR(255) UNIQUE NOT NULL,
-            password_hash VARCHAR(255) NOT NULL,
-            first_name VARCHAR(100),
-            last_name VARCHAR(100),
-            role VARCHAR(50) DEFAULT 'user',
-            tenant_id VARCHAR(100),
-            is_active BOOLEAN DEFAULT true,
-            email_verified BOOLEAN DEFAULT false,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          )
-        `);
-        
-        // Create indexes
-        await client.query('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');
-        await client.query('CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users(tenant_id)');
-        await client.query('CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)');
-      } finally {
-        client.release();
-      }
+    // MongoDB collections are created automatically, so we just ensure indexes exist
+    this.addMigration('setup_mongodb_indexes', async (pool, mongoConnection) => {
+      // Skip migration for now since MongoDB indexes are handled by Mongoose schemas
+      console.log('✅ MongoDB indexes will be created by Mongoose schemas');
     });
 
-    // Tenants table migration
-    this.addMigration('create_tenants_table', async (pool) => {
-      const client = await pool.connect();
-      try {
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS tenants (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            domain VARCHAR(255) UNIQUE NOT NULL,
-            subdomain VARCHAR(100) UNIQUE,
-            settings JSONB DEFAULT '{}',
-            is_active BOOLEAN DEFAULT true,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          )
-        `);
-        
-        // Create indexes
-        await client.query('CREATE INDEX IF NOT EXISTS idx_tenants_domain ON tenants(domain)');
-        await client.query('CREATE INDEX IF NOT EXISTS idx_tenants_subdomain ON tenants(subdomain)');
-      } finally {
-        client.release();
-      }
-    });
-
-    // Polls table migration
-    this.addMigration('create_polls_table', async (pool) => {
-      const client = await pool.connect();
-      try {
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS polls (
-            id SERIAL PRIMARY KEY,
-            title VARCHAR(255) NOT NULL,
-            description TEXT,
-            tenant_id VARCHAR(100) NOT NULL,
-            created_by INTEGER REFERENCES users(id),
-            poll_type VARCHAR(50) DEFAULT 'multiple_choice',
-            options JSONB NOT NULL,
-            is_active BOOLEAN DEFAULT true,
-            is_anonymous BOOLEAN DEFAULT false,
-            expires_at TIMESTAMP,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          )
-        `);
-        
-        // Create indexes
-        await client.query('CREATE INDEX IF NOT EXISTS idx_polls_tenant_id ON polls(tenant_id)');
-        await client.query('CREATE INDEX IF NOT EXISTS idx_polls_created_by ON polls(created_by)');
-        await client.query('CREATE INDEX IF NOT EXISTS idx_polls_is_active ON polls(is_active)');
-      } finally {
-        client.release();
-      }
-    });
-
-    // Poll responses table migration
-    this.addMigration('create_poll_responses_table', async (pool) => {
-      const client = await pool.connect();
-      try {
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS poll_responses (
-            id SERIAL PRIMARY KEY,
-            poll_id INTEGER REFERENCES polls(id) ON DELETE CASCADE,
-            user_id INTEGER REFERENCES users(id),
-            response JSONB NOT NULL,
-            ip_address INET,
-            user_agent TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          )
-        `);
-        
-        // Create indexes
-        await client.query('CREATE INDEX IF NOT EXISTS idx_poll_responses_poll_id ON poll_responses(poll_id)');
-        await client.query('CREATE INDEX IF NOT EXISTS idx_poll_responses_user_id ON poll_responses(user_id)');
-      } finally {
-        client.release();
-      }
-    });
-
-    // Sessions table migration
-    this.addMigration('create_sessions_table', async (pool) => {
-      const client = await pool.connect();
-      try {
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS sessions (
-            id SERIAL PRIMARY KEY,
-            session_id VARCHAR(255) UNIQUE NOT NULL,
-            user_id INTEGER REFERENCES users(id),
-            tenant_id VARCHAR(100),
-            data JSONB DEFAULT '{}',
-            expires_at TIMESTAMP NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          )
-        `);
-        
-        // Create indexes
-        await client.query('CREATE INDEX IF NOT EXISTS idx_sessions_session_id ON sessions(session_id)');
-        await client.query('CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)');
-        await client.query('CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at)');
-      } finally {
-        client.release();
-      }
-    });
-
-    // Audit log table migration
-    this.addMigration('create_audit_log_table', async (pool) => {
-      const client = await pool.connect();
-      try {
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS audit_log (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER REFERENCES users(id),
-            tenant_id VARCHAR(100),
-            action VARCHAR(100) NOT NULL,
-            resource_type VARCHAR(100),
-            resource_id VARCHAR(100),
-            details JSONB DEFAULT '{}',
-            ip_address INET,
-            user_agent TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          )
-        `);
-        
-        // Create indexes
-        await client.query('CREATE INDEX IF NOT EXISTS idx_audit_log_user_id ON audit_log(user_id)');
-        await client.query('CREATE INDEX IF NOT EXISTS idx_audit_log_tenant_id ON audit_log(tenant_id)');
-        await client.query('CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action)');
-        await client.query('CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log(created_at)');
-      } finally {
-        client.release();
-      }
-    });
   }
 
   // Setup default seeders

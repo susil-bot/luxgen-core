@@ -6,46 +6,27 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const { createDatabaseInitializer } = require('./config/databaseInit');
 const databaseManager = require('./config/database');
+const environmentConfig = require('./config/environment');
+const { errorHandler } = require('./utils/errors');
+const { cacheManager } = require('./utils/cache');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = environmentConfig.get('PORT', 3001);
 
 // Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: {
-    error: 'Too many requests from this IP, please try again later.',
-    retryAfter: '15 minutes'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+const limiter = rateLimit(environmentConfig.getRateLimitConfig());
 
 // Security middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
-  },
-  crossOriginEmbedderPolicy: false,
-}));
+app.use(helmet(environmentConfig.getSecurityConfig().helmet));
 
 // CORS configuration
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || ['http://localhost:3000', 'http://127.0.0.1:3000'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+app.use(cors(environmentConfig.getCORSConfig()));
 
 // Compression middleware
-app.use(compression());
+if (environmentConfig.get('ENABLE_COMPRESSION', true)) {
+  app.use(compression());
+}
 
 // Rate limiting
 app.use('/api/', limiter);
@@ -156,31 +137,9 @@ app.get('/api', (req, res) => {
   });
 });
 
-// Import routes
-const pollsRoutes = require('./routes/polls');
-const tenantRoutes = require('./routes/tenantRoutes');
-const tenantStylingRoutes = require('./routes/tenantStylingRoutes');
-const userRegistrationRoutes = require('./routes/userRegistrationRoutes');
-const userDetailsRoutes = require('./routes/userDetailsRoutes');
-const tenantSchemaRoutes = require('./routes/tenantSchemaRoutes');
-
-// Mount tenant routes BEFORE multi-tenancy middleware
-app.use('/api/tenants', tenantRoutes);
-app.use('/api/tenant-styling', tenantStylingRoutes);
-
-// Multi-tenancy middleware
-app.use('/api/:tenantId', (req, res, next) => {
-  const tenantId = req.params.tenantId;
-  req.tenantId = tenantId;
-  console.log(`Request for tenant: ${tenantId}`);
-  next();
-});
-
-// Mount other routes
-app.use('/api/polls', pollsRoutes);
-app.use('/api/user-registration', userRegistrationRoutes);
-app.use('/api/user-details', userDetailsRoutes);
-app.use('/api/tenant-schema', tenantSchemaRoutes);
+// Import and mount centralized API routes
+const apiRoutes = require('./routes/index');
+app.use('/', apiRoutes);
 
 // Tenant-specific routes
 app.get('/api/:tenantId/users', (req, res) => {
@@ -204,49 +163,7 @@ app.get('/api/:tenantId/courses', (req, res) => {
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  
-  // Log error details
-  console.error('Error details:', {
-    message: err.message,
-    stack: err.stack,
-    url: req.url,
-    method: req.method,
-    ip: req.ip,
-    userAgent: req.get('User-Agent'),
-    timestamp: new Date().toISOString()
-  });
-
-  // Determine error type and response
-  let statusCode = 500;
-  let errorMessage = 'Internal server error';
-
-  if (err.name === 'ValidationError') {
-    statusCode = 400;
-    errorMessage = 'Validation error';
-  } else if (err.name === 'UnauthorizedError') {
-    statusCode = 401;
-    errorMessage = 'Unauthorized';
-  } else if (err.name === 'ForbiddenError') {
-    statusCode = 403;
-    errorMessage = 'Forbidden';
-  } else if (err.name === 'NotFoundError') {
-    statusCode = 404;
-    errorMessage = 'Resource not found';
-  } else if (err.code === 'ECONNREFUSED') {
-    statusCode = 503;
-    errorMessage = 'Service temporarily unavailable';
-  }
-
-  res.status(statusCode).json({
-    error: errorMessage,
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
-    timestamp: new Date().toISOString(),
-    path: req.originalUrl,
-    method: req.method
-  });
-});
+app.use(errorHandler);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -264,12 +181,15 @@ async function startServer() {
     console.log('🚀 Starting Trainer Platform Backend...');
     console.log('='.repeat(60));
     
+    // Initialize cache
+    await cacheManager.connect();
+    
     // Initialize database with step-by-step process
     const dbInitializer = createDatabaseInitializer();
     await dbInitializer.initialize();
     
     // Start server
-    const server = app.listen(PORT, () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       console.log('\n' + '='.repeat(60));
       console.log('🎉 TRAINER PLATFORM BACKEND STARTED SUCCESSFULLY');
       console.log('='.repeat(60));
@@ -278,7 +198,8 @@ async function startServer() {
       console.log(`🔍 Detailed health: http://localhost:${PORT}/health/detailed`);
       console.log(`🗄️  Database status: http://localhost:${PORT}/api/database/status`);
       console.log(`🔗 API base: http://localhost:${PORT}/api`);
-      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🌐 External access: http://192.168.1.9:${PORT}`);
+      console.log(`🌍 Environment: ${environmentConfig.get('NODE_ENV', 'development')}`);
       console.log(`⏰ Started at: ${new Date().toISOString()}`);
       console.log('='.repeat(60));
     });
@@ -289,6 +210,9 @@ async function startServer() {
       
       server.close(async () => {
         try {
+          // Stop cache
+          await cacheManager.disconnect();
+          
           // Stop database health checks
           databaseManager.stopHealthCheck();
           

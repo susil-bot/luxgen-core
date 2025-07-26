@@ -1,234 +1,137 @@
-# LuxGen Core - Trainer Platform Backend API
+# 🚀 LuxGen Trainer Platform Backend
 
-A robust Node.js/Express backend API for the Trainer Platform, featuring multi-tenancy, user management, polling systems, and real-time analytics.
+A robust, scalable multi-tenant backend platform for training and learning management systems.
 
-## 🚀 Features
+## 📋 Quick Start
 
-- **Multi-Tenant Architecture**: Complete tenant isolation and management
-- **User Management**: Authentication, authorization, and profile management
-- **Polling System**: Create, distribute, and analyze polls and surveys
-- **Real-time Analytics**: Live data processing and insights
-- **MongoDB Integration**: NoSQL database with optimized schemas
-- **Redis Caching**: High-performance caching layer
-- **JWT Authentication**: Secure token-based authentication
-- **Email Integration**: Automated email notifications
-- **File Upload**: Secure file handling and storage
-- **API Documentation**: Comprehensive API documentation
-
-## 🏗️ Architecture
-
-```
-├── src/
-│   ├── config/          # Database and app configuration
-│   ├── controllers/     # Request handlers
-│   ├── middleware/      # Custom middleware
-│   ├── models/          # MongoDB schemas
-│   ├── routes/          # API routes
-│   ├── services/        # Business logic
-│   └── utils/           # Helper functions
-├── scripts/             # Database setup and utilities
-├── logs/               # Application logs
-└── tests/              # Test files
-```
-
-## 📋 Prerequisites
-
-- Node.js 18+ 
-- MongoDB Atlas account
-- Redis (optional, for caching)
-- npm or yarn
-
-## 🔧 Installation
-
-1. **Clone the repository**
 ```bash
-git clone https://github.com/susil-bot/luxgen-core.git
-cd luxgen-core
-```
-
-2. **Install dependencies**
-```bash
+# Install dependencies
 npm install
-```
 
-3. **Set up environment variables**
-```bash
-cp env.development .env
-# Edit .env with your configuration
-```
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your actual configuration values
 
-4. **Configure MongoDB**
-```bash
-# Update MONGODB_URL in .env with your Atlas connection string
-MONGODB_URL=mongodb+srv://username:password@cluster.mongodb.net/trainer_platform
-```
+# Start the server
+npm start
 
-5. **Set up the database**
-```bash
-node scripts/setup-mongodb.js
-```
-
-## 🚀 Quick Start
-
-### Development
-```bash
+# Or run in development mode
 npm run dev
 ```
 
-### Production
-```bash
-npm start
+## 🔒 Security Notice
+
+⚠️ **IMPORTANT**: Before running in production:
+1. Update all secrets in your `.env` file
+2. Use strong, unique passwords for all databases
+3. Enable HTTPS in production
+4. Review and configure security headers
+5. Set up proper logging and monitoring
+
+## 🌐 API Endpoints
+
+- **Health Check**: `http://localhost:3001/health`
+- **API Base**: `http://localhost:3001/api/v1`
+- **External Access**: `http://192.168.1.9:3001`
+
+## 📚 Documentation
+
+All documentation is organized in the `docs/` directory:
+
+### 🏗️ **Architecture & System Design**
+- [📁 Directory-Based Tenant System](./docs/DIRECTORY_BASED_TENANT_SYSTEM.md) - Complete guide to the tenant configuration system
+- [🏢 Multi-Tenant Architecture](./docs/MULTI_TENANT_ARCHITECTURE.md) - System architecture and design patterns
+- [🗄️ Database Setup](./docs/DATABASE_SETUP.md) - Database configuration and initialization
+
+### 🔧 **Development & Deployment**
+- [🚀 Deployment Guide](./docs/DEPLOYMENT.md) - Production deployment instructions
+- [📖 Project Documentation](./docs/README.md) - Detailed project overview and setup
+
+### 🎨 **Frontend Integration**
+- [🎯 Frontend Setup Guide](./docs/FRONTEND_SETUP_GUIDE.md) - Frontend integration instructions
+- [📡 Tenant Configuration Guide](./docs/TENANT_CONFIGURATION_GUIDE.md) - Tenant configuration system
+- [🔌 API Documentation](./docs/TENANT_API_DOCUMENTATION.md) - Complete API reference
+
+## 🏢 **Multi-Tenant Features**
+
+### **Directory-Based Configuration**
+Each tenant has its own directory with complete configuration:
+
+```
+src/tenants/
+├── demo-tenant/              # Demo tenant
+│   ├── config.js             # Tenant configuration
+│   ├── README.md             # Tenant documentation
+│   └── branding/             # Branding assets
+│       ├── logo.png
+│       ├── favicon.ico
+│       └── custom.css
+└── acme-corporation/         # Enterprise tenant
+    ├── config.js
+    ├── README.md
+    └── branding/
 ```
 
-### Testing
-```bash
-npm test
-```
+### **Tenant Identification Methods**
+- **Subdomain**: `demo-tenant.luxgen.com`
+- **Path**: `luxgen.com/tenant/demo-tenant`
+- **Header**: `X-Tenant-Slug: demo-tenant`
+- **Query**: `?tenant=demo-tenant`
+- **JWT Token**: Contains tenant information
 
-## 📊 Database Collections
+### **Key Features**
+- ✅ **Dynamic Tenant Loading** - Automatic configuration loading
+- ✅ **Feature Gates** - Enable/disable features per tenant
+- ✅ **Usage Limits** - Tenant-specific limits and quotas
+- ✅ **Custom Branding** - Logo, colors, CSS per tenant
+- ✅ **API Access Control** - Tenant-specific API access
+- ✅ **User Management** - Tenant-specific user administration
 
-- **tenants**: Multi-tenant organizations
-- **users**: User accounts and authentication
-- **userdetails**: Extended user profiles
-- **userregistrations**: Registration process
-- **polls**: Polling and feedback system
-- **tenantschemas**: Styling and branding
+## 🔧 **Technology Stack**
 
-## 🔌 API Endpoints
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: MongoDB (Mongoose)
+- **Authentication**: JWT
+- **Validation**: Joi
+- **Logging**: Winston
+- **Testing**: Jest
+- **Documentation**: Markdown
 
-### Authentication
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
-- `POST /api/auth/refresh` - Refresh token
+## 🚀 **Getting Started**
 
-### Tenants
-- `GET /api/tenants` - List tenants
-- `POST /api/tenants` - Create tenant
-- `GET /api/tenants/:id` - Get tenant details
-- `PUT /api/tenants/:id` - Update tenant
-- `DELETE /api/tenants/:id` - Delete tenant
+1. **Clone the repository**
+2. **Install dependencies**: `npm install`
+3. **Configure environment**: Copy `.env.example` to `.env` and update values
+4. **Set up database**: Follow [Database Setup Guide](./docs/DATABASE_SETUP.md)
+5. **Start the server**: `npm start`
+6. **Access the API**: `http://localhost:3001/api/v1`
 
-### Users
-- `GET /api/users` - List users
-- `POST /api/users` - Create user
-- `GET /api/users/:id` - Get user details
-- `PUT /api/users/:id` - Update user
-- `DELETE /api/users/:id` - Delete user
+## 📖 **Documentation Index**
 
-### Polls
-- `GET /api/polls` - List polls
-- `POST /api/polls` - Create poll
-- `GET /api/polls/:id` - Get poll details
-- `PUT /api/polls/:id` - Update poll
-- `DELETE /api/polls/:id` - Delete poll
-- `POST /api/polls/:id/responses` - Submit poll response
+| Document | Description |
+|----------|-------------|
+| [🏗️ Directory-Based Tenant System](./docs/DIRECTORY_BASED_TENANT_SYSTEM.md) | Complete guide to tenant configuration |
+| [🏢 Multi-Tenant Architecture](./docs/MULTI_TENANT_ARCHITECTURE.md) | System architecture and design |
+| [🗄️ Database Setup](./docs/DATABASE_SETUP.md) | Database configuration and setup |
+| [🚀 Deployment Guide](./docs/DEPLOYMENT.md) | Production deployment instructions |
+| [📖 Project Documentation](./docs/README.md) | Detailed project overview |
+| [🎯 Frontend Setup Guide](./docs/FRONTEND_SETUP_GUIDE.md) | Frontend integration guide |
+| [📡 Tenant Configuration Guide](./docs/TENANT_CONFIGURATION_GUIDE.md) | Tenant configuration system |
+| [🔌 API Documentation](./docs/TENANT_API_DOCUMENTATION.md) | Complete API reference |
 
-### User Details
-- `GET /api/user-details/:userId` - Get user details
-- `PUT /api/user-details/:userId` - Update user details
-- `POST /api/user-details/:userId/skills` - Add skill
-
-## 🔒 Security
-
-- JWT token authentication
-- Role-based access control (RBAC)
-- Multi-tenant data isolation
-- Input validation and sanitization
-- Rate limiting
-- CORS configuration
-
-## 📈 Performance
-
-- Connection pooling
-- Redis caching
-- Optimized database queries
-- Compression middleware
-- CDN integration
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-npm test
-
-# Run specific test
-npm test -- --grep "user registration"
-
-# Run with coverage
-npm run test:coverage
-```
-
-## 📝 Environment Variables
-
-```bash
-# Application
-NODE_ENV=development
-PORT=3001
-APP_NAME=LuxGen Core Backend
-
-# Database
-MONGODB_URL=mongodb+srv://username:password@cluster.mongodb.net/trainer_platform
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=trainer_platform
-POSTGRES_USER=trainer_user
-POSTGRES_PASSWORD=trainer_password_2024
-
-# Redis
-REDIS_URL=redis://localhost:6379
-
-# Authentication
-JWT_SECRET=your_jwt_secret_key
-JWT_EXPIRES_IN=24h
-
-# Email
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-
-# CORS
-CORS_ORIGIN=http://localhost:3000
-```
-
-## 🚀 Deployment
-
-### Docker
-```bash
-docker build -t luxgen-core .
-docker run -p 3001:3001 luxgen-core
-```
-
-### Render
-```bash
-# Deploy to Render using render.yaml
-```
-
-### Manual Deployment
-```bash
-npm run build
-npm start
-```
-
-## 📊 Monitoring
-
-- Health check endpoint: `GET /health`
-- Detailed health: `GET /health/detailed`
-- Database status: `GET /api/database/status`
-
-## 🤝 Contributing
+## 🤝 **Contributing**
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests
+4. Add tests if applicable
 5. Submit a pull request
 
-## 📄 License
+## 📄 **License**
 
 This project is licensed under the MIT License.
 
-## 🆘 Support
+---
 
-For support, email support@luxgen.com or create an issue in the repository.
+**For detailed documentation, please refer to the [docs/](./docs/) directory.** 

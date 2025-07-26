@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const tenantController = require('../controllers/tenantController');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const { validateTenantData } = require('../utils/validation');
+// const { validateTenantData } = require('../utils/validation');
 
 // Public routes (no authentication required)
 router.post('/create', tenantController.createTenant);
@@ -14,10 +14,12 @@ router.use(authenticateToken);
 // Tenant management routes
 router.get('/', requireAdmin, tenantController.getTenants);
 router.get('/stats', requireAdmin, tenantController.getAllTenantStats);
+router.get('/deleted', requireAdmin, tenantController.getDeletedTenants);
 router.get('/:id', requireAdmin, tenantController.getTenantById);
 router.get('/slug/:slug', requireAdmin, tenantController.getTenantBySlug);
 router.put('/:id', requireAdmin, tenantController.updateTenant);
 router.delete('/:id', requireAdmin, tenantController.deleteTenant);
+router.post('/:id/restore', requireAdmin, tenantController.restoreTenant);
 
 // Tenant verification routes
 router.post('/:id/resend-verification', requireAdmin, tenantController.resendVerification);
@@ -32,6 +34,44 @@ router.put('/:id/features', requireAdmin, tenantController.updateFeatures);
 router.get('/:id/stats', requireAdmin, tenantController.getTenantStats);
 
 // Bulk operations (admin only)
+router.post('/bulk/restore', requireAdmin, async (req, res) => {
+  try {
+    const { tenantIds } = req.body;
+    
+    if (!tenantIds || !Array.isArray(tenantIds) || tenantIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tenant IDs array is required'
+      });
+    }
+
+    const result = await Tenant.updateMany(
+      { _id: { $in: tenantIds }, isDeleted: true },
+      { 
+        isDeleted: false, 
+        deletedAt: null,
+        deletedBy: null
+      }
+    );
+
+    res.json({
+      success: true,
+      message: `Restored ${result.modifiedCount} tenants`,
+      data: {
+        restored: result.modifiedCount
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in bulk restore:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to perform bulk restore',
+      error: error.message
+    });
+  }
+});
+
 router.post('/bulk/update', requireAdmin, async (req, res) => {
   try {
     const { tenantIds, updates } = req.body;
@@ -44,7 +84,7 @@ router.post('/bulk/update', requireAdmin, async (req, res) => {
     }
 
     const result = await Tenant.updateMany(
-      { _id: { $in: tenantIds } },
+      { _id: { $in: tenantIds }, isDeleted: false },
       updates,
       { runValidators: true }
     );
@@ -70,7 +110,7 @@ router.post('/bulk/update', requireAdmin, async (req, res) => {
 
 router.post('/bulk/delete', requireAdmin, async (req, res) => {
   try {
-    const { tenantIds } = req.body;
+    const { tenantIds, permanent = false } = req.body;
     
     if (!tenantIds || !Array.isArray(tenantIds) || tenantIds.length === 0) {
       return res.status(400).json({
@@ -79,15 +119,36 @@ router.post('/bulk/delete', requireAdmin, async (req, res) => {
       });
     }
 
-    const result = await Tenant.deleteMany({ _id: { $in: tenantIds } });
+    if (permanent) {
+      // Permanent deletion
+      const result = await Tenant.deleteMany({ _id: { $in: tenantIds } });
+      
+      res.json({
+        success: true,
+        message: `Permanently deleted ${result.deletedCount} tenants`,
+        data: {
+          deleted: result.deletedCount
+        }
+      });
+    } else {
+      // Soft deletion
+      const result = await Tenant.updateMany(
+        { _id: { $in: tenantIds }, isDeleted: false },
+        { 
+          isDeleted: true, 
+          deletedAt: new Date(),
+          deletedBy: req.user.id
+        }
+      );
 
-    res.json({
-      success: true,
-      message: `Deleted ${result.deletedCount} tenants`,
-      data: {
-        deleted: result.deletedCount
-      }
-    });
+      res.json({
+        success: true,
+        message: `Soft deleted ${result.modifiedCount} tenants`,
+        data: {
+          deleted: result.modifiedCount
+        }
+      });
+    }
 
   } catch (error) {
     console.error('Error in bulk delete:', error);
@@ -102,10 +163,13 @@ router.post('/bulk/delete', requireAdmin, async (req, res) => {
 // Export tenants (admin only)
 router.get('/export/csv', requireAdmin, async (req, res) => {
   try {
-    const { status, subscriptionStatus, industry } = req.query;
+    const { status, subscriptionStatus, industry, includeDeleted = false } = req.query;
     
     // Build filter
     const filter = {};
+    if (includeDeleted !== 'true') {
+      filter.isDeleted = false;
+    }
     if (status) filter.status = status;
     if (subscriptionStatus) filter['subscription.status'] = subscriptionStatus;
     if (industry) filter.industry = industry;
@@ -122,6 +186,8 @@ router.get('/export/csv', requireAdmin, async (req, res) => {
       'Contact Email',
       'Status',
       'Verified',
+      'Is Deleted',
+      'Deleted At',
       'Industry',
       'Company Size',
       'Subscription Plan',
@@ -137,6 +203,8 @@ router.get('/export/csv', requireAdmin, async (req, res) => {
       tenant.contactEmail,
       tenant.status,
       tenant.isVerified,
+      tenant.isDeleted || false,
+      tenant.deletedAt || '',
       `"${tenant.industry || ''}"`,
       tenant.companySize || '',
       tenant.subscription?.plan || '',
@@ -173,6 +241,7 @@ router.get('/search/advanced', requireAdmin, async (req, res) => {
       dateFrom,
       dateTo,
       verified,
+      includeDeleted = false,
       sortBy = 'createdAt',
       sortOrder = 'desc',
       page = 1,
@@ -181,6 +250,11 @@ router.get('/search/advanced', requireAdmin, async (req, res) => {
 
     // Build filter
     const filter = {};
+    
+    // By default, exclude deleted tenants unless explicitly requested
+    if (includeDeleted !== 'true') {
+      filter.isDeleted = false;
+    }
     
     if (status) filter.status = status;
     if (subscriptionStatus) filter['subscription.status'] = subscriptionStatus;

@@ -1,0 +1,136 @@
+/* Demo Tenant Custom CSS */
+
+/* Custom color variables */
+:root {
+  --demo-primary-color: #007bff;
+  --demo-secondary-color: #6c757d;
+  --demo-accent-color: #28a745;
+  --demo-background-color: #f8f9fa;
+  --demo-text-color: #212529;
+}
+
+/* Custom header styling */
+.demo-header {
+  background: linear-gradient(135deg, var(--demo-primary-color) 0%, var(--demo-accent-color) 100%);
+  color: white;
+  padding: 1rem 0;
+}
+
+.demo-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Custom button styling */
+.demo-btn-primary {
+  background-color: var(--demo-primary-color);
+  border-color: var(--demo-primary-color);
+  color: white;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.demo-btn-primary:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* Custom card styling */
+.demo-card {
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.demo-card:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+}
+
+/* Custom form styling */
+.demo-form input,
+.demo-form select,
+.demo-form textarea {
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.75rem;
+  transition: border-color 0.3s ease;
+}
+
+.demo-form input:focus,
+.demo-form select:focus,
+.demo-form textarea:focus {
+  border-color: var(--demo-primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  outline: none;
+}
+
+/* Custom navigation */
+.demo-nav {
+  background-color: white;
+  border-bottom: 2px solid var(--demo-primary-color);
+}
+
+.demo-nav .nav-link {
+  color: var(--demo-text-color);
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.demo-nav .nav-link:hover,
+.demo-nav .nav-link.active {
+  color: var(--demo-primary-color);
+}
+
+/* Custom footer */
+.demo-footer {
+  background-color: var(--demo-secondary-color);
+  color: white;
+  padding: 2rem 0;
+  margin-top: 3rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .demo-header h1 {
+    font-size: 1.2rem;
+  }
+  
+  .demo-card {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Animation classes */
+.demo-fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.demo-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+} 

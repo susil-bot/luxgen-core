@@ -69,7 +69,7 @@ const authenticateToken = async (req, res, next) => {
 
     // Get user from database
     const user = await getUserById(decoded.userId);
-    if (!user || !user.is_active) {
+    if (!user || !user.isActive) {
       throw new AuthenticationError('User not found or inactive');
     }
 
@@ -109,7 +109,7 @@ const optionalAuth = async (req, res, next) => {
       });
 
       const user = await getUserById(decoded.userId);
-      if (user && user.is_active) {
+      if (user && user.isActive) {
         req.user = user;
         req.token = token;
         req.tokenPayload = decoded;
@@ -290,7 +290,7 @@ const refreshToken = async (req, res, next) => {
 
     // Get user from database
     const user = await getUserById(decoded.userId);
-    if (!user || !user.is_active) {
+    if (!user || !user.isActive) {
       throw new AuthenticationError('User not found or inactive');
     }
 
@@ -327,20 +327,13 @@ const logout = async (req, res, next) => {
 
 // Database helper functions
 async function getUserById(userId) {
-  const pool = databaseManager.getPostgresPool();
-  if (!pool) {
-    throw new Error('Database connection not available');
-  }
-
-  const client = await pool.connect();
   try {
-    const result = await client.query(
-      'SELECT id, email, first_name, last_name, role, tenant_id, is_active, email_verified FROM users WHERE id = $1',
-      [userId]
-    );
-    return result.rows[0] || null;
-  } finally {
-    client.release();
+    const User = require('../models/User');
+    const user = await User.findById(userId).select('-password');
+    return user;
+  } catch (error) {
+    console.error('Error getting user by ID:', error);
+    return null;
   }
 }
 
