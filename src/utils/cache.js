@@ -21,7 +21,7 @@ class CacheManager {
 
       const redisConfig = environmentConfig.getDatabaseConfig().redis;
       
-      this.client = Redis.createClient(redisConfig.options);
+      this.client = Redis.createClient(redisConfig);
       
       this.client.on('error', (err) => {
         console.error('❌ Redis cache error:', err);
@@ -42,8 +42,15 @@ class CacheManager {
       return this.client;
     } catch (error) {
       console.error('❌ Failed to connect to Redis cache:', error.message);
-      this.isConnected = false;
-      return null;
+      if (process.env.NODE_ENV === 'development') {
+        console.log('⚠️ Redis cache is optional for development - continuing without cache');
+        this.isConnected = false;
+        this.client = null;
+        return null;
+      } else {
+        this.isConnected = false;
+        return null;
+      }
     }
   }
 

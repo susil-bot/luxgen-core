@@ -1,7 +1,8 @@
+// const { validateTenantData } = require('../utils/validation');
 const Tenant = require('../models/Tenant');
-const { validateTenantData } = require('../utils/validation');
-const emailService = require('../services/emailService');
+const { emailService } = require('../services/emailService');
 const { generateSlug } = require('../utils/helpers');
+const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
 
 // Create a new tenant
 const createTenant = async (req, res) => {

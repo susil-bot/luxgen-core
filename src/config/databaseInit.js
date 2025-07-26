@@ -46,7 +46,12 @@ class DatabaseInitializer {
     const mongoConnection = databaseManager.getMongoConnection();
     
     if (!mongoConnection) {
-      throw new Error('MongoDB connection not available');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('⚠️ MongoDB is optional for development - skipping migrations');
+        return;
+      } else {
+        throw new Error('MongoDB connection not available');
+      }
     }
 
     // Run pending migrations
@@ -58,7 +63,11 @@ class DatabaseInitializer {
         console.log(`✅ Migration completed: ${migration.name}`);
       } catch (error) {
         console.error(`❌ Migration failed: ${migration.name}`, error);
-        throw error;
+        if (process.env.NODE_ENV === 'development') {
+          console.log('⚠️ Continuing despite migration failure in development');
+        } else {
+          throw error;
+        }
       }
     }
     
@@ -108,6 +117,15 @@ class DatabaseInitializer {
     
     const mongoConnection = databaseManager.getMongoConnection();
     
+    if (!mongoConnection) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('⚠️ MongoDB is optional for development - skipping seeders');
+        return;
+      } else {
+        throw new Error('MongoDB connection not available');
+      }
+    }
+    
     for (const seeder of this.seeders) {
       console.log(`🌱 Running seeder: ${seeder.name}`);
       try {
@@ -115,7 +133,11 @@ class DatabaseInitializer {
         console.log(`✅ Seeder completed: ${seeder.name}`);
       } catch (error) {
         console.error(`❌ Seeder failed: ${seeder.name}`, error);
-        throw error;
+        if (process.env.NODE_ENV === 'development') {
+          console.log('⚠️ Continuing despite seeder failure in development');
+        } else {
+          throw error;
+        }
       }
     }
     

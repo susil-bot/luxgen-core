@@ -178,7 +178,14 @@ class DatabaseManager {
       return client;
     } catch (error) {
       console.error('❌ Failed to connect to Redis:', error.message);
-      throw error;
+      if (process.env.NODE_ENV === 'development') {
+        console.log('⚠️ Redis is optional for development - continuing without Redis');
+        this.connections.redis.isConnected = false;
+        this.connections.redis.client = null;
+        return null;
+      } else {
+        throw error;
+      }
     }
   }
 
