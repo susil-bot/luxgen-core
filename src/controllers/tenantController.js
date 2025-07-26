@@ -1,0 +1,622 @@
+const Tenant = require('../models/Tenant');
+const { validateTenantData } = require('../utils/validation');
+const { sendVerificationEmail } = require('../services/emailService');
+const { generateSlug } = require('../utils/helpers');
+
+// Create a new tenant
+const createTenant = async (req, res) => {
+  try {
+    const tenantData = req.body;
+    
+    // Validate tenant data
+    const validation = validateTenantData(tenantData);
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: validation.errors
+      });
+    }
+
+    // Check if tenant with same email or slug already exists
+    const existingTenant = await Tenant.findOne({
+      $or: [
+        { contactEmail: tenantData.contactEmail },
+        { slug: tenantData.slug || generateSlug(tenantData.name) }
+      ]
+    });
+
+    if (existingTenant) {
+      return res.status(409).json({
+        success: false,
+        message: 'Tenant with this email or slug already exists'
+      });
+    }
+
+    // Generate slug if not provided
+    if (!tenantData.slug) {
+      tenantData.slug = generateSlug(tenantData.name);
+    }
+
+    // Set default values
+    tenantData.status = 'pending';
+    tenantData.isVerified = false;
+    tenantData.metadata = {
+      ...tenantData.metadata,
+      source: req.body.source || 'api'
+    };
+
+    // Create tenant
+    const tenant = new Tenant(tenantData);
+    await tenant.save();
+
+    // Generate verification token and send email
+    await tenant.generateVerificationToken();
+    await sendVerificationEmail(tenant.contactEmail, tenant.verificationToken);
+
+    res.status(201).json({
+      success: true,
+      message: 'Tenant created successfully',
+      data: {
+        id: tenant._id,
+        name: tenant.name,
+        slug: tenant.slug,
+        contactEmail: tenant.contactEmail,
+        status: tenant.status,
+        isVerified: tenant.isVerified,
+        subscription: tenant.subscription
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating tenant:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create tenant',
+      error: error.message
+    });
+  }
+};
+
+// Get all tenants (with pagination and filtering)
+const getTenants = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      subscriptionStatus,
+      industry,
+      companySize,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build filter object
+    const filter = {};
+    
+    if (status) filter.status = status;
+    if (subscriptionStatus) filter['subscription.status'] = subscriptionStatus;
+    if (industry) filter.industry = industry;
+    if (companySize) filter.companySize = companySize;
+    
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { contactEmail: { $regex: search, $options: 'i' } },
+        { slug: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Build sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+    // Execute query with pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const [tenants, total] = await Promise.all([
+      Tenant.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .select('-verificationToken -verificationExpires'),
+      Tenant.countDocuments(filter)
+    ]);
+
+    const totalPages = Math.ceil(total / parseInt(limit));
+
+    res.json({
+      success: true,
+      data: tenants,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching tenants:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tenants',
+      error: error.message
+    });
+  }
+};
+
+// Get tenant by ID
+const getTenantById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const tenant = await Tenant.findById(id)
+      .select('-verificationToken -verificationExpires');
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: tenant
+    });
+
+  } catch (error) {
+    console.error('Error fetching tenant:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tenant',
+      error: error.message
+    });
+  }
+};
+
+// Get tenant by slug
+const getTenantBySlug = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    
+    const tenant = await Tenant.findOne({ slug })
+      .select('-verificationToken -verificationExpires');
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: tenant
+    });
+
+  } catch (error) {
+    console.error('Error fetching tenant:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tenant',
+      error: error.message
+    });
+  }
+};
+
+// Update tenant
+const updateTenant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    // Validate update data
+    const validation = validateTenantData(updateData, true);
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: validation.errors
+      });
+    }
+
+    // Check if slug is being updated and if it's unique
+    if (updateData.slug) {
+      const existingTenant = await Tenant.findOne({ 
+        slug: updateData.slug, 
+        _id: { $ne: id } 
+      });
+      
+      if (existingTenant) {
+        return res.status(409).json({
+          success: false,
+          message: 'Tenant with this slug already exists'
+        });
+      }
+    }
+
+    const tenant = await Tenant.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-verificationToken -verificationExpires');
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Tenant updated successfully',
+      data: tenant
+    });
+
+  } catch (error) {
+    console.error('Error updating tenant:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update tenant',
+      error: error.message
+    });
+  }
+};
+
+// Delete tenant
+const deleteTenant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const tenant = await Tenant.findByIdAndDelete(id);
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Tenant deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting tenant:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete tenant',
+      error: error.message
+    });
+  }
+};
+
+// Verify tenant
+const verifyTenant = async (req, res) => {
+  try {
+    const { token } = req.params;
+    
+    const tenant = await Tenant.findOne({
+      verificationToken: token,
+      verificationExpires: { $gt: new Date() }
+    });
+
+    if (!tenant) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired verification token'
+      });
+    }
+
+    await tenant.verify();
+
+    res.json({
+      success: true,
+      message: 'Tenant verified successfully',
+      data: {
+        id: tenant._id,
+        name: tenant.name,
+        slug: tenant.slug,
+        isVerified: tenant.isVerified
+      }
+    });
+
+  } catch (error) {
+    console.error('Error verifying tenant:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify tenant',
+      error: error.message
+    });
+  }
+};
+
+// Resend verification email
+const resendVerification = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const tenant = await Tenant.findById(id);
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found'
+      });
+    }
+
+    if (tenant.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tenant is already verified'
+      });
+    }
+
+    await tenant.generateVerificationToken();
+    await sendVerificationEmail(tenant.contactEmail, tenant.verificationToken);
+
+    res.json({
+      success: true,
+      message: 'Verification email sent successfully'
+    });
+
+  } catch (error) {
+    console.error('Error resending verification:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to resend verification email',
+      error: error.message
+    });
+  }
+};
+
+// Update subscription
+const updateSubscription = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const subscriptionData = req.body;
+    
+    const tenant = await Tenant.findById(id);
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found'
+      });
+    }
+
+    // Update subscription data
+    tenant.subscription = {
+      ...tenant.subscription,
+      ...subscriptionData
+    };
+
+    // If changing to active plan, set end date
+    if (subscriptionData.status === 'active' && subscriptionData.billingCycle) {
+      const endDate = new Date();
+      if (subscriptionData.billingCycle === 'monthly') {
+        endDate.setMonth(endDate.getMonth() + 1);
+      } else if (subscriptionData.billingCycle === 'yearly') {
+        endDate.setFullYear(endDate.getFullYear() + 1);
+      }
+      tenant.subscription.endDate = endDate;
+    }
+
+    await tenant.save();
+
+    res.json({
+      success: true,
+      message: 'Subscription updated successfully',
+      data: {
+        id: tenant._id,
+        subscription: tenant.subscription
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating subscription:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update subscription',
+      error: error.message
+    });
+  }
+};
+
+// Update features
+const updateFeatures = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const featuresData = req.body;
+    
+    const tenant = await Tenant.findById(id);
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found'
+      });
+    }
+
+    // Update features
+    tenant.features = {
+      ...tenant.features,
+      ...featuresData
+    };
+
+    await tenant.save();
+
+    res.json({
+      success: true,
+      message: 'Features updated successfully',
+      data: {
+        id: tenant._id,
+        features: tenant.features
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating features:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update features',
+      error: error.message
+    });
+  }
+};
+
+// Get tenant statistics
+const getTenantStats = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const tenant = await Tenant.findById(id);
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found'
+      });
+    }
+
+    // Calculate additional statistics
+    const stats = {
+      basic: {
+        name: tenant.name,
+        slug: tenant.slug,
+        status: tenant.status,
+        isVerified: tenant.isVerified,
+        createdAt: tenant.createdAt,
+        lastActivity: tenant.usage.lastActivity
+      },
+      subscription: {
+        plan: tenant.subscription.plan,
+        status: tenant.subscription.status,
+        isActive: tenant.isSubscriptionActive,
+        isInTrial: tenant.isInTrial,
+        trialDaysRemaining: tenant.trialDaysRemaining,
+        startDate: tenant.subscription.startDate,
+        endDate: tenant.subscription.endDate
+      },
+      usage: tenant.usage,
+      features: {
+        polls: tenant.features.polls,
+        analytics: tenant.features.analytics,
+        integrations: tenant.features.integrations,
+        branding: tenant.features.branding
+      }
+    };
+
+    res.json({
+      success: true,
+      data: stats
+    });
+
+  } catch (error) {
+    console.error('Error fetching tenant stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tenant statistics',
+      error: error.message
+    });
+  }
+};
+
+// Get all tenant statistics (admin)
+const getAllTenantStats = async (req, res) => {
+  try {
+    const stats = await Tenant.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalTenants: { $sum: 1 },
+          activeTenants: {
+            $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] }
+          },
+          verifiedTenants: {
+            $sum: { $cond: ['$isVerified', 1, 0] }
+          },
+          totalPolls: { $sum: '$usage.pollsCreated' },
+          totalRecipients: { $sum: '$usage.totalRecipients' },
+          totalResponses: { $sum: '$usage.totalResponses' },
+          avgResponseRate: {
+            $avg: {
+              $cond: [
+                { $gt: ['$usage.totalRecipients', 0] },
+                { $divide: ['$usage.totalResponses', '$usage.totalRecipients'] },
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    const subscriptionStats = await Tenant.aggregate([
+      {
+        $group: {
+          _id: '$subscription.plan',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const industryStats = await Tenant.aggregate([
+      {
+        $match: { industry: { $exists: true, $ne: '' } }
+      },
+      {
+        $group: {
+          _id: '$industry',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      },
+      {
+        $limit: 10
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        overview: stats[0] || {},
+        subscriptions: subscriptionStats,
+        industries: industryStats
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching all tenant stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tenant statistics',
+      error: error.message
+    });
+  }
+};
+
+module.exports = {
+  createTenant,
+  getTenants,
+  getTenantById,
+  getTenantBySlug,
+  updateTenant,
+  deleteTenant,
+  verifyTenant,
+  resendVerification,
+  updateSubscription,
+  updateFeatures,
+  getTenantStats,
+  getAllTenantStats
+}; 
