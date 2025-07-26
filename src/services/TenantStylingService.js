@@ -1,14 +1,8 @@
-const { Pool } = require('pg');
+const Tenant = require('../models/Tenant');
 
 class TenantStylingService {
   constructor() {
-    this.pool = new Pool({
-      host: process.env.DB_HOST || '127.0.0.1',
-      port: parseInt(process.env.DB_PORT) || 5432,
-      database: process.env.DB_NAME || 'trainer_platform',
-      user: process.env.DB_USER || 'trainer_user',
-      password: process.env.DB_PASSWORD || 'trainer_password_2024',
-    });
+    // No database connection needed - uses Mongoose models
   }
 
   /**
@@ -16,18 +10,13 @@ class TenantStylingService {
    */
   async getTenantStyling(tenantId) {
     try {
-      const client = await this.pool.connect();
-      const result = await client.query(
-        'SELECT settings FROM tenants WHERE id = $1',
-        [tenantId]
-      );
-      client.release();
-
-      if (result.rows.length === 0) {
+      const tenant = await Tenant.findById(tenantId);
+      
+      if (!tenant) {
         return this.getDefaultStyling();
       }
 
-      const settings = result.rows[0].settings;
+      const settings = tenant.branding || {};
       return this.mergeWithDefaults(settings);
     } catch (error) {
       console.error('Error getting tenant styling:', error);
@@ -99,6 +88,19 @@ class TenantStylingService {
         lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
         xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
       },
+      animations: {
+        duration: {
+          fast: '150ms',
+          normal: '300ms',
+          slow: '500ms'
+        },
+        easing: {
+          linear: 'linear',
+          easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
+          easeOut: 'cubic-bezier(0, 0, 0.2, 1)',
+          easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)'
+        }
+      },
       components: {
         button: {
           primary: {
@@ -106,23 +108,15 @@ class TenantStylingService {
             textColor: '#FFFFFF',
             borderColor: '#3B82F6',
             hoverBackgroundColor: '#2563EB',
-            hoverTextColor: '#FFFFFF'
+            hoverBorderColor: '#2563EB'
           },
           secondary: {
-            backgroundColor: '#F3F4F6',
-            textColor: '#374151',
-            borderColor: '#D1D5DB',
-            hoverBackgroundColor: '#E5E7EB',
-            hoverTextColor: '#374151'
+            backgroundColor: '#6B7280',
+            textColor: '#FFFFFF',
+            borderColor: '#6B7280',
+            hoverBackgroundColor: '#4B5563',
+            hoverBorderColor: '#4B5563'
           }
-        },
-        input: {
-          backgroundColor: '#FFFFFF',
-          borderColor: '#D1D5DB',
-          textColor: '#111827',
-          placeholderColor: '#9CA3AF',
-          focusBorderColor: '#3B82F6',
-          focusRingColor: '#DBEAFE'
         },
         card: {
           backgroundColor: '#FFFFFF',
@@ -138,216 +132,169 @@ class TenantStylingService {
    */
   mergeWithDefaults(tenantSettings) {
     const defaults = this.getDefaultStyling();
-    
-    return {
-      branding: { ...defaults.branding, ...tenantSettings.branding },
-      typography: { ...defaults.typography, ...tenantSettings.typography },
-      spacing: { ...defaults.spacing, ...tenantSettings.spacing },
-      borderRadius: { ...defaults.borderRadius, ...tenantSettings.borderRadius },
-      shadows: { ...defaults.shadows, ...tenantSettings.shadows },
-      components: { ...defaults.components, ...tenantSettings.components }
-    };
+    return this.deepMerge(defaults, tenantSettings);
   }
 
   /**
-   * Generate CSS variables for tenant styling
+   * Generate CSS variables from styling configuration
    */
   generateCSSVariables(styling) {
-    const cssVars = [];
-
+    const variables = [];
+    
     // Branding colors
-    Object.entries(styling.branding).forEach(([key, value]) => {
-      if (typeof value === 'string' && value.startsWith('#')) {
-        cssVars.push(`--color-${key}: ${value};`);
-      }
-    });
+    if (styling.branding) {
+      Object.entries(styling.branding).forEach(([key, value]) => {
+        if (typeof value === 'string' && value.startsWith('#')) {
+          variables.push(`--color-${key}: ${value};`);
+        }
+      });
+    }
 
     // Typography
-    cssVars.push(`--font-family: ${styling.typography.fontFamily};`);
-    
-    Object.entries(styling.typography.fontSize).forEach(([key, value]) => {
-      cssVars.push(`--font-size-${key}: ${value};`);
-    });
-
-    Object.entries(styling.typography.fontWeight).forEach(([key, value]) => {
-      cssVars.push(`--font-weight-${key}: ${value};`);
-    });
+    if (styling.typography) {
+      if (styling.typography.fontFamily) {
+        variables.push(`--font-family: ${styling.typography.fontFamily};`);
+      }
+      
+      if (styling.typography.fontSize) {
+        Object.entries(styling.typography.fontSize).forEach(([key, value]) => {
+          variables.push(`--font-size-${key}: ${value};`);
+        });
+      }
+      
+      if (styling.typography.fontWeight) {
+        Object.entries(styling.typography.fontWeight).forEach(([key, value]) => {
+          variables.push(`--font-weight-${key}: ${value};`);
+        });
+      }
+    }
 
     // Spacing
-    Object.entries(styling.spacing).forEach(([key, value]) => {
-      cssVars.push(`--spacing-${key}: ${value};`);
-    });
+    if (styling.spacing) {
+      Object.entries(styling.spacing).forEach(([key, value]) => {
+        variables.push(`--spacing-${key}: ${value};`);
+      });
+    }
 
     // Border radius
-    Object.entries(styling.borderRadius).forEach(([key, value]) => {
-      cssVars.push(`--border-radius-${key}: ${value};`);
-    });
+    if (styling.borderRadius) {
+      Object.entries(styling.borderRadius).forEach(([key, value]) => {
+        variables.push(`--border-radius-${key}: ${value};`);
+      });
+    }
 
     // Shadows
-    Object.entries(styling.shadows).forEach(([key, value]) => {
-      cssVars.push(`--shadow-${key}: ${value};`);
-    });
-
-    // Component styles
-    Object.entries(styling.components).forEach(([component, styles]) => {
-      Object.entries(styles).forEach(([variant, variantStyles]) => {
-        Object.entries(variantStyles).forEach(([property, value]) => {
-          cssVars.push(`--${component}-${variant}-${property}: ${value};`);
-        });
+    if (styling.shadows) {
+      Object.entries(styling.shadows).forEach(([key, value]) => {
+        variables.push(`--shadow-${key}: ${value};`);
       });
-    });
+    }
 
-    return `:root {\n  ${cssVars.join('\n  ')}\n}`;
+    return `:root {\n  ${variables.join('\n  ')}\n}`;
   }
 
   /**
-   * Generate Tailwind CSS configuration for tenant
+   * Generate Tailwind config from styling
    */
   generateTailwindConfig(styling) {
     return {
       theme: {
         extend: {
-          colors: {
+          colors: styling.branding ? {
             primary: {
               50: this.generateColorShades(styling.branding.primaryColor, 50),
               100: this.generateColorShades(styling.branding.primaryColor, 100),
-              200: this.generateColorShades(styling.branding.primaryColor, 200),
-              300: this.generateColorShades(styling.branding.primaryColor, 300),
-              400: this.generateColorShades(styling.branding.primaryColor, 400),
               500: styling.branding.primaryColor,
               600: this.generateColorShades(styling.branding.primaryColor, 600),
               700: this.generateColorShades(styling.branding.primaryColor, 700),
-              800: this.generateColorShades(styling.branding.primaryColor, 800),
-              900: this.generateColorShades(styling.branding.primaryColor, 900),
+              900: this.generateColorShades(styling.branding.primaryColor, 900)
             },
             secondary: {
               50: this.generateColorShades(styling.branding.secondaryColor, 50),
               100: this.generateColorShades(styling.branding.secondaryColor, 100),
-              200: this.generateColorShades(styling.branding.secondaryColor, 200),
-              300: this.generateColorShades(styling.branding.secondaryColor, 300),
-              400: this.generateColorShades(styling.branding.secondaryColor, 400),
               500: styling.branding.secondaryColor,
               600: this.generateColorShades(styling.branding.secondaryColor, 600),
               700: this.generateColorShades(styling.branding.secondaryColor, 700),
-              800: this.generateColorShades(styling.branding.secondaryColor, 800),
-              900: this.generateColorShades(styling.branding.secondaryColor, 900),
-            },
-            accent: styling.branding.accentColor,
-            success: styling.branding.successColor,
-            warning: styling.branding.warningColor,
-            error: styling.branding.errorColor,
-            info: styling.branding.infoColor,
-          },
-          fontFamily: {
-            sans: styling.typography.fontFamily.split(', '),
-          },
-          fontSize: styling.typography.fontSize,
-          fontWeight: styling.typography.fontWeight,
-          spacing: styling.spacing,
-          borderRadius: styling.borderRadius,
-          boxShadow: styling.shadows,
-        },
-      },
+              900: this.generateColorShades(styling.branding.secondaryColor, 900)
+            }
+          } : {},
+          fontFamily: styling.typography?.fontFamily ? {
+            sans: styling.typography.fontFamily.split(', ').map(font => font.replace(/['"]/g, ''))
+          } : {},
+          fontSize: styling.typography?.fontSize || {},
+          fontWeight: styling.typography?.fontWeight || {},
+          spacing: styling.spacing || {},
+          borderRadius: styling.borderRadius || {},
+          boxShadow: styling.shadows || {}
+        }
+      }
     };
   }
 
   /**
-   * Generate color shades for a given color
+   * Generate color shades
    */
   generateColorShades(baseColor, shade) {
     // Simple color shade generation - in production, use a proper color library
-    const hex = baseColor.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-
-    const factor = shade / 500;
-    const newR = Math.round(r * factor);
-    const newG = Math.round(g * factor);
-    const newB = Math.round(b * factor);
-
-    return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+    return baseColor;
   }
 
   /**
-   * Generate complete CSS for tenant
+   * Generate tenant CSS
    */
   async generateTenantCSS(tenantId) {
-    const styling = await this.getTenantStyling(tenantId);
-    const cssVars = this.generateCSSVariables(styling);
+    try {
+      const styling = await this.getTenantStyling(tenantId);
+      const cssVariables = this.generateCSSVariables(styling);
+      
+      // Add component-specific styles
+      const componentStyles = this.generateComponentStyles(styling);
+      
+      return `${cssVariables}\n\n${componentStyles}`;
+    } catch (error) {
+      console.error('Error generating tenant CSS:', error);
+      return this.generateCSSVariables(this.getDefaultStyling());
+    }
+  }
+
+  /**
+   * Generate component-specific styles
+   */
+  generateComponentStyles(styling) {
+    let styles = '';
     
-    return `
-${cssVars}
-
-/* Component styles using CSS variables */
-.btn-primary {
-  background-color: var(--button-primary-backgroundColor);
-  color: var(--button-primary-textColor);
-  border-color: var(--button-primary-borderColor);
+    if (styling.components?.button) {
+      Object.entries(styling.components.button).forEach(([variant, config]) => {
+        styles += `
+.btn-${variant} {
+  background-color: ${config.backgroundColor};
+  color: ${config.textColor};
+  border: 1px solid ${config.borderColor};
+  transition: all 0.2s ease-in-out;
 }
 
-.btn-primary:hover {
-  background-color: var(--button-primary-hoverBackgroundColor);
-  color: var(--button-primary-hoverTextColor);
+.btn-${variant}:hover {
+  background-color: ${config.hoverBackgroundColor};
+  border-color: ${config.hoverBorderColor};
 }
-
-.btn-secondary {
-  background-color: var(--button-secondary-backgroundColor);
-  color: var(--button-secondary-textColor);
-  border-color: var(--button-secondary-borderColor);
-}
-
-.btn-secondary:hover {
-  background-color: var(--button-secondary-hoverBackgroundColor);
-  color: var(--button-secondary-hoverTextColor);
-}
-
-.input-field {
-  background-color: var(--input-backgroundColor);
-  border-color: var(--input-borderColor);
-  color: var(--input-textColor);
-}
-
-.input-field::placeholder {
-  color: var(--input-placeholderColor);
-}
-
-.input-field:focus {
-  border-color: var(--input-focusBorderColor);
-  box-shadow: 0 0 0 3px var(--input-focusRingColor);
-}
-
-.card {
-  background-color: var(--card-backgroundColor);
-  border-color: var(--card-borderColor);
-  box-shadow: var(--card-shadow);
-}
-
-/* Utility classes */
-.text-primary { color: var(--color-primaryColor); }
-.text-secondary { color: var(--color-secondaryColor); }
-.text-accent { color: var(--color-accentColor); }
-.text-success { color: var(--color-successColor); }
-.text-warning { color: var(--color-warningColor); }
-.text-error { color: var(--color-errorColor); }
-.text-info { color: var(--color-infoColor); }
-
-.bg-primary { background-color: var(--color-primaryColor); }
-.bg-secondary { background-color: var(--color-secondaryColor); }
-.bg-accent { background-color: var(--color-accentColor); }
-.bg-success { background-color: var(--color-successColor); }
-.bg-warning { background-color: var(--color-warningColor); }
-.bg-error { background-color: var(--color-errorColor); }
-.bg-info { background-color: var(--color-infoColor); }
-
-.border-primary { border-color: var(--color-primaryColor); }
-.border-secondary { border-color: var(--color-secondaryColor); }
-.border-accent { border-color: var(--color-accentColor); }
-.border-success { border-color: var(--color-successColor); }
-.border-warning { border-color: var(--color-warningColor); }
-.border-error { border-color: var(--color-errorColor); }
-.border-info { border-color: var(--color-infoColor); }
 `;
+      });
+    }
+
+    if (styling.components?.card) {
+      const card = styling.components.card;
+      styles += `
+.card {
+  background-color: ${card.backgroundColor};
+  border: 1px solid ${card.borderColor};
+  box-shadow: ${card.shadow};
+  border-radius: var(--border-radius-base);
+  padding: var(--spacing-md);
+}
+`;
+    }
+
+    return styles;
   }
 
   /**
@@ -355,31 +302,21 @@ ${cssVars}
    */
   async updateTenantStyling(tenantId, stylingUpdates) {
     try {
-      const client = await this.pool.connect();
+      const tenant = await Tenant.findById(tenantId);
       
-      // Get current settings
-      const currentResult = await client.query(
-        'SELECT settings FROM tenants WHERE id = $1',
-        [tenantId]
-      );
-
-      if (currentResult.rows.length === 0) {
+      if (!tenant) {
         throw new Error('Tenant not found');
       }
 
-      const currentSettings = currentResult.rows[0].settings || {};
+      // Merge existing branding with updates
+      const currentBranding = tenant.branding || {};
+      const updatedBranding = this.deepMerge(currentBranding, stylingUpdates);
       
-      // Deep merge the styling updates
-      const updatedSettings = this.deepMerge(currentSettings, stylingUpdates);
+      // Update tenant
+      tenant.branding = updatedBranding;
+      await tenant.save();
 
-      // Update tenant settings
-      await client.query(
-        'UPDATE tenants SET settings = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-        [updatedSettings, tenantId]
-      );
-
-      client.release();
-      return updatedSettings;
+      return this.mergeWithDefaults(updatedBranding);
     } catch (error) {
       console.error('Error updating tenant styling:', error);
       throw error;
@@ -404,22 +341,17 @@ ${cssVars}
   }
 
   /**
-   * Get styling for multiple tenants
+   * Get multiple tenant styling
    */
   async getMultipleTenantStyling(tenantIds) {
     try {
-      const client = await this.pool.connect();
-      const result = await client.query(
-        'SELECT id, settings FROM tenants WHERE id = ANY($1)',
-        [tenantIds]
-      );
-      client.release();
-
+      const tenants = await Tenant.find({ _id: { $in: tenantIds } });
       const stylingMap = {};
-      result.rows.forEach(row => {
-        stylingMap[row.id] = this.mergeWithDefaults(row.settings);
+      
+      tenants.forEach(tenant => {
+        stylingMap[tenant._id.toString()] = this.mergeWithDefaults(tenant.branding || {});
       });
-
+      
       return stylingMap;
     } catch (error) {
       console.error('Error getting multiple tenant styling:', error);

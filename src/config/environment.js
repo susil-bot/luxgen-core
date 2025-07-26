@@ -19,7 +19,7 @@ class EnvironmentConfig {
         APP_VERSION: process.env.APP_VERSION || '1.0.0',
 
         // Database
-        MONGODB_URL: process.env.MONGODB_URL || 'mongodb://localhost:27017/luxgen_trainer_platform',
+        MONGODB_URL: process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017/luxgen_trainer_platform',
         REDIS_URL: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
 
         // Authentication
@@ -71,12 +71,6 @@ class EnvironmentConfig {
         ENABLE_SWAGGER: process.env.ENABLE_SWAGGER !== 'false',
         ENABLE_GRAPHQL_PLAYGROUND: process.env.ENABLE_GRAPHQL_PLAYGROUND === 'true',
 
-        // Database Connection Pool
-        DB_POOL_MIN: parseInt(process.env.DB_POOL_MIN) || 2,
-        DB_POOL_MAX: parseInt(process.env.DB_POOL_MAX) || 10,
-        DB_POOL_ACQUIRE: parseInt(process.env.DB_POOL_ACQUIRE) || 30000,
-        DB_POOL_IDLE: parseInt(process.env.DB_POOL_IDLE) || 10000,
-
         // Redis Connection Pool
         REDIS_POOL_MIN: parseInt(process.env.REDIS_POOL_MIN) || 2,
         REDIS_POOL_MAX: parseInt(process.env.REDIS_POOL_MAX) || 10,
@@ -94,13 +88,6 @@ class EnvironmentConfig {
         // Session Management
         SESSION_STORE: process.env.SESSION_STORE || 'redis',
         SESSION_TTL: parseInt(process.env.SESSION_TTL) || 86400,
-
-        // PostgreSQL Configuration
-        POSTGRES_HOST: process.env.POSTGRES_HOST || '127.0.0.1',
-        POSTGRES_PORT: parseInt(process.env.POSTGRES_PORT) || 5432,
-        POSTGRES_DB: process.env.POSTGRES_DB || 'trainer_platform',
-        POSTGRES_USER: process.env.POSTGRES_USER || 'trainer_user',
-        POSTGRES_PASSWORD: process.env.POSTGRES_PASSWORD,
 
         // Redis Configuration
         REDIS_HOST: process.env.REDIS_HOST || '127.0.0.1',
@@ -140,7 +127,7 @@ class EnvironmentConfig {
       warnings.push('⚠️  Using default session secret - change in production');
     }
     
-    if (config.MONGODB_URL.includes('localhost')) {
+    if (config.MONGODB_URL.includes('127.0.0.1')) {
       warnings.push('⚠️  Using local MongoDB - ensure MongoDB is running locally');
     }
     
@@ -210,19 +197,6 @@ class EnvironmentConfig {
             deprecationErrors: true,
           }
         }
-      },
-      postgres: {
-        host: this.config.POSTGRES_HOST,
-        port: this.config.POSTGRES_PORT,
-        database: this.config.POSTGRES_DB,
-        user: this.config.POSTGRES_USER,
-        password: this.config.POSTGRES_PASSWORD || '',
-        max: 20,
-        min: 2,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 2000,
-        maxUses: 7500,
-        ssl: this.isProduction() ? { rejectUnauthorized: false } : false
       },
       redis: {
         url: this.config.REDIS_URL,

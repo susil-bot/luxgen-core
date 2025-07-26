@@ -1,66 +1,16 @@
-const { Pool } = require('pg');
 const mongoose = require('mongoose');
 const Redis = require('redis');
 
 class DatabaseManager {
   constructor() {
-    this.postgres = null;
     this.mongodb = null;
     this.redis = null;
     this.connections = {
-      postgres: { isConnected: false, pool: null },
       mongodb: { isConnected: false, connection: null },
       redis: { isConnected: false, client: null }
     };
     this.healthCheckInterval = 30000; // 30 seconds
     this.healthCheckTimer = null;
-  }
-
-  // PostgreSQL Connection
-  async connectPostgres() {
-    try {
-      if (this.connections.postgres.isConnected) {
-        console.log('✅ PostgreSQL already connected');
-        return this.connections.postgres.pool;
-      }
-
-      console.log('🔌 Connecting to PostgreSQL...');
-      
-      const pool = new Pool({
-        host: process.env.POSTGRES_HOST || '127.0.0.1',
-        port: process.env.POSTGRES_PORT || 5432,
-        database: process.env.POSTGRES_DB || 'trainer_platform',
-        user: process.env.POSTGRES_USER || 'trainer_user',
-        password: process.env.POSTGRES_PASSWORD || '',
-        max: 20, // Maximum number of clients in the pool
-        min: 2,  // Minimum number of clients in the pool
-        idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-        connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
-        maxUses: 7500, // Close (and replace) a connection after it has been used 7500 times
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-      });
-
-      // Test the connection
-      const client = await pool.connect();
-      await client.query('SELECT NOW()');
-      client.release();
-
-      this.connections.postgres.pool = pool;
-      this.connections.postgres.isConnected = true;
-
-      console.log('✅ PostgreSQL connected successfully');
-
-      // Set up event handlers
-      pool.on('error', (err) => {
-        console.error('❌ PostgreSQL pool error:', err);
-        this.connections.postgres.isConnected = false;
-      });
-
-      return pool;
-    } catch (error) {
-      console.error('❌ Failed to connect to PostgreSQL:', error.message);
-      throw error;
-    }
   }
 
   // MongoDB Connection
@@ -73,7 +23,7 @@ class DatabaseManager {
 
       console.log('🔌 Connecting to MongoDB...');
       
-      const mongoUri = process.env.MONGODB_URL || 'mongodb://localhost:27017/luxgen_trainer_platform';
+      const mongoUri = process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017/luxgen_trainer_platform';
       
       const connectionOptions = {
         maxPoolSize: 5,
@@ -106,25 +56,32 @@ class DatabaseManager {
       console.log('✅ MongoDB connected successfully');
 
       // Set up event handlers
-      mongoose.connection.on('disconnected', () => {
+      connection.connection.on('error', (err) => {
+        console.error('❌ MongoDB connection error:', err);
+        this.connections.mongodb.isConnected = false;
+      });
+
+      connection.connection.on('disconnected', () => {
         console.log('⚠️ MongoDB disconnected');
         this.connections.mongodb.isConnected = false;
       });
 
-      mongoose.connection.on('reconnected', () => {
+      connection.connection.on('reconnected', () => {
         console.log('✅ MongoDB reconnected');
         this.connections.mongodb.isConnected = true;
-      });
-
-      mongoose.connection.on('close', () => {
-        console.log('🔌 MongoDB connection closed');
-        this.connections.mongodb.isConnected = false;
       });
 
       return connection;
     } catch (error) {
       console.error('❌ Failed to connect to MongoDB:', error.message);
-      throw error;
+      if (process.env.NODE_ENV === 'development') {
+        console.log('⚠️ MongoDB is optional for development - continuing without MongoDB');
+        this.connections.mongodb.isConnected = false;
+        this.connections.mongodb.connection = null;
+        return null;
+      } else {
+        throw error;
+      }
     }
   }
 
@@ -194,14 +151,6 @@ class DatabaseManager {
     try {
       console.log('🚀 Initializing database connections...');
       
-      // Connect to PostgreSQL
-      try {
-        await this.connectPostgres();
-        console.log('✅ PostgreSQL: Connected');
-      } catch (error) {
-        console.log('❌ PostgreSQL: Failed to connect');
-      }
-      
       // Connect to MongoDB
       try {
         await this.connectMongoDB();
@@ -233,31 +182,15 @@ class DatabaseManager {
   // Health check for all databases
   async healthCheck() {
     const health = {
-      postgres: { status: 'unknown', error: null },
       mongodb: { status: 'unknown', error: null },
       redis: { status: 'unknown', error: null },
       timestamp: new Date().toISOString()
     };
 
-    // Check PostgreSQL
-    if (this.connections.postgres.isConnected && this.connections.postgres.pool) {
-      try {
-        const client = await this.connections.postgres.pool.connect();
-        await client.query('SELECT 1');
-        client.release();
-        health.postgres.status = 'healthy';
-      } catch (error) {
-        health.postgres.status = 'unhealthy';
-        health.postgres.error = error.message;
-      }
-    } else {
-      health.postgres.status = 'disconnected';
-    }
-
     // Check MongoDB
     if (this.connections.mongodb.isConnected && this.connections.mongodb.connection) {
       try {
-        await this.connections.mongodb.connection.db.admin().ping();
+        await this.connections.mongodb.connection.connection.db.admin().ping();
         health.mongodb.status = 'healthy';
       } catch (error) {
         health.mongodb.status = 'unhealthy';
@@ -283,7 +216,7 @@ class DatabaseManager {
     return health;
   }
 
-  // Start periodic health checks
+  // Start health check monitoring
   startHealthCheck() {
     if (this.healthCheckTimer) {
       clearInterval(this.healthCheckTimer);
@@ -292,12 +225,11 @@ class DatabaseManager {
     this.healthCheckTimer = setInterval(async () => {
       try {
         const health = await this.healthCheck();
-        const allHealthy = health.postgres.status === 'healthy' && 
-                          health.mongodb.status === 'healthy' && 
+        const allHealthy = health.mongodb.status === 'healthy' &&
                           health.redis.status === 'healthy';
-        
+
         if (!allHealthy) {
-          console.warn('⚠️ Database health check failed:', health);
+          console.log('⚠️ Database health check failed:', health);
         }
       } catch (error) {
         console.error('❌ Health check error:', error.message);
@@ -307,58 +239,42 @@ class DatabaseManager {
     console.log('🏥 Database health monitoring started');
   }
 
-  // Stop health checks
+  // Stop health check monitoring
   stopHealthCheck() {
     if (this.healthCheckTimer) {
       clearInterval(this.healthCheckTimer);
       this.healthCheckTimer = null;
-      console.log('🏥 Database health monitoring stopped');
     }
   }
 
-  // Graceful shutdown
+  // Setup graceful shutdown
   setupGracefulShutdown() {
     const gracefulShutdown = async (signal) => {
       console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
       
-      try {
-        // Stop health checks
-        this.stopHealthCheck();
-        
-        // Close PostgreSQL connections
-        if (this.connections.postgres.pool) {
-          await this.connections.postgres.pool.end();
-          this.connections.postgres.isConnected = false;
-          console.log('✅ PostgreSQL connections closed');
-        }
-        
-        // Close MongoDB connection
-        if (this.connections.mongodb.connection) {
-          await mongoose.connection.close();
-          this.connections.mongodb.isConnected = false;
-          console.log('✅ MongoDB connection closed');
-        }
-        
-        // Close Redis connection
-        if (this.connections.redis.client) {
-          await this.connections.redis.client.quit();
-          this.connections.redis.isConnected = false;
-          console.log('✅ Redis connection closed');
-        }
-        
-        console.log('✅ Graceful shutdown completed');
-      } catch (error) {
-        console.error('❌ Error during graceful shutdown:', error);
+      // Stop health monitoring
+      this.stopHealthCheck();
+
+      // Close MongoDB connections
+      if (this.connections.mongodb.connection) {
+        await this.connections.mongodb.connection.disconnect();
+        this.connections.mongodb.isConnected = false;
+        console.log('✅ MongoDB connections closed');
       }
+
+      // Close Redis connections
+      if (this.connections.redis.client) {
+        await this.connections.redis.client.quit();
+        this.connections.redis.isConnected = false;
+        console.log('✅ Redis connections closed');
+      }
+
+      console.log('✅ Graceful shutdown completed');
+      process.exit(0);
     };
 
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-  }
-
-  // Get PostgreSQL pool
-  getPostgresPool() {
-    return this.connections.postgres.pool;
+    process.on('SIGTERM', gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
   }
 
   // Get MongoDB connection
@@ -374,7 +290,6 @@ class DatabaseManager {
   // Get connection status
   getConnectionStatus() {
     return {
-      postgres: this.connections.postgres.isConnected,
       mongodb: this.connections.mongodb.isConnected,
       redis: this.connections.redis.isConnected,
       timestamp: new Date().toISOString()
@@ -384,27 +299,15 @@ class DatabaseManager {
   // Test all connections
   async testConnections() {
     const results = {
-      postgres: { success: false, error: null },
       mongodb: { success: false, error: null },
-      redis: { success: false, error: null }
+      redis: { success: false, error: null },
+      timestamp: new Date().toISOString()
     };
-
-    // Test PostgreSQL
-    if (this.connections.postgres.pool) {
-      try {
-        const client = await this.connections.postgres.pool.connect();
-        await client.query('SELECT version()');
-        client.release();
-        results.postgres.success = true;
-      } catch (error) {
-        results.postgres.error = error.message;
-      }
-    }
 
     // Test MongoDB
     if (this.connections.mongodb.connection) {
       try {
-        await this.connections.mongodb.connection.db.admin().ping();
+        await this.connections.mongodb.connection.connection.db.admin().ping();
         results.mongodb.success = true;
       } catch (error) {
         results.mongodb.error = error.message;
