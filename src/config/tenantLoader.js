@@ -10,7 +10,7 @@ const path = require('path');
  * Load all tenant configurations from the tenants directory
  * @returns {Object} Object containing all tenant configurations
  */
-const loadAllTenants = () {
+const loadAllTenants = () => {
   const tenantsDir = path.join(__dirname, '..', 'tenants');
   const tenants = {};
 
@@ -66,7 +66,7 @@ const loadAllTenants = () {
  * @param {string} tenantSlug - The tenant slug to load
  * @returns {Object|null} Tenant configuration or null if not found
  */
-const loadTenant = (tenantSlug) {
+const loadTenant = (tenantSlug) => {
   const tenantsDir = path.join(__dirname, '..', 'tenants');
   const tenantDir = path.join(tenantsDir, tenantSlug);
   const configPath = path.join(tenantDir, 'config.js');
@@ -95,7 +95,7 @@ const loadTenant = (tenantSlug) {
  * @param {string} assetType - Type of asset (logo, css, favicon)
  * @returns {string|null} Path to the asset or null if not found
  */
-const getTenantAsset = (tenantSlug, assetType) {
+const getTenantAsset = (tenantSlug, assetType) => {
   const tenantsDir = path.join(__dirname, '..', 'tenants');
   const brandingDir = path.join(tenantsDir, tenantSlug, 'branding');
 

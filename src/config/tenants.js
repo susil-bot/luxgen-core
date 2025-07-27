@@ -88,7 +88,7 @@ const getTenantConfig = (slug) => {
  * Get all active tenant configurations
  * @returns {Object} All active tenant configs
  */
-const getActiveTenantConfigs = () {
+const getActiveTenantConfigs = () => {
   const configs = getTenantConfigs();
   const activeConfigs = {};
   Object.keys(configs).forEach(slug => {
@@ -97,17 +97,17 @@ const getActiveTenantConfigs = () {
     }
   });
   return activeConfigs;
-}
+};
 
 /**
  * Check if tenant exists and is active
  * @param {string} slug - Tenant slug
  * @returns {boolean} True if tenant is active
  */
-const isTenantActive = (slug) {
+const isTenantActive = (slug) => {
   const config = getTenantConfig(slug);
   return config && config.status === 'active';
-}
+};
 
 /**
  * Get tenant feature configuration
@@ -115,10 +115,10 @@ const isTenantActive = (slug) {
  * @param {string} feature - Feature name
  * @returns {Object} Feature configuration
  */
-const getTenantFeature = (slug, feature) {
+const getTenantFeature = (slug, feature) => {
   const config = getTenantConfig(slug);
   return config.features[feature] || null;
-}
+};
 
 /**
  * Check if tenant has feature enabled
@@ -126,27 +126,27 @@ const getTenantFeature = (slug, feature) {
  * @param {string} feature - Feature name
  * @returns {boolean} True if feature is enabled
  */
-const isFeatureEnabled = (slug, feature) {
+const isFeatureEnabled = (slug, feature) => {
   const featureConfig = getTenantFeature(slug, feature);
   return featureConfig && featureConfig.enabled;
-}
+};
 
 /**
  * Get tenant limits
  * @param {string} slug - Tenant slug
  * @returns {Object} Tenant limits
  */
-const getTenantLimits = (slug) {
+const getTenantLimits = (slug) => {
   const config = getTenantConfig(slug);
   return config.limits || defaultConfig.limits;
-}
+};
 
 /**
  * Validate tenant configuration
  * @param {Object} config - Tenant configuration
  * @returns {Object} Validation result
  */
-const validateTenantConfig = (config) {
+const validateTenantConfig = (config) => {
   const errors = [];
 
   if (!config.slug) {
