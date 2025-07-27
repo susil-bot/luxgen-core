@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const trainingController = require('../controllers/trainingController');
-const { authenticateToken, requireRole } = require('../middleware/auth');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { validateRequest } = require('../middleware/validation');
 
 // ==================== TRAINING SESSIONS ====================
@@ -33,7 +33,7 @@ router.get('/sessions/:sessionId',
  */
 router.post('/sessions', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.createTrainingSession
 );
@@ -45,7 +45,7 @@ router.post('/sessions',
  */
 router.put('/sessions/:sessionId', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.updateTrainingSession
 );
@@ -57,7 +57,7 @@ router.put('/sessions/:sessionId',
  */
 router.delete('/sessions/:sessionId', 
   authenticateToken, 
-  requireRole(['admin']),
+  authorizeRoles('admin'),
   trainingController.deleteTrainingSession
 );
 
@@ -68,7 +68,7 @@ router.delete('/sessions/:sessionId',
  */
 router.post('/sessions/:sessionId/participants', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.addSessionParticipant
 );
@@ -80,7 +80,7 @@ router.post('/sessions/:sessionId/participants',
  */
 router.delete('/sessions/:sessionId/participants/:userId', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   trainingController.removeSessionParticipant
 );
 
@@ -91,7 +91,7 @@ router.delete('/sessions/:sessionId/participants/:userId',
  */
 router.post('/sessions/:sessionId/attendance/:userId', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   trainingController.markAttendance
 );
 
@@ -102,7 +102,7 @@ router.post('/sessions/:sessionId/attendance/:userId',
  */
 router.post('/sessions/:sessionId/complete', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   trainingController.completeSession
 );
 
@@ -135,7 +135,7 @@ router.get('/courses/:courseId',
  */
 router.post('/courses', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.createTrainingCourse
 );
@@ -147,7 +147,7 @@ router.post('/courses',
  */
 router.put('/courses/:courseId', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.updateTrainingCourse
 );
@@ -159,7 +159,7 @@ router.put('/courses/:courseId',
  */
 router.delete('/courses/:courseId', 
   authenticateToken, 
-  requireRole(['admin']),
+  authorizeRoles('admin'),
   trainingController.deleteTrainingCourse
 );
 
@@ -224,7 +224,7 @@ router.get('/modules/:moduleId',
  */
 router.post('/modules', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.createTrainingModule
 );
@@ -236,7 +236,7 @@ router.post('/modules',
  */
 router.put('/modules/:moduleId', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.updateTrainingModule
 );
@@ -248,7 +248,7 @@ router.put('/modules/:moduleId',
  */
 router.delete('/modules/:moduleId', 
   authenticateToken, 
-  requireRole(['admin']),
+  authorizeRoles('admin'),
   trainingController.deleteTrainingModule
 );
 
@@ -281,7 +281,7 @@ router.get('/assessments/:assessmentId',
  */
 router.post('/assessments', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.createTrainingAssessment
 );
@@ -293,7 +293,7 @@ router.post('/assessments',
  */
 router.put('/assessments/:assessmentId', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.updateTrainingAssessment
 );
@@ -305,7 +305,7 @@ router.put('/assessments/:assessmentId',
  */
 router.delete('/assessments/:assessmentId', 
   authenticateToken, 
-  requireRole(['admin']),
+  authorizeRoles('admin'),
   trainingController.deleteTrainingAssessment
 );
 
@@ -329,7 +329,7 @@ router.post('/assessments/:assessmentId/submit',
  */
 router.get('/trainers/:trainerId/stats', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   trainingController.getTrainerStats
 );
 

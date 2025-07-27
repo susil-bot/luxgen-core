@@ -44,6 +44,12 @@ class DatabaseSetup {
 
   async connectToDatabase() {
     try {
+      // Check if already connected
+      if (mongoose.connection.readyState === 1) {
+        console.log('ℹ️ MongoDB already connected, skipping connection');
+        return;
+      }
+      
       console.log('🔌 Connecting to MongoDB...');
       
       const mongoUri = process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017/luxgen_trainer_platform';

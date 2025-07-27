@@ -1,28 +1,35 @@
 services:
   - type: web
-    name: trainer-platform-api
+    name: luxgen-trainer-platform-backend
     env: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm ci && npm run build
     startCommand: npm start
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 10000
-      - key: MONGODB_URL
+        value: 3001
+      - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: SESSION_SECRET
+        sync: false
       - key: REDIS_URL
         sync: false
-      - key: POSTGRES_HOST
+      - key: GROQ_API_KEY
         sync: false
-      - key: POSTGRES_PORT
+      - key: OPENAI_API_KEY
         sync: false
-      - key: POSTGRES_DB
+      - key: EMAIL_SERVICE_API_KEY
         sync: false
-      - key: POSTGRES_USER
-        sync: false
-      - key: POSTGRES_PASSWORD
-        sync: false
+    autoDeploy: true
+    branch: main
+    repo: susil-bot/luxgen-core
+    numInstances: 1
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1

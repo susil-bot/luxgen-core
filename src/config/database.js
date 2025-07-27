@@ -16,7 +16,6 @@ const databaseConfig = {
     readPreference: 'secondaryPreferred', // Read preference for better performance
     maxIdleTimeMS: 30000, // Maximum time a connection can remain idle
     heartbeatFrequencyMS: 10000, // Heartbeat frequency
-    bufferMaxEntries: 0, // Disable mongoose buffering
     bufferCommands: false, // Disable mongoose command buffering
   },
   

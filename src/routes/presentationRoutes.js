@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const presentationController = require('../controllers/presentationController');
-const { authenticateToken, requireRole } = require('../middleware/auth');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { validateRequest } = require('../middleware/validation');
 
 // ==================== PRESENTATIONS ====================
@@ -33,7 +33,7 @@ router.get('/:presentationId',
  */
 router.post('/', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.createPresentation
 );
@@ -45,7 +45,7 @@ router.post('/',
  */
 router.put('/:presentationId', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.updatePresentation
 );
@@ -57,7 +57,7 @@ router.put('/:presentationId',
  */
 router.delete('/:presentationId', 
   authenticateToken, 
-  requireRole(['admin']),
+  authorizeRoles('admin'),
   presentationController.deletePresentation
 );
 
@@ -70,7 +70,7 @@ router.delete('/:presentationId',
  */
 router.post('/:presentationId/start', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.startPresentation
 );
@@ -82,7 +82,7 @@ router.post('/:presentationId/start',
  */
 router.post('/:presentationId/end/:sessionId', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   presentationController.endPresentation
 );
 
@@ -93,7 +93,7 @@ router.post('/:presentationId/end/:sessionId',
  */
 router.post('/:presentationId/sessions/:sessionId/participants', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.addSessionParticipant
 );
@@ -105,7 +105,7 @@ router.post('/:presentationId/sessions/:sessionId/participants',
  */
 router.delete('/:presentationId/sessions/:sessionId/participants/:userId', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   presentationController.removeSessionParticipant
 );
 
@@ -116,7 +116,7 @@ router.delete('/:presentationId/sessions/:sessionId/participants/:userId',
  */
 router.post('/:presentationId/sessions/:sessionId/advance', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.advanceSlide
 );
@@ -130,7 +130,7 @@ router.post('/:presentationId/sessions/:sessionId/advance',
  */
 router.post('/:presentationId/polls', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.addPollToPresentation
 );
@@ -142,7 +142,7 @@ router.post('/:presentationId/polls',
  */
 router.post('/:presentationId/sessions/:sessionId/polls/:pollId/activate', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.activatePoll
 );
@@ -154,7 +154,7 @@ router.post('/:presentationId/sessions/:sessionId/polls/:pollId/activate',
  */
 router.post('/:presentationId/sessions/:sessionId/polls/:pollId/deactivate', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   presentationController.deactivatePoll
 );
 
@@ -188,7 +188,7 @@ router.get('/:presentationId/sessions/:sessionId/polls/:pollId/results',
  */
 router.post('/:presentationId/slides', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.addSlide
 );
@@ -200,7 +200,7 @@ router.post('/:presentationId/slides',
  */
 router.put('/:presentationId/slides/:slideIndex', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.updateSlide
 );
@@ -212,7 +212,7 @@ router.put('/:presentationId/slides/:slideIndex',
  */
 router.delete('/:presentationId/slides/:slideIndex', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   presentationController.removeSlide
 );
 
@@ -225,7 +225,7 @@ router.delete('/:presentationId/slides/:slideIndex',
  */
 router.get('/:presentationId/stats', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   presentationController.getPresentationStats
 );
 
@@ -236,7 +236,7 @@ router.get('/:presentationId/stats',
  */
 router.get('/:presentationId/sessions/:sessionId/stats', 
   authenticateToken, 
-  requireRole(['admin', 'trainer']),
+  authorizeRoles('admin', 'trainer'),
   presentationController.getSessionStats
 );
 
