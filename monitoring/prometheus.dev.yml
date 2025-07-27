@@ -1,0 +1,46 @@
+# ========================================
+# 📊 PROMETHEUS CONFIGURATION (DEVELOPMENT)
+# ========================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # ========================================
+  # 🚀 BACKEND API MONITORING (DEV)
+  # ========================================
+  - job_name: 'trainer-platform-backend-dev'
+    static_configs:
+      - targets: ['backend:3001']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # ========================================
+  # 🗄️ MONGODB MONITORING (DEV)
+  # ========================================
+  - job_name: 'mongodb-dev'
+    static_configs:
+      - targets: ['mongodb:27017']
+    scrape_interval: 30s
+
+  # ========================================
+  # 🔴 REDIS MONITORING (DEV)
+  # ========================================
+  - job_name: 'redis-dev'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+
+  # ========================================
+  # 📊 PROMETHEUS SELF-MONITORING (DEV)
+  # ========================================
+  - job_name: 'prometheus-dev'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s 

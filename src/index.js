@@ -4,12 +4,32 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
+const mongoose = require('mongoose');
 const { createDatabaseInitializer } = require('./config/databaseInit');
-const databaseManager = require('./config/database');
+const { connectToDatabase } = require('./config/database');
 const environmentConfig = require('./config/environment');
 const { errorHandler } = require('./utils/errors');
-const { cacheManager } = require('./utils/cache');
+const cacheManager = require('./utils/cache');
 const aiService = require('./services/aiService');
+
+// Import error handling middleware
+const {
+  requestLogger,
+  performanceMonitor,
+  errorTracker,
+  rateLimitErrorHandler,
+  databaseErrorHandler,
+  aiServiceErrorHandler,
+  trainingErrorHandler,
+  presentationErrorHandler,
+  tenantErrorHandler,
+  validationErrorHandler,
+  authenticationErrorHandler,
+  authorizationErrorHandler,
+  notFoundErrorHandler,
+  conflictErrorHandler,
+  genericErrorHandler
+} = require('./middleware/errorHandling');
 require('dotenv').config();
 
 const app = express();
@@ -52,7 +72,7 @@ app.use(morgan('combined', {
 }));
 
 // Body parsing middleware
-app.use(express.json({ 
+app.use(express.json({
   limit: '10mb',
   verify: (req, res, buf) => {
     req.rawBody = buf;
@@ -79,9 +99,14 @@ app.get('/health', (req, res) => {
 
 app.get('/health/detailed', async (req, res) => {
   try {
-    const dbHealth = await databaseManager.healthCheck();
-    const dbStatus = databaseManager.getConnectionStatus();
-    
+    const dbStatus = mongoose.connection.readyState;
+    const dbHealth = {
+      status: dbStatus === 1 ? 'connected' : 'disconnected',
+      readyState: dbStatus,
+      host: mongoose.connection.host,
+      name: mongoose.connection.name
+    };
+
     res.status(200).json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
@@ -90,7 +115,7 @@ app.get('/health/detailed', async (req, res) => {
       uptime: process.uptime(),
       memory: process.memoryUsage(),
       database: {
-        status: dbStatus,
+        status: dbHealth.status,
         health: dbHealth
       }
     });
@@ -108,15 +133,20 @@ app.get('/health/detailed', async (req, res) => {
 // Database status endpoint
 app.get('/api/database/status', async (req, res) => {
   try {
-    const status = databaseManager.getConnectionStatus();
-    const health = await databaseManager.healthCheck();
-    const test = await databaseManager.testConnections();
-    
+    const dbStatus = mongoose.connection.readyState;
+    const status = dbStatus === 1 ? 'connected' : 'disconnected';
+    const health = {
+      status,
+      readyState: dbStatus,
+      host: mongoose.connection.host,
+      name: mongoose.connection.name,
+      collections: Object.keys(mongoose.connection.collections)
+    };
+
     res.json({
       success: true,
       status,
       health,
-      test,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -187,11 +217,11 @@ app.use('*', (req, res) => {
 });
 
 // Initialize database and start server
-async function startServer() {
+async function startServer () {
   try {
     console.log('🚀 Starting Trainer Platform Backend...');
     console.log('='.repeat(60));
-    
+
     // Initialize cache
     await cacheManager.connect();
 
@@ -199,15 +229,16 @@ async function startServer() {
     await aiService.initialize();
 
     // Initialize database connections first
-    await databaseManager.initialize();
+    const mongoUri = environmentConfig.get('MONGODB_URI', 'mongodb://localhost:27017/luxgen_trainer_platform');
+    await connectToDatabase(mongoUri);
 
-    // Initialize database with step-by-step process
+    // Initialize database with step-by-step process (skip connection since already connected)
     const dbInitializer = createDatabaseInitializer();
     await dbInitializer.initialize();
-    
+
     // Start server
     const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log('\n' + '='.repeat(60));
+      console.log(`\n${'='.repeat(60)}`);
       console.log('🎉 TRAINER PLATFORM BACKEND STARTED SUCCESSFULLY');
       console.log('='.repeat(60));
       console.log(`🚀 Server running on port ${PORT}`);
@@ -224,15 +255,15 @@ async function startServer() {
     // Graceful shutdown handling
     const gracefulShutdown = async (signal) => {
       console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
-      
+
       server.close(async () => {
         try {
           // Stop cache
           await cacheManager.disconnect();
-          
-          // Stop database health checks
-          databaseManager.stopHealthCheck();
-          
+
+          // Close database connection
+          await mongoose.connection.close();
+
           console.log('✅ Server closed gracefully');
           process.exit(0);
         } catch (error) {
@@ -251,7 +282,6 @@ async function startServer() {
     // Handle shutdown signals
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-    
   } catch (error) {
     console.error('\n💥 Failed to start server:', error.message);
     console.error('Stack trace:', error.stack);
@@ -275,4 +305,4 @@ process.on('unhandledRejection', (reason, promise) => {
 // Start the server
 startServer();
 
-module.exports = app; 
+module.exports = app;

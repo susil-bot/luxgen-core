@@ -4,22 +4,20 @@
  */
 
 const express = require('express');
-const { body } = require('express-validator');
-const aiController = require('../controllers/aiController');
-const { authenticateToken } = require('../middleware/auth');
-const { validateRequest } = require('../middleware/validation');
-const rateLimit = require('express-rate-limit');
-
 const router = express.Router();
+const aiController = require('../controllers/aiController');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const { validateRequestCustom } = require('../middleware/validation');
+const rateLimit = require('express-rate-limit');
 
 // Rate limiting for AI endpoints
 const aiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // limit each IP to 50 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
   message: {
     success: false,
-    error: 'Too many AI requests, please try again later',
-    message: 'Rate limit exceeded'
+    error: 'Too many AI requests, please try again later.',
+    retryAfter: 900
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -28,335 +26,509 @@ const aiRateLimit = rateLimit({
 // Apply rate limiting to all AI routes
 router.use(aiRateLimit);
 
-// Validation schemas
-const generateContentValidation = [
-  body('prompt')
-    .trim()
-    .isLength({ min: 1, max: 10000 })
-    .withMessage('Prompt must be between 1 and 10000 characters'),
-  body('model')
-    .optional()
-    .isString()
-    .withMessage('Model must be a string'),
-  body('maxTokens')
-    .optional()
-    .isInt({ min: 1, max: 8192 })
-    .withMessage('Max tokens must be between 1 and 8192'),
-  body('temperature')
-    .optional()
-    .isFloat({ min: 0, max: 2 })
-    .withMessage('Temperature must be between 0 and 2'),
-  body('topP')
-    .optional()
-    .isFloat({ min: 0, max: 1 })
-    .withMessage('Top P must be between 0 and 1'),
-  body('frequencyPenalty')
-    .optional()
-    .isFloat({ min: -2, max: 2 })
-    .withMessage('Frequency penalty must be between -2 and 2'),
-  body('presencePenalty')
-    .optional()
-    .isFloat({ min: -2, max: 2 })
-    .withMessage('Presence penalty must be between -2 and 2'),
-  body('systemPrompt')
-    .optional()
-    .isString()
-    .isLength({ max: 5000 })
-    .withMessage('System prompt must be less than 5000 characters'),
-  body('useRAG')
-    .optional()
-    .isBoolean()
-    .withMessage('useRAG must be a boolean')
-];
-
-const knowledgeBaseValidation = [
-  body('documentId')
-    .trim()
-    .isLength({ min: 1, max: 255 })
-    .withMessage('Document ID must be between 1 and 255 characters'),
-  body('content')
-    .trim()
-    .isLength({ min: 1, max: 100000 })
-    .withMessage('Content must be between 1 and 100000 characters'),
-  body('metadata')
-    .optional()
-    .isObject()
-    .withMessage('Metadata must be an object')
-];
-
-const searchValidation = [
-  body('query')
-    .trim()
-    .isLength({ min: 1, max: 1000 })
-    .withMessage('Query must be between 1 and 1000 characters'),
-  body('maxResults')
-    .optional()
-    .isInt({ min: 1, max: 20 })
-    .withMessage('Max results must be between 1 and 20')
-];
-
-const specializedContentValidation = [
-  body('type')
-    .isIn(['training_material', 'assessment_questions', 'feedback_template', 'presentation_outline', 'email_template'])
-    .withMessage('Type must be one of: training_material, assessment_questions, feedback_template, presentation_outline, email_template'),
-  body('prompt')
-    .trim()
-    .isLength({ min: 1, max: 5000 })
-    .withMessage('Prompt must be between 1 and 5000 characters'),
-  body('context')
-    .optional()
-    .isString()
-    .isLength({ max: 10000 })
-    .withMessage('Context must be less than 10000 characters'),
-  body('options')
-    .optional()
-    .isObject()
-    .withMessage('Options must be an object')
-];
-
-// Enhanced AI validation schemas
-const enhancedContentValidation = [
-  body('prompt')
-    .trim()
-    .isLength({ min: 1, max: 10000 })
-    .withMessage('Prompt must be between 1 and 10000 characters'),
-  body('contentType')
-    .optional()
-    .isIn(['article', 'blog', 'email', 'report', 'presentation', 'training'])
-    .withMessage('Content type must be one of: article, blog, email, report, presentation, training'),
-  body('targetAudience')
-    .optional()
-    .isString()
-    .isLength({ max: 200 })
-    .withMessage('Target audience must be less than 200 characters'),
-  body('tone')
-    .optional()
-    .isIn(['professional', 'casual', 'formal', 'friendly', 'technical'])
-    .withMessage('Tone must be one of: professional, casual, formal, friendly, technical'),
-  body('style')
-    .optional()
-    .isString()
-    .isLength({ max: 200 })
-    .withMessage('Style must be less than 200 characters'),
-  body('length')
-    .optional()
-    .isIn(['short', 'medium', 'long'])
-    .withMessage('Length must be one of: short, medium, long'),
-  body('useRAG')
-    .optional()
-    .isBoolean()
-    .withMessage('useRAG must be a boolean')
-];
-
-const trainingMaterialValidation = [
-  body('topic')
-    .trim()
-    .isLength({ min: 1, max: 500 })
-    .withMessage('Topic must be between 1 and 500 characters'),
-  body('level')
-    .optional()
-    .isIn(['beginner', 'intermediate', 'advanced'])
-    .withMessage('Level must be one of: beginner, intermediate, advanced'),
-  body('duration')
-    .optional()
-    .isInt({ min: 15, max: 480 })
-    .withMessage('Duration must be between 15 and 480 minutes'),
-  body('format')
-    .optional()
-    .isIn(['workshop', 'lecture', 'hands-on', 'video', 'document'])
-    .withMessage('Format must be one of: workshop, lecture, hands-on, video, document'),
-  body('learningObjectives')
-    .optional()
-    .isArray()
-    .withMessage('Learning objectives must be an array'),
-  body('targetAudience')
-    .optional()
-    .isString()
-    .isLength({ max: 200 })
-    .withMessage('Target audience must be less than 200 characters')
-];
-
-const assessmentQuestionsValidation = [
-  body('topic')
-    .trim()
-    .isLength({ min: 1, max: 500 })
-    .withMessage('Topic must be between 1 and 500 characters'),
-  body('questionType')
-    .optional()
-    .isIn(['multiple-choice', 'single-choice', 'true-false', 'fill-blank', 'essay'])
-    .withMessage('Question type must be one of: multiple-choice, single-choice, true-false, fill-blank, essay'),
-  body('difficulty')
-    .optional()
-    .isIn(['easy', 'medium', 'hard'])
-    .withMessage('Difficulty must be one of: easy, medium, hard'),
-  body('count')
-    .optional()
-    .isInt({ min: 1, max: 50 })
-    .withMessage('Count must be between 1 and 50'),
-  body('learningObjectives')
-    .optional()
-    .isArray()
-    .withMessage('Learning objectives must be an array')
-];
-
-const presentationOutlineValidation = [
-  body('topic')
-    .trim()
-    .isLength({ min: 1, max: 500 })
-    .withMessage('Topic must be between 1 and 500 characters'),
-  body('duration')
-    .optional()
-    .isInt({ min: 5, max: 120 })
-    .withMessage('Duration must be between 5 and 120 minutes'),
-  body('targetAudience')
-    .optional()
-    .isString()
-    .isLength({ max: 200 })
-    .withMessage('Target audience must be less than 200 characters'),
-  body('style')
-    .optional()
-    .isIn(['formal', 'casual', 'technical', 'creative'])
-    .withMessage('Style must be one of: formal, casual, technical, creative'),
-  body('includeSlides')
-    .optional()
-    .isBoolean()
-    .withMessage('includeSlides must be a boolean')
-];
-
-const contentImprovementValidation = [
-  body('content')
-    .trim()
-    .isLength({ min: 1, max: 50000 })
-    .withMessage('Content must be between 1 and 50000 characters'),
-  body('improvementType')
-    .isIn(['grammar', 'clarity', 'tone', 'structure', 'style', 'comprehensive'])
-    .withMessage('Improvement type must be one of: grammar, clarity, tone, structure, style, comprehensive'),
-  body('targetAudience')
-    .optional()
-    .isString()
-    .isLength({ max: 200 })
-    .withMessage('Target audience must be less than 200 characters'),
-  body('style')
-    .optional()
-    .isString()
-    .isLength({ max: 200 })
-    .withMessage('Style must be less than 200 characters')
-];
-
-const translationValidation = [
-  body('content')
-    .trim()
-    .isLength({ min: 1, max: 50000 })
-    .withMessage('Content must be between 1 and 50000 characters'),
-  body('sourceLanguage')
-    .isString()
-    .isLength({ min: 2, max: 10 })
-    .withMessage('Source language must be between 2 and 10 characters'),
-  body('targetLanguage')
-    .isString()
-    .isLength({ min: 2, max: 10 })
-    .withMessage('Target language must be between 2 and 10 characters'),
-  body('preserveFormatting')
-    .optional()
-    .isBoolean()
-    .withMessage('preserveFormatting must be a boolean')
-];
-
-// ==================== BASIC AI ENDPOINTS ====================
+// ==================== CONTENT GENERATION ====================
 
 /**
- * @route GET /api/v1/ai/health
- * @desc Check AI service health
- * @access Public
+ * Generate general content based on type and prompt
+ * POST /api/v1/ai/generate/content
  */
-router.get('/health', aiController.checkAIHealth);
-
-/**
- * @route POST /api/v1/ai/generate
- * @desc Generate AI content
- * @access Private
- */
-router.post('/generate', 
-  authenticateToken, 
-  generateContentValidation, 
-  validateRequest, 
+router.post('/generate/content', 
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'type', type: 'string', required: true, enum: ['text', 'image', 'video', 'audio'] },
+    { field: 'prompt', type: 'string', required: true, minLength: 1, maxLength: 2000 },
+    { field: 'context', type: 'string', required: false, maxLength: 1000 },
+    { field: 'options', type: 'object', required: false }
+  ]),
   aiController.generateContent
 );
 
 /**
- * @route POST /api/v1/ai/generate/specialized
- * @desc Generate specialized content
- * @access Private
+ * Generate training materials for specific topics
+ * POST /api/v1/ai/generate/training-material
  */
-router.post('/generate/specialized', 
-  authenticateToken, 
-  specializedContentValidation, 
-  validateRequest, 
-  aiController.generateSpecializedContent
+router.post('/generate/training-material',
+  authenticateToken,
+  authorizeRoles('admin', 'trainer'),
+  validateRequestCustom([
+    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
+    { field: 'context', type: 'string', required: false, maxLength: 1000 },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generateTrainingMaterial
 );
 
 /**
- * @route GET /api/v1/ai/knowledge-base/stats
- * @desc Get knowledge base statistics
- * @access Private
+ * Generate assessment questions for training topics
+ * POST /api/v1/ai/generate/assessment-questions
  */
-router.get('/knowledge-base/stats', 
-  authenticateToken, 
-  aiController.getKnowledgeBaseStats
+router.post('/generate/assessment-questions',
+  authenticateToken,
+  authorizeRoles('admin', 'trainer'),
+  validateRequestCustom([
+    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
+    { field: 'questionCount', type: 'number', required: true, min: 1, max: 50 },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generateAssessmentQuestions
 );
 
-// ==================== KNOWLEDGE BASE & CONTENT LIBRARY ====================
+/**
+ * Generate presentation outlines and slides
+ * POST /api/v1/ai/generate/presentation-outline
+ */
+router.post('/generate/presentation-outline',
+  authenticateToken,
+  authorizeRoles('admin', 'trainer'),
+  validateRequestCustom([
+    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generatePresentationOutline
+);
+
+// ==================== CONTENT IMPROVEMENT ====================
 
 /**
- * @route GET /api/v1/ai/content/library
- * @desc Get AI content library
- * @access Private
+ * Improve existing content based on specified criteria
+ * POST /api/v1/ai/improve/content
  */
-router.get('/content/library', 
-  authenticateToken, 
+router.post('/improve/content',
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'content', type: 'string', required: true, minLength: 1, maxLength: 10000 },
+    { field: 'improvement', type: 'string', required: true, enum: ['grammar', 'style', 'tone', 'expand', 'summarize'] },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.improveContent
+);
+
+/**
+ * Translate content to different languages
+ * POST /api/v1/ai/translate/content
+ */
+router.post('/translate/content',
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'content', type: 'string', required: true, minLength: 1, maxLength: 5000 },
+    { field: 'targetLanguage', type: 'string', required: true, minLength: 2, maxLength: 10 },
+    { field: 'preserveTone', type: 'boolean', required: false },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.translateContent
+);
+
+// ==================== SPECIALIZED CONTENT GENERATION ====================
+
+/**
+ * Generate blog posts and articles
+ * POST /api/v1/ai/generate/blog-post
+ */
+router.post('/generate/blog-post',
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generateBlogPost
+);
+
+/**
+ * Generate social media content for different platforms
+ * POST /api/v1/ai/generate/social-media
+ */
+router.post('/generate/social-media',
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'platform', type: 'string', required: true, enum: ['twitter', 'linkedin', 'instagram', 'facebook'] },
+    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generateSocialMedia
+);
+
+/**
+ * Generate email content for different purposes
+ * POST /api/v1/ai/generate/email
+ */
+router.post('/generate/email',
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'type', type: 'string', required: true, enum: ['newsletter', 'marketing', 'announcement', 'follow-up'] },
+    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generateEmail
+);
+
+/**
+ * Generate product descriptions and marketing copy
+ * POST /api/v1/ai/generate/product-description
+ */
+router.post('/generate/product-description',
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'productName', type: 'string', required: true, minLength: 1, maxLength: 200 },
+    { field: 'features', type: 'array', required: false },
+    { field: 'targetAudience', type: 'string', required: true, minLength: 1, maxLength: 200 },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generateProductDescription
+);
+
+// ==================== MEDIA CONTENT GENERATION ====================
+
+/**
+ * Generate prompts for image generation
+ * POST /api/v1/ai/generate/image-prompt
+ */
+router.post('/generate/image-prompt',
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'description', type: 'string', required: true, minLength: 1, maxLength: 1000 },
+    { field: 'style', type: 'string', required: false, enum: ['realistic', 'artistic', 'cartoon', 'photographic'] },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generateImagePrompt
+);
+
+/**
+ * Generate video scripts and storyboards
+ * POST /api/v1/ai/generate/video-script
+ */
+router.post('/generate/video-script',
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
+    { field: 'duration', type: 'string', required: false, enum: ['short', 'medium', 'long'] },
+    { field: 'style', type: 'string', required: false, enum: ['educational', 'entertaining', 'promotional'] },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generateVideoScript
+);
+
+/**
+ * Generate audio content scripts
+ * POST /api/v1/ai/generate/audio-script
+ */
+router.post('/generate/audio-script',
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
+    { field: 'type', type: 'string', required: true, enum: ['podcast', 'voiceover', 'audio-book'] },
+    { field: 'duration', type: 'number', required: true, min: 1, max: 120 },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generateAudioScript
+);
+
+// ==================== AI CHATBOT ENDPOINTS ====================
+
+/**
+ * Create a new conversation
+ * POST /api/v1/ai/chat/conversations
+ */
+router.post('/chat/conversations',
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'niche', type: 'string', required: true, minLength: 1, maxLength: 100 },
+    { field: 'title', type: 'string', required: false, maxLength: 200 },
+    { field: 'initialMessage', type: 'string', required: false, maxLength: 1000 }
+  ]),
+  aiController.createConversation
+);
+
+/**
+ * Get user's conversations
+ * GET /api/v1/ai/chat/conversations
+ */
+router.get('/chat/conversations',
+  authenticateToken,
+  aiController.getConversations
+);
+
+/**
+ * Get specific conversation with messages
+ * GET /api/v1/ai/chat/conversations/:conversationId
+ */
+router.get('/chat/conversations/:conversationId',
+  authenticateToken,
+  aiController.getConversation
+);
+
+/**
+ * Delete a conversation
+ * DELETE /api/v1/ai/chat/conversations/:conversationId
+ */
+router.delete('/chat/conversations/:conversationId',
+  authenticateToken,
+  aiController.deleteConversation
+);
+
+/**
+ * Send a message in a conversation
+ * POST /api/v1/ai/chat/conversations/:conversationId/messages
+ */
+router.post('/chat/conversations/:conversationId/messages',
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'content', type: 'string', required: true, minLength: 1, maxLength: 2000 },
+    { field: 'type', type: 'string', required: false, enum: ['text', 'content', 'followup', 'social'] },
+    { field: 'metadata', type: 'object', required: false }
+  ]),
+  aiController.sendMessage
+);
+
+/**
+ * Generate AI response for chat messages
+ * POST /api/v1/ai/chat/generate-response
+ */
+router.post('/chat/generate-response',
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'message', type: 'string', required: true, minLength: 1, maxLength: 2000 },
+    { field: 'conversationId', type: 'string', required: false },
+    { field: 'context', type: 'object', required: false }
+  ]),
+  aiController.generateResponse
+);
+
+// ==================== ANALYTICS & INSIGHTS ====================
+
+/**
+ * Get analytics for generated content
+ * GET /api/v1/ai/analytics/content-performance
+ */
+router.get('/analytics/content-performance',
+  authenticateToken,
+  authorizeRoles('admin', 'trainer'),
+  aiController.getContentPerformance
+);
+
+/**
+ * Get insights from AI conversations
+ * GET /api/v1/ai/analytics/conversation-insights
+ */
+router.get('/analytics/conversation-insights',
+  authenticateToken,
+  aiController.getConversationInsights
+);
+
+/**
+ * Get AI usage statistics
+ * GET /api/v1/ai/analytics/usage
+ */
+router.get('/analytics/usage',
+  authenticateToken,
+  aiController.getUsageAnalytics
+);
+
+// ==================== TRAINING-SPECIFIC AI ENDPOINTS ====================
+
+/**
+ * Generate complete training modules
+ * POST /api/v1/ai/training/generate-module
+ */
+router.post('/training/generate-module',
+  authenticateToken,
+  authorizeRoles('admin', 'trainer'),
+  validateRequestCustom([
+    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generateTrainingModule
+);
+
+/**
+ * Generate practical exercises and activities
+ * POST /api/v1/ai/training/generate-exercises
+ */
+router.post('/training/generate-exercises',
+  authenticateToken,
+  authorizeRoles('admin', 'trainer'),
+  validateRequestCustom([
+    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generateExercises
+);
+
+/**
+ * Generate case studies and scenarios
+ * POST /api/v1/ai/training/generate-case-studies
+ */
+router.post('/training/generate-case-studies',
+  authenticateToken,
+  authorizeRoles('admin', 'trainer'),
+  validateRequestCustom([
+    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generateCaseStudies
+);
+
+/**
+ * Generate quizzes and assessments
+ * POST /api/v1/ai/training/generate-quiz
+ */
+router.post('/training/generate-quiz',
+  authenticateToken,
+  authorizeRoles('admin', 'trainer'),
+  validateRequestCustom([
+    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generateQuiz
+);
+
+/**
+ * Generate scenario-based assessments
+ * POST /api/v1/ai/training/generate-scenarios
+ */
+router.post('/training/generate-scenarios',
+  authenticateToken,
+  authorizeRoles('admin', 'trainer'),
+  validateRequestCustom([
+    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
+    { field: 'options', type: 'object', required: false }
+  ]),
+  aiController.generateScenarios
+);
+
+// ==================== CONTENT MANAGEMENT ====================
+
+/**
+ * Save generated content to library
+ * POST /api/v1/ai/content/save
+ */
+router.post('/content/save',
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'title', type: 'string', required: true, minLength: 1, maxLength: 200 },
+    { field: 'content', type: 'string', required: true, minLength: 1, maxLength: 10000 },
+    { field: 'type', type: 'string', required: true, minLength: 1, maxLength: 50 },
+    { field: 'category', type: 'string', required: false, maxLength: 100 },
+    { field: 'tags', type: 'array', required: false },
+    { field: 'metadata', type: 'object', required: false }
+  ]),
+  aiController.saveContent
+);
+
+/**
+ * Get saved content from library
+ * GET /api/v1/ai/content/library
+ */
+router.get('/content/library',
+  authenticateToken,
   aiController.getContentLibrary
 );
 
 /**
- * @route POST /api/v1/ai/knowledge-base/add
- * @desc Add content to knowledge base
- * @access Private
+ * Update saved content
+ * PUT /api/v1/ai/content/:contentId
  */
-router.post('/knowledge-base/add', 
-  authenticateToken, 
-  knowledgeBaseValidation, 
-  validateRequest, 
-  aiController.addToKnowledgeBase
+router.put('/content/:contentId',
+  authenticateToken,
+  aiController.updateContent
 );
 
 /**
- * @route POST /api/v1/ai/knowledge-base/search
- * @desc Search knowledge base
- * @access Private
+ * Delete content from library
+ * DELETE /api/v1/ai/content/:contentId
  */
-router.post('/knowledge-base/search', 
-  authenticateToken, 
-  searchValidation, 
-  validateRequest, 
-  aiController.searchKnowledgeBase
+router.delete('/content/:contentId',
+  authenticateToken,
+  aiController.deleteContent
 );
 
 /**
- * @route DELETE /api/v1/ai/knowledge-base/clear
- * @desc Clear knowledge base
- * @access Private
+ * Get available content templates
+ * GET /api/v1/ai/templates
  */
-router.delete('/knowledge-base/clear', 
-  authenticateToken, 
-  aiController.clearKnowledgeBase
+router.get('/templates',
+  authenticateToken,
+  aiController.getTemplates
 );
 
-// ==================== ENHANCED AI ENDPOINTS ====================
-router.post('/generate/content', authenticateToken, enhancedContentValidation, aiController.generateEnhancedContent);
-router.post('/generate/training-material', authenticateToken, trainingMaterialValidation, aiController.generateTrainingMaterial);
-router.post('/generate/assessment-questions', authenticateToken, assessmentQuestionsValidation, aiController.generateAssessmentQuestions);
-router.post('/generate/presentation-outline', authenticateToken, presentationOutlineValidation, aiController.generatePresentationOutline);
-router.post('/improve/content', authenticateToken, contentImprovementValidation, aiController.improveContent);
-router.post('/translate/content', authenticateToken, translationValidation, aiController.translateContent);
+/**
+ * Create custom content template
+ * POST /api/v1/ai/templates
+ */
+router.post('/templates',
+  authenticateToken,
+  authorizeRoles('admin', 'trainer'),
+  validateRequestCustom([
+    { field: 'name', type: 'string', required: true, minLength: 1, maxLength: 100 },
+    { field: 'description', type: 'string', required: false, maxLength: 500 },
+    { field: 'type', type: 'string', required: true, enum: ['social', 'followup', 'training', 'assessment'] },
+    { field: 'platform', type: 'string', required: false, maxLength: 50 },
+    { field: 'prompt', type: 'string', required: true, minLength: 1, maxLength: 2000 },
+    { field: 'variables', type: 'array', required: false }
+  ]),
+  aiController.createTemplate
+);
+
+// ==================== PERSONALIZATION & PREFERENCES ====================
+
+/**
+ * Get user's AI preferences
+ * GET /api/v1/ai/preferences
+ */
+router.get('/preferences',
+  authenticateToken,
+  aiController.getPreferences
+);
+
+/**
+ * Update AI preferences
+ * PUT /api/v1/ai/preferences
+ */
+router.put('/preferences',
+  authenticateToken,
+  aiController.updatePreferences
+);
+
+/**
+ * Get available niches and suggestions
+ * GET /api/v1/ai/niches
+ */
+router.get('/niches',
+  authenticateToken,
+  aiController.getNiches
+);
+
+/**
+ * Set user's primary niche
+ * POST /api/v1/ai/niches
+ */
+router.post('/niches',
+  authenticateToken,
+  validateRequestCustom([
+    { field: 'niche', type: 'string', required: true, minLength: 1, maxLength: 100 },
+    { field: 'description', type: 'string', required: false, maxLength: 500 },
+    { field: 'keywords', type: 'array', required: false }
+  ]),
+  aiController.setNiche
+);
+
+// ==================== PERFORMANCE & MONITORING ====================
+
+/**
+ * Check AI service health
+ * GET /api/v1/ai/health
+ */
+router.get('/health',
+  authenticateToken,
+  aiController.getHealth
+);
+
+/**
+ * Get current rate limit status
+ * GET /api/v1/ai/rate-limits
+ */
+router.get('/rate-limits',
+  authenticateToken,
+  aiController.getRateLimits
+);
 
 module.exports = router; 

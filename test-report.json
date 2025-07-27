@@ -1,0 +1,114 @@
+{
+  "summary": {
+    "total": 11,
+    "passed": 0,
+    "failed": 11,
+    "skipped": 0,
+    "successRate": 0,
+    "duration": 23155
+  },
+  "errors": [
+    {
+      "testCase": "TC004",
+      "description": "password\":\"TestPass123!",
+      "error": "Request failed: Invalid URL",
+      "expected": {
+        "status": null,
+        "response": "email\":\"john.doe@test.com"
+      },
+      "actual": null
+    },
+    {
+      "testCase": "TC005",
+      "error": "Request failed: Invalid URL",
+      "expected": {
+        "status": null,
+        "response": ""
+      },
+      "actual": null
+    },
+    {
+      "testCase": "TC006",
+      "description": "",
+      "error": "Request failed: Invalid URL",
+      "expected": {
+        "status": 200,
+        "response": "{\"success\":true,\"message\":\"Email verified successfully\"},Email verification,No,"
+      },
+      "actual": null
+    },
+    {
+      "testCase": "TC007",
+      "error": "Request failed: Invalid URL",
+      "expected": {
+        "status": null
+      },
+      "actual": null
+    },
+    {
+      "testCase": "TC008",
+      "error": "Request failed: Invalid URL",
+      "expected": {
+        "status": null
+      },
+      "actual": null
+    },
+    {
+      "testCase": "TC009",
+      "error": "Request failed: Invalid URL",
+      "expected": {
+        "status": null
+      },
+      "actual": null
+    },
+    {
+      "testCase": "TC010",
+      "error": "Request failed: Invalid URL",
+      "expected": {
+        "status": null
+      },
+      "actual": null
+    },
+    {
+      "testCase": "TC011",
+      "description": "",
+      "error": "Request failed: Invalid URL",
+      "expected": {
+        "status": 200,
+        "response": "{\"success\":true,\"data\":{\"user\":{}}},Get user profile,Yes,"
+      },
+      "actual": null
+    },
+    {
+      "testCase": "TC012",
+      "description": "",
+      "error": "Request failed: Invalid URL",
+      "expected": {
+        "status": null,
+        "response": "\"lastName\":\"Smith\"},200,{\"success\":true,\"message\":\"Profile updated successfully\"},Update user profile,Yes,"
+      },
+      "actual": null
+    },
+    {
+      "testCase": "TC013",
+      "description": "",
+      "error": "Request failed: Invalid URL",
+      "expected": {
+        "status": null,
+        "response": "\"newPassword\":\"NewPass123!\"},200,{\"success\":true,\"message\":\"Password changed successfully\"},Change password,Yes,"
+      },
+      "actual": null
+    },
+    {
+      "testCase": "TC014",
+      "description": "",
+      "error": "Request failed: Invalid URL",
+      "expected": {
+        "status": 200,
+        "response": "{\"success\":true,\"message\":\"Logged out successfully\"},User logout,Yes,"
+      },
+      "actual": null
+    }
+  ],
+  "timestamp": "2025-07-27T13:05:18.258Z"
+}

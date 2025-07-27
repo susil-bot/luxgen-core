@@ -1,7 +1,7 @@
 const { body, query, param, validationResult } = require('express-validator');
 const { ValidationError } = require('../utils/errors');
 
-// Enhanced validation middleware
+// Enhanced validation middleware for express-validator
 const validateRequest = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -15,6 +15,123 @@ const validateRequest = (req, res, next) => {
     throw new ValidationError('Validation failed', errorDetails);
   }
   next();
+};
+
+// Custom validation middleware for AI routes
+const validateRequestCustom = (validationRules) => {
+  return (req, res, next) => {
+    try {
+      const errors = [];
+      
+      for (const rule of validationRules) {
+        const { field, type, required, minLength, maxLength, min, max, enum: enumValues } = rule;
+        const value = req.body[field];
+        
+        // Check if required
+        if (required && (value === undefined || value === null || value === '')) {
+          errors.push({
+            field,
+            message: `${field} is required`,
+            type: 'required'
+          });
+          continue;
+        }
+        
+        // Skip validation if value is not provided and not required
+        if (value === undefined || value === null || value === '') {
+          continue;
+        }
+        
+        // Type validation
+        if (type === 'string' && typeof value !== 'string') {
+          errors.push({
+            field,
+            message: `${field} must be a string`,
+            type: 'type'
+          });
+        } else if (type === 'number' && typeof value !== 'number') {
+          errors.push({
+            field,
+            message: `${field} must be a number`,
+            type: 'type'
+          });
+        } else if (type === 'boolean' && typeof value !== 'boolean') {
+          errors.push({
+            field,
+            message: `${field} must be a boolean`,
+            type: 'type'
+          });
+        } else if (type === 'object' && typeof value !== 'object') {
+          errors.push({
+            field,
+            message: `${field} must be an object`,
+            type: 'type'
+          });
+        } else if (type === 'array' && !Array.isArray(value)) {
+          errors.push({
+            field,
+            message: `${field} must be an array`,
+            type: 'type'
+          });
+        }
+        
+        // String-specific validations
+        if (type === 'string' && typeof value === 'string') {
+          if (minLength && value.length < minLength) {
+            errors.push({
+              field,
+              message: `${field} must be at least ${minLength} characters long`,
+              type: 'minLength'
+            });
+          }
+          
+          if (maxLength && value.length > maxLength) {
+            errors.push({
+              field,
+              message: `${field} cannot exceed ${maxLength} characters`,
+              type: 'maxLength'
+            });
+          }
+        }
+        
+        // Number-specific validations
+        if (type === 'number' && typeof value === 'number') {
+          if (min !== undefined && value < min) {
+            errors.push({
+              field,
+              message: `${field} must be at least ${min}`,
+              type: 'min'
+            });
+          }
+          
+          if (max !== undefined && value > max) {
+            errors.push({
+              field,
+              message: `${field} cannot exceed ${max}`,
+              type: 'max'
+            });
+          }
+        }
+        
+        // Enum validation
+        if (enumValues && !enumValues.includes(value)) {
+          errors.push({
+            field,
+            message: `${field} must be one of: ${enumValues.join(', ')}`,
+            type: 'enum'
+          });
+        }
+      }
+      
+      if (errors.length > 0) {
+        throw new ValidationError('Validation failed', errors);
+      }
+      
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
 };
 
 // Enhanced password validation with strong requirements
@@ -451,6 +568,7 @@ const knowledgeBaseValidations = {
 
 module.exports = {
   validateRequest,
+  validateRequestCustom,
   commonValidations,
   userValidations,
   groupValidations,
