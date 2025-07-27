@@ -58,8 +58,7 @@ class DatabaseSetup {
 
       console.log('🔌 Connecting to MongoDB...');
 
-      const mongoUri = process.env.MONGODB_URL || 'mongodb:
-//127.0.0.1:27017/luxgen_trainer_platform';
+      const mongoUri = process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017/luxgen_trainer_platform';
       console.log(`🔗 MongoDB URI: ${mongoUri}`);
 
       this.connection = await mongoose.connect(mongoUri, {
@@ -232,8 +231,7 @@ class DatabaseSetup {
           contact: {
             email: 'demo@demo-corp.com',
             phone: '+1987654321',
-            website: 'https:
-//demo-corp.com'
+            website: 'https://demo-corp.com'
           },
           address: {
             street: '456 Demo Avenue',

@@ -238,65 +238,51 @@ app.use('*', (req, res) => {
 
 
 // Initialize database and start server
-async const startServer = () {
+const startServer = async () => {
   try {
     console.log('🚀 Starting Trainer Platform Backend...');
     console.log('='.repeat(60));
 
-    
-// Initialize cache
+    // Initialize cache
     await cacheManager.connect();
 
-    
-// Initialize AI service
+    // Initialize AI service
     await aiService.initialize();
 
-    
-// Initialize database connections first
-    const mongoUri = environmentConfig.get('MONGODB_URI', 'mongodb:
-//localhost:27017/luxgen_trainer_platform');
+    // Initialize database connections first
+    const mongoUri = environmentConfig.get('MONGODB_URI', 'mongodb://localhost:27017/luxgen_trainer_platform');
     await connectToDatabase(mongoUri);
 
-    
-// Initialize database with step-by-step process (skip connection since already connected)
+    // Initialize database with step-by-step process (skip connection since already connected)
     const dbInitializer = createDatabaseInitializer();
     await dbInitializer.initialize();
 
-    
-// Start server
+    // Start server
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`\n${'='.repeat(60)}`);
       console.log('🎉 TRAINER PLATFORM BACKEND STARTED SUCCESSFULLY');
       console.log('='.repeat(60));
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Health check: http:
-//localhost:${PORT}/health`);
-      console.log(`🔍 Detailed health: http:
-//localhost:${PORT}/health/detailed`);
-      console.log(`🗄️  Database status: http:
-//localhost:${PORT}/api/database/status`);
-      console.log(`🔗 API base: http:
-//localhost:${PORT}/api`);
-      console.log(`🌐 External access: http:
-//192.168.1.9:${PORT}`);
+      console.log(`📊 Health check: http://localhost:${PORT}/health`);
+      console.log(`🔍 Detailed health: http://localhost:${PORT}/health/detailed`);
+      console.log(`🗄️  Database status: http://localhost:${PORT}/api/database/status`);
+      console.log(`🔗 API base: http://localhost:${PORT}/api`);
+      console.log(`🌐 External access: http://192.168.1.9:${PORT}`);
       console.log(`🌍 Environment: ${environmentConfig.get('NODE_ENV', 'development')}`);
       console.log(`⏰ Started at: ${new Date().toISOString()}`);
       console.log('='.repeat(60));
     });
 
-    
-// Graceful shutdown handling
+    // Graceful shutdown handling
     const gracefulShutdown = async (signal) => {
       console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
 
       server.close(async () => {
         try {
-          
-// Stop cache
+          // Stop cache
           await cacheManager.disconnect();
 
-          
-// Close database connection
+          // Close database connection
           await mongoose.connection.close();
 
           console.log('✅ Server closed gracefully');
@@ -307,16 +293,14 @@ async const startServer = () {
         }
       });
 
-      
-// Force shutdown after 30 seconds
+      // Force shutdown after 30 seconds
       setTimeout(() => {
         console.error('💥 Could not close connections in time, forcefully shutting down');
         process.exit(1);
       }, 30000);
     };
 
-    
-// Handle shutdown signals
+    // Handle shutdown signals
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   } catch (error) {
@@ -324,7 +308,7 @@ async const startServer = () {
     console.error('Stack trace:', error.stack);
     process.exit(1);
   }
-}
+};
 
 
 // Handle uncaught exceptions

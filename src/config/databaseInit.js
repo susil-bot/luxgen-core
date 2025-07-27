@@ -26,8 +26,8 @@ class DatabaseInitializer {
   }
 }
 
-const createDatabaseInitializer = () {
+const createDatabaseInitializer = () => {
   return new DatabaseInitializer();
-}
+};
 
 module.exports = { createDatabaseInitializer };

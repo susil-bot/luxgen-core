@@ -22,10 +22,8 @@ class EnvironmentConfig {
 
         
 // Database
-        MONGODB_URL: process.env.MONGODB_URL || 'mongodb:
-//127.0.0.1:27017/luxgen_trainer_platform',
-        REDIS_URL: process.env.REDIS_URL || 'redis:
-//127.0.0.1:6379',
+        MONGODB_URL: process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017/luxgen_trainer_platform',
+        REDIS_URL: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
 
         
 // Authentication
@@ -36,8 +34,7 @@ class EnvironmentConfig {
 
         
 // CORS
-        CORS_ORIGIN: process.env.CORS_ORIGIN || 'http:
-//localhost:3000',
+        CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:3000',
         CORS_CREDENTIALS: process.env.CORS_CREDENTIALS !== 'false',
 
         

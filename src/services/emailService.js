@@ -102,8 +102,7 @@ class EmailService {
   async sendVerificationEmail (email, token, firstName = 'User') {
     
     // TODO: Add await statements
-    const verificationUrl = `${process.env.FRONTEND_URL || 'http:
-//localhost:3000'}/verify-email?token=${token}`;
+    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
 
     const subject = 'Verify Your Email - Trainer Platform';
     const html = `
@@ -176,8 +175,7 @@ class EmailService {
           </p>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.FRONTEND_URL || 'http:
-//localhost:3000'}/login" 
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" 
                style="background: #28a745; color: white; padding: 15px 30px; text-decoration: none; 
                       border-radius: 5px; display: inline-block; font-weight: bold;">
               Sign In to Your Account

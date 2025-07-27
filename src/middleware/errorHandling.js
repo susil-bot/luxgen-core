@@ -481,15 +481,15 @@ const genericErrorHandler = (err, req, res, next) => {
 
 
 // Utility functions
-const generateRequestId = () {
+const generateRequestId = () => {
   return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
+};
 
-const generateErrorId = () {
+const generateErrorId = () => {
   return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
+};
 
-const sanitizeRequestBody = (body) {
+const sanitizeRequestBody = (body) => {
   if (!body) {
     return body;
   }

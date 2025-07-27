@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema({
   phone: {
     type: String,
     trim: true,
-    match: [/^+?[1-9]\d{1,14}$/, 'Invalid phone format']
+    match: [/^\+?[1-9]\d{1,14}$/, 'Invalid phone format']
   },
   company: {
     type: String,
