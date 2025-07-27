@@ -61,15 +61,12 @@ const databaseConfig = {
 };
 
 // Enhanced connection function with retry logic
-async function connectToDatabase (uri) {
-
+const connectToDatabase = async (uri) => {
   const maxRetries = 5;
   let retryCount = 0;
 
   while (retryCount < maxRetries) {
-
     try {
-
       logger.info(`🔄 Attempting database connection (attempt ${retryCount + 1}/${maxRetries})...`);
 
       await mongoose.connect(uri, databaseConfig.options);
@@ -78,56 +75,41 @@ async function connectToDatabase (uri) {
 
       // Set up connection event listeners
       mongoose.connection.on('error', (error) => {
-
         logger.error('❌ Database connection error:', error);
-
       });
 
       mongoose.connection.on('disconnected', () => {
-
         logger.warn('⚠️ Database disconnected');
-
       });
 
       mongoose.connection.on('reconnected', () => {
-
         logger.info('🔄 Database reconnected');
-
       });
 
       // Create indexes for performance
       await createIndexes();
 
       return true;
-
     } catch (error) {
-
       retryCount++;
       logger.error(`❌ Database connection attempt ${retryCount} failed:`, error.message);
 
       if (retryCount >= maxRetries) {
-
         logger.error('💥 Maximum database connection retries reached');
         throw error;
-
       }
 
       // Exponential backoff
       const delay = Math.pow(2, retryCount) * 1000;
       logger.info(`⏳ Waiting ${delay}ms before retry...`);
       await new Promise(resolve => setTimeout(resolve, delay));
-
     }
-
   }
-
-}
+};
 
 // Create database indexes for performance
-async function createIndexes () {
-
+const createIndexes = async () => {
   try {
-
     logger.info('📊 Creating database indexes for performance...');
 
     const { User, TrainingSession, TrainingCourse, Poll, Presentation } = require('../models');
@@ -146,19 +128,14 @@ async function createIndexes () {
     await Presentation.collection.createIndexes(databaseConfig.indexes.presentationIndexes);
 
     logger.info('✅ Database indexes created successfully');
-
   } catch (error) {
-
     logger.error('❌ Error creating database indexes:', error);
     // Don't throw error as indexes are optional for functionality
-
   }
-
-}
+};
 
 // Enhanced query optimization helper
-function optimizeQuery (query, options = {}) {
-
+const optimizeQuery = (query, options = {}) => {
   const {
     lean = true, // Use lean queries for better performance
     limit = 50,  // Default limit
@@ -168,42 +145,30 @@ function optimizeQuery (query, options = {}) {
   } = options;
 
   if (lean) {
-
     query.lean();
-
   }
 
   if (limit) {
-
     query.limit(limit);
-
   }
 
   if (select) {
-
     query.select(select);
-
   }
 
   if (populate) {
-
     query.populate(populate);
-
   }
 
   if (sort) {
-
     query.sort(sort);
-
   }
 
   return query;
-
-}
+};
 
 // Pagination helper
-function createPaginationOptions (req) {
-
+const createPaginationOptions = (req) => {
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
   const skip = (page - 1) * limit;
@@ -214,8 +179,7 @@ function createPaginationOptions (req) {
     skip,
     sort: req.query.sort || { createdAt: -1 }
   };
-
-}
+};
 
 module.exports = {
   connectToDatabase,
