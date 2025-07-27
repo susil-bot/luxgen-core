@@ -19,6 +19,8 @@
     "security:audit": "npm audit",
     "security:fix": "npm audit fix",
     "security:check": "npm audit --audit-level=moderate",
+    "quality:check": "npm run security:check && npm run health:check",
+    "quality:check:full": "npm run lint -- --max-warnings=1000 && npm run security:check && npm run format:check && npm run health:check",
     "db:migrate": "node src/scripts/setupDatabase.js",
     "db:seed": "node src/scripts/seedData.js",
     "db:reset": "npm run db:migrate && npm run db:seed",
