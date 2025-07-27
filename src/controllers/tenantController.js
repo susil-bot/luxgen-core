@@ -1,3 +1,4 @@
+
 // const { validateTenantData } = require('../utils/validation');
 const Tenant = require('../models/Tenant');
 const User = require('../models/User');
@@ -8,11 +9,13 @@ const { emailService } = require('../services/emailService');
 const { generateSlug } = require('../utils/helpers');
 const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
 
+
 // Create a new tenant
 const createTenant = async (req, res) => {
   try {
     const tenantData = req.body;
-    
+
+
     // Validate tenant data
     const validation = validateTenantData(tenantData);
     if (!validation.isValid) {
@@ -22,6 +25,7 @@ const createTenant = async (req, res) => {
         errors: validation.errors
       });
     }
+
 
     // Check if tenant with same email or slug already exists
     const existingTenant = await Tenant.findOne({
@@ -38,10 +42,12 @@ const createTenant = async (req, res) => {
       });
     }
 
+
     // Generate slug if not provided
     if (!tenantData.slug) {
       tenantData.slug = generateSlug(tenantData.name);
     }
+
 
     // Set default values
     tenantData.status = 'pending';
@@ -51,13 +57,17 @@ const createTenant = async (req, res) => {
       source: req.body.source || 'api'
     };
 
+
     // Create tenant
     const tenant = new Tenant(tenantData);
     await tenant.save();
 
+
     // Generate verification token and send email
     await tenant.generateVerificationToken();
+
     // Temporarily disabled email sending for testing
+
     // await emailService.sendVerificationEmail(tenant.contactEmail, tenant.verificationToken);
 
     res.status(201).json({
@@ -73,7 +83,6 @@ const createTenant = async (req, res) => {
         subscription: tenant.subscription
       }
     });
-
   } catch (error) {
     console.error('Error creating tenant:', error);
     res.status(500).json({
@@ -83,6 +92,7 @@ const createTenant = async (req, res) => {
     });
   }
 };
+
 
 // Get all tenants (with pagination and filtering)
 const getTenants = async (req, res) => {
@@ -100,19 +110,29 @@ const getTenants = async (req, res) => {
       includeDeleted = false
     } = req.query;
 
+
     // Build filter object
     const filter = {};
-    
+
+
     // By default, exclude deleted tenants unless explicitly requested
     if (includeDeleted !== 'true') {
       filter.isDeleted = false;
     }
-    
-    if (status) filter.status = status;
-    if (subscriptionStatus) filter['subscription.status'] = subscriptionStatus;
-    if (industry) filter.industry = industry;
-    if (companySize) filter.companySize = companySize;
-    
+
+    if (status) {
+      filter.status = status;
+    }
+    if (subscriptionStatus) {
+      filter['subscription.status'] = subscriptionStatus;
+    }
+    if (industry) {
+      filter.industry = industry;
+    }
+    if (companySize) {
+      filter.companySize = companySize;
+    }
+
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -121,13 +141,15 @@ const getTenants = async (req, res) => {
       ];
     }
 
+
     // Build sort object
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
+
     // Execute query with pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const [tenants, total] = await Promise.all([
       Tenant.find(filter)
         .sort(sort)
@@ -152,7 +174,6 @@ const getTenants = async (req, res) => {
         hasPrev: page > 1
       }
     });
-
   } catch (error) {
     console.error('Error fetching tenants:', error);
     res.status(500).json({
@@ -163,17 +184,18 @@ const getTenants = async (req, res) => {
   }
 };
 
+
 // Get tenant by ID
 const getTenantById = async (req, res) => {
   try {
     const { id } = req.params;
     const { includeDeleted = false } = req.query;
-    
+
     const filter = { _id: id };
     if (includeDeleted !== 'true') {
       filter.isDeleted = false;
     }
-    
+
     const tenant = await Tenant.findOne(filter)
       .select('-verificationToken -verificationExpires')
       .populate('deletedBy', 'name email');
@@ -189,7 +211,6 @@ const getTenantById = async (req, res) => {
       success: true,
       data: tenant
     });
-
   } catch (error) {
     console.error('Error fetching tenant:', error);
     res.status(500).json({
@@ -200,11 +221,12 @@ const getTenantById = async (req, res) => {
   }
 };
 
+
 // Get tenant by slug
 const getTenantBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
-    
+
     const tenant = await Tenant.findOne({ slug })
       .select('-verificationToken -verificationExpires');
 
@@ -219,7 +241,6 @@ const getTenantBySlug = async (req, res) => {
       success: true,
       data: tenant
     });
-
   } catch (error) {
     console.error('Error fetching tenant:', error);
     res.status(500).json({
@@ -230,11 +251,13 @@ const getTenantBySlug = async (req, res) => {
   }
 };
 
+
 // Update tenant
 const updateTenant = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
+
 
     // Validate update data
     const validation = validateTenantData(updateData, true);
@@ -246,13 +269,14 @@ const updateTenant = async (req, res) => {
       });
     }
 
+
     // Check if slug is being updated and if it's unique
     if (updateData.slug) {
-      const existingTenant = await Tenant.findOne({ 
-        slug: updateData.slug, 
-        _id: { $ne: id } 
+      const existingTenant = await Tenant.findOne({
+        slug: updateData.slug,
+        _id: { $ne: id }
       });
-      
+
       if (existingTenant) {
         return res.status(409).json({
           success: false,
@@ -279,7 +303,6 @@ const updateTenant = async (req, res) => {
       message: 'Tenant updated successfully',
       data: tenant
     });
-
   } catch (error) {
     console.error('Error updating tenant:', error);
     res.status(500).json({
@@ -290,12 +313,13 @@ const updateTenant = async (req, res) => {
   }
 };
 
+
 // Soft delete tenant
 const deleteTenant = async (req, res) => {
   try {
     const { id } = req.params;
     const { permanent = false } = req.query;
-    
+
     const tenant = await Tenant.findById(id);
 
     if (!tenant) {
@@ -332,7 +356,6 @@ const deleteTenant = async (req, res) => {
         }
       });
     }
-
   } catch (error) {
     console.error('Error deleting tenant:', error);
     res.status(500).json({
@@ -343,11 +366,12 @@ const deleteTenant = async (req, res) => {
   }
 };
 
+
 // Verify tenant
 const verifyTenant = async (req, res) => {
   try {
     const { token } = req.params;
-    
+
     const tenant = await Tenant.findOne({
       verificationToken: token,
       verificationExpires: { $gt: new Date() }
@@ -372,7 +396,6 @@ const verifyTenant = async (req, res) => {
         isVerified: tenant.isVerified
       }
     });
-
   } catch (error) {
     console.error('Error verifying tenant:', error);
     res.status(500).json({
@@ -383,11 +406,12 @@ const verifyTenant = async (req, res) => {
   }
 };
 
+
 // Resend verification email
 const resendVerification = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const tenant = await Tenant.findById(id);
 
     if (!tenant) {
@@ -405,14 +429,15 @@ const resendVerification = async (req, res) => {
     }
 
     await tenant.generateVerificationToken();
+
     // Temporarily disabled email sending for testing
+
     // await emailService.sendVerificationEmail(tenant.contactEmail, tenant.verificationToken);
 
     res.json({
       success: true,
       message: 'Verification email sent successfully'
     });
-
   } catch (error) {
     console.error('Error resending verification:', error);
     res.status(500).json({
@@ -423,12 +448,13 @@ const resendVerification = async (req, res) => {
   }
 };
 
+
 // Update subscription
 const updateSubscription = async (req, res) => {
   try {
     const { id } = req.params;
     const subscriptionData = req.body;
-    
+
     const tenant = await Tenant.findById(id);
 
     if (!tenant) {
@@ -438,11 +464,13 @@ const updateSubscription = async (req, res) => {
       });
     }
 
+
     // Update subscription data
     tenant.subscription = {
       ...tenant.subscription,
       ...subscriptionData
     };
+
 
     // If changing to active plan, set end date
     if (subscriptionData.status === 'active' && subscriptionData.billingCycle) {
@@ -465,7 +493,6 @@ const updateSubscription = async (req, res) => {
         subscription: tenant.subscription
       }
     });
-
   } catch (error) {
     console.error('Error updating subscription:', error);
     res.status(500).json({
@@ -476,12 +503,13 @@ const updateSubscription = async (req, res) => {
   }
 };
 
+
 // Update features
 const updateFeatures = async (req, res) => {
   try {
     const { id } = req.params;
     const featuresData = req.body;
-    
+
     const tenant = await Tenant.findById(id);
 
     if (!tenant) {
@@ -490,6 +518,7 @@ const updateFeatures = async (req, res) => {
         message: 'Tenant not found'
       });
     }
+
 
     // Update features
     tenant.features = {
@@ -507,7 +536,6 @@ const updateFeatures = async (req, res) => {
         features: tenant.features
       }
     });
-
   } catch (error) {
     console.error('Error updating features:', error);
     res.status(500).json({
@@ -518,11 +546,12 @@ const updateFeatures = async (req, res) => {
   }
 };
 
+
 // Get tenant statistics
 const getTenantStats = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const tenant = await Tenant.findById(id);
 
     if (!tenant) {
@@ -531,6 +560,7 @@ const getTenantStats = async (req, res) => {
         message: 'Tenant not found'
       });
     }
+
 
     // Calculate additional statistics
     const stats = {
@@ -564,7 +594,6 @@ const getTenantStats = async (req, res) => {
       success: true,
       data: stats
     });
-
   } catch (error) {
     console.error('Error fetching tenant stats:', error);
     res.status(500).json({
@@ -575,23 +604,18 @@ const getTenantStats = async (req, res) => {
   }
 };
 
+
 // Get all tenant statistics (admin)
 const getAllTenantStats = async (req, res) => {
   try {
     const stats = await Tenant.aggregate([
-      {
-        $match: { isDeleted: false }
-      },
+      { $match: { isDeleted: false } },
       {
         $group: {
           _id: null,
           totalTenants: { $sum: 1 },
-          activeTenants: {
-            $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] }
-          },
-          verifiedTenants: {
-            $sum: { $cond: ['$isVerified', 1, 0] }
-          },
+          activeTenants: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } },
+          verifiedTenants: { $sum: { $cond: ['$isVerified', 1, 0] } },
           totalPolls: { $sum: '$usage.pollsCreated' },
           totalRecipients: { $sum: '$usage.totalRecipients' },
           totalResponses: { $sum: '$usage.totalResponses' },
@@ -609,9 +633,7 @@ const getAllTenantStats = async (req, res) => {
     ]);
 
     const subscriptionStats = await Tenant.aggregate([
-      {
-        $match: { isDeleted: false }
-      },
+      { $match: { isDeleted: false } },
       {
         $group: {
           _id: '$subscription.plan',
@@ -622,7 +644,7 @@ const getAllTenantStats = async (req, res) => {
 
     const industryStats = await Tenant.aggregate([
       {
-        $match: { 
+        $match: {
           industry: { $exists: true, $ne: '' },
           isDeleted: false
         }
@@ -633,19 +655,14 @@ const getAllTenantStats = async (req, res) => {
           count: { $sum: 1 }
         }
       },
-      {
-        $sort: { count: -1 }
-      },
-      {
-        $limit: 10
-      }
+      { $sort: { count: -1 } },
+      { $limit: 10 }
     ]);
+
 
     // Get deleted tenants count
     const deletedStats = await Tenant.aggregate([
-      {
-        $match: { isDeleted: true }
-      },
+      { $match: { isDeleted: true } },
       {
         $group: {
           _id: null,
@@ -662,7 +679,6 @@ const getAllTenantStats = async (req, res) => {
         industries: industryStats
       }
     });
-
   } catch (error) {
     console.error('Error fetching all tenant stats:', error);
     res.status(500).json({
@@ -672,6 +688,7 @@ const getAllTenantStats = async (req, res) => {
     });
   }
 };
+
 
 // Get deleted tenants
 const getDeletedTenants = async (req, res) => {
@@ -683,13 +700,15 @@ const getDeletedTenants = async (req, res) => {
       sortOrder = 'desc'
     } = req.query;
 
+
     // Build sort object
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
+
     // Execute query with pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const [tenants, total] = await Promise.all([
       Tenant.find({ isDeleted: true })
         .sort(sort)
@@ -714,7 +733,6 @@ const getDeletedTenants = async (req, res) => {
         hasPrev: page > 1
       }
     });
-
   } catch (error) {
     console.error('Error fetching deleted tenants:', error);
     res.status(500).json({
@@ -725,11 +743,12 @@ const getDeletedTenants = async (req, res) => {
   }
 };
 
+
 // Restore deleted tenant
 const restoreTenant = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const tenant = await Tenant.findById(id);
 
     if (!tenant) {
@@ -758,7 +777,6 @@ const restoreTenant = async (req, res) => {
         isDeleted: tenant.isDeleted
       }
     });
-
   } catch (error) {
     console.error('Error restoring tenant:', error);
     res.status(500).json({
@@ -769,12 +787,14 @@ const restoreTenant = async (req, res) => {
   }
 };
 
+
 // Get tenant analytics
 const getTenantAnalytics = async (req, res) => {
   try {
     const { id } = req.params;
-    const { period = '30d' } = req.query; // 7d, 30d, 90d, 1y
-    
+    const { period = '30d' } = req.query;
+    // 7d, 30d, 90d, 1y
+
     const tenant = await Tenant.findById(id);
     if (!tenant) {
       return res.status(404).json({
@@ -782,6 +802,7 @@ const getTenantAnalytics = async (req, res) => {
         message: 'Tenant not found'
       });
     }
+
 
     // Calculate date range based on period
     const now = new Date();
@@ -803,6 +824,7 @@ const getTenantAnalytics = async (req, res) => {
         startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     }
 
+
     // Get analytics data from various collections
     const [
       userStats,
@@ -811,19 +833,18 @@ const getTenantAnalytics = async (req, res) => {
       presentationStats,
       aiUsageStats
     ] = await Promise.all([
+
       // User analytics
       User.aggregate([
         { $match: { tenantId: tenant._id, createdAt: { $gte: startDate } } },
         {
           $group: {
-            _id: {
-              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-            },
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
             newUsers: { $sum: 1 },
             activeUsers: {
               $sum: {
                 $cond: [
-                  { $gte: ["$lastLogin", startDate] },
+                  { $gte: ['$lastLogin', startDate] },
                   1,
                   0
                 ]
@@ -834,80 +855,81 @@ const getTenantAnalytics = async (req, res) => {
         { $sort: { _id: 1 } }
       ]),
 
+
       // Poll analytics
       Poll.aggregate([
         { $match: { tenantId: tenant._id, createdAt: { $gte: startDate } } },
         {
           $group: {
-            _id: {
-              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-            },
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
             pollsCreated: { $sum: 1 },
-            totalResponses: { $sum: "$responseCount" },
-            avgResponseRate: { $avg: "$responseRate" }
+            totalResponses: { $sum: '$responseCount' },
+            avgResponseRate: { $avg: '$responseRate' }
           }
         },
         { $sort: { _id: 1 } }
       ]),
+
 
       // Training analytics
       TrainingSession.aggregate([
         { $match: { tenantId: tenant._id, scheduledAt: { $gte: startDate } } },
         {
           $group: {
-            _id: {
-              $dateToString: { format: "%Y-%m-%d", date: "$scheduledAt" }
-            },
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$scheduledAt' } },
             sessionsScheduled: { $sum: 1 },
             sessionsCompleted: {
               $sum: {
                 $cond: [
-                  { $eq: ["$status", "completed"] },
+                  { $eq: ['$status', 'completed'] },
                   1,
                   0
                 ]
               }
             },
-            avgAttendance: { $avg: "$attendanceRate" }
+            avgAttendance: { $avg: '$attendanceRate' }
           }
         },
         { $sort: { _id: 1 } }
       ]),
+
 
       // Presentation analytics
       Presentation.aggregate([
         { $match: { tenantId: tenant._id, createdAt: { $gte: startDate } } },
         {
           $group: {
-            _id: {
-              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-            },
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
             presentationsCreated: { $sum: 1 },
-            sessionsHeld: { $sum: { $size: "$sessions" } },
-            avgSessionDuration: { $avg: "$estimatedDuration" }
+            sessionsHeld: { $sum: { $size: '$sessions' } },
+            avgSessionDuration: { $avg: '$estimatedDuration' }
           }
         },
         { $sort: { _id: 1 } }
       ]),
 
+
       // AI usage analytics
+
       // Note: This would require an AI usage tracking collection
+
       // For now, returning empty array
       Promise.resolve([])
     ]);
 
+
     // Calculate summary statistics
     const summary = {
       totalUsers: await User.countDocuments({ tenantId: tenant._id }),
-      activeUsers: await User.countDocuments({ 
-        tenantId: tenant._id, 
-        lastLogin: { $gte: startDate } 
+      activeUsers: await User.countDocuments({
+        tenantId: tenant._id,
+        lastLogin: { $gte: startDate }
       }),
       totalPolls: await Poll.countDocuments({ tenantId: tenant._id }),
       totalTrainingSessions: await TrainingSession.countDocuments({ tenantId: tenant._id }),
       totalPresentations: await Presentation.countDocuments({ tenantId: tenant._id }),
-      period: period,
-      startDate: startDate,
+      period,
+      startDate,
       endDate: now
     };
 
@@ -929,7 +951,6 @@ const getTenantAnalytics = async (req, res) => {
         }
       }
     });
-
   } catch (error) {
     console.error('Error fetching tenant analytics:', error);
     res.status(500).json({
@@ -939,6 +960,7 @@ const getTenantAnalytics = async (req, res) => {
     });
   }
 };
+
 
 // Get tenant users
 const getTenantUsers = async (req, res) => {
@@ -962,12 +984,17 @@ const getTenantUsers = async (req, res) => {
       });
     }
 
+
     // Build filter object
     const filter = { tenantId: tenant._id };
-    
-    if (role) filter.role = role;
-    if (status) filter.status = status;
-    
+
+    if (role) {
+      filter.role = role;
+    }
+    if (status) {
+      filter.status = status;
+    }
+
     if (search) {
       filter.$or = [
         { firstName: { $regex: search, $options: 'i' } },
@@ -976,13 +1003,15 @@ const getTenantUsers = async (req, res) => {
       ];
     }
 
+
     // Build sort object
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
+
     // Execute query with pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const [users, total] = await Promise.all([
       User.find(filter)
         .sort(sort)
@@ -994,6 +1023,7 @@ const getTenantUsers = async (req, res) => {
 
     const totalPages = Math.ceil(total / parseInt(limit));
 
+
     // Calculate user statistics
     const userStats = await User.aggregate([
       { $match: { tenantId: tenant._id } },
@@ -1004,7 +1034,7 @@ const getTenantUsers = async (req, res) => {
           activeUsers: {
             $sum: {
               $cond: [
-                { $eq: ["$status", "active"] },
+                { $eq: ['$status', 'active'] },
                 1,
                 0
               ]
@@ -1013,7 +1043,7 @@ const getTenantUsers = async (req, res) => {
           verifiedUsers: {
             $sum: {
               $cond: [
-                { $eq: ["$isVerified", true] },
+                { $eq: ['$isVerified', true] },
                 1,
                 0
               ]
@@ -1022,7 +1052,7 @@ const getTenantUsers = async (req, res) => {
           adminUsers: {
             $sum: {
               $cond: [
-                { $eq: ["$role", "admin"] },
+                { $eq: ['$role', 'admin'] },
                 1,
                 0
               ]
@@ -1031,7 +1061,7 @@ const getTenantUsers = async (req, res) => {
           trainerUsers: {
             $sum: {
               $cond: [
-                { $eq: ["$role", "trainer"] },
+                { $eq: ['$role', 'trainer'] },
                 1,
                 0
               ]
@@ -1067,7 +1097,6 @@ const getTenantUsers = async (req, res) => {
         }
       }
     });
-
   } catch (error) {
     console.error('Error fetching tenant users:', error);
     res.status(500).json({
@@ -1078,11 +1107,12 @@ const getTenantUsers = async (req, res) => {
   }
 };
 
+
 // Get tenant settings
 const getTenantSettings = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const tenant = await Tenant.findById(id);
     if (!tenant) {
       return res.status(404).json({
@@ -1090,6 +1120,7 @@ const getTenantSettings = async (req, res) => {
         message: 'Tenant not found'
       });
     }
+
 
     // Extract settings from tenant document
     const settings = {
@@ -1120,7 +1151,6 @@ const getTenantSettings = async (req, res) => {
         settings
       }
     });
-
   } catch (error) {
     console.error('Error fetching tenant settings:', error);
     res.status(500).json({
@@ -1131,12 +1161,13 @@ const getTenantSettings = async (req, res) => {
   }
 };
 
+
 // Update tenant settings
 const updateTenantSettings = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
-    
+
     const tenant = await Tenant.findById(id);
     if (!tenant) {
       return res.status(404).json({
@@ -1144,6 +1175,7 @@ const updateTenantSettings = async (req, res) => {
         message: 'Tenant not found'
       });
     }
+
 
     // Validate update data
     const allowedSettings = [
@@ -1166,6 +1198,7 @@ const updateTenantSettings = async (req, res) => {
       });
     }
 
+
     // Update tenant with new settings
     const updatedTenant = await Tenant.findByIdAndUpdate(
       id,
@@ -1185,7 +1218,6 @@ const updateTenantSettings = async (req, res) => {
         updatedSettings: validUpdates
       }
     });
-
   } catch (error) {
     console.error('Error updating tenant settings:', error);
     res.status(500).json({
@@ -1215,4 +1247,4 @@ module.exports = {
   getTenantUsers,
   getTenantSettings,
   updateTenantSettings
-}; 
+};

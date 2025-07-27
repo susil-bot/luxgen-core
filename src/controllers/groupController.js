@@ -10,22 +10,29 @@ const { ValidationError, AuthorizationError, NotFoundError } = require('../utils
 exports.getAllGroups = async (req, res) => {
   try {
     const { tenantId } = req.user;
-    const { 
-      page = 1, 
-      limit = 10, 
-      category, 
-      trainerId, 
+    const {
+      page = 1,
+      limit = 10,
+      category,
+      trainerId,
       isActive,
-      search 
+      search
     } = req.query;
 
     const options = {};
-    if (category) options.category = category;
-    if (trainerId) options.trainerId = trainerId;
-    if (isActive !== undefined) options.isActive = isActive === 'true';
+    if (category) {
+      options.category = category;
+    }
+    if (trainerId) {
+      options.trainerId = trainerId;
+    }
+    if (isActive !== undefined) {
+      options.isActive = isActive === 'true';
+    }
 
-    let query = { tenantId, isDeleted: false };
-    
+    const query = { tenantId, isDeleted: false };
+
+
     // Add search functionality
     if (search) {
       query.$or = [
@@ -33,6 +40,7 @@ exports.getAllGroups = async (req, res) => {
         { description: { $regex: search, $options: 'i' } }
       ];
     }
+
 
     // Add filter options
     Object.assign(query, options);
@@ -87,15 +95,15 @@ exports.getGroupById = async (req, res) => {
     const { groupId } = req.params;
     const { tenantId } = req.user;
 
-    const group = await Group.findOne({ 
-      _id: groupId, 
-      tenantId, 
-      isDeleted: false 
+    const group = await Group.findOne({
+      _id: groupId,
+      tenantId,
+      isDeleted: false
     })
-    .populate('trainerId', 'firstName lastName email role')
-    .populate('members.userId', 'firstName lastName email role')
-    .populate('createdBy', 'firstName lastName email')
-    .populate('updatedBy', 'firstName lastName email');
+      .populate('trainerId', 'firstName lastName email role')
+      .populate('members.userId', 'firstName lastName email role')
+      .populate('createdBy', 'firstName lastName email')
+      .populate('updatedBy', 'firstName lastName email');
 
     if (!group) {
       throw new NotFoundError('Group not found');
@@ -140,21 +148,24 @@ exports.createGroup = async (req, res) => {
       tags = []
     } = req.body;
 
+
     // Validate required fields
     if (!name || !trainerId) {
       throw new ValidationError('Name and trainer are required');
     }
 
+
     // Verify trainer exists and belongs to tenant
-    const trainer = await User.findOne({ 
-      _id: trainerId, 
-      tenantId, 
-      isActive: true 
+    const trainer = await User.findOne({
+      _id: trainerId,
+      tenantId,
+      isActive: true
     });
 
     if (!trainer) {
       throw new ValidationError('Invalid trainer selected');
     }
+
 
     // Check if trainer has appropriate role
     if (!['admin', 'trainer'].includes(trainer.role)) {
@@ -173,6 +184,7 @@ exports.createGroup = async (req, res) => {
     });
 
     await group.save();
+
 
     // Populate references
     await group.populate('trainerId', 'firstName lastName email');
@@ -216,30 +228,32 @@ exports.updateGroup = async (req, res) => {
     const { tenantId, userId } = req.user;
     const updateData = req.body;
 
-    const group = await Group.findOne({ 
-      _id: groupId, 
-      tenantId, 
-      isDeleted: false 
+    const group = await Group.findOne({
+      _id: groupId,
+      tenantId,
+      isDeleted: false
     });
 
     if (!group) {
       throw new NotFoundError('Group not found');
     }
 
+
     // Check if user has permission to update this group
     const isTrainer = group.trainerId.toString() === userId;
     const isAdmin = req.user.role === 'admin';
-    
+
     if (!isTrainer && !isAdmin) {
       throw new AuthorizationError('You do not have permission to update this group');
     }
 
+
     // If trainer is being changed, verify new trainer
     if (updateData.trainerId && updateData.trainerId !== group.trainerId.toString()) {
-      const newTrainer = await User.findOne({ 
-        _id: updateData.trainerId, 
-        tenantId, 
-        isActive: true 
+      const newTrainer = await User.findOne({
+        _id: updateData.trainerId,
+        tenantId,
+        isActive: true
       });
 
       if (!newTrainer || !['admin', 'trainer'].includes(newTrainer.role)) {
@@ -247,9 +261,11 @@ exports.updateGroup = async (req, res) => {
       }
     }
 
+
     // Update group
     Object.assign(group, updateData, { updatedBy: userId });
     await group.save();
+
 
     // Populate references
     await group.populate('trainerId', 'firstName lastName email');
@@ -291,23 +307,25 @@ exports.deleteGroup = async (req, res) => {
     const { groupId } = req.params;
     const { tenantId, userId } = req.user;
 
-    const group = await Group.findOne({ 
-      _id: groupId, 
-      tenantId, 
-      isDeleted: false 
+    const group = await Group.findOne({
+      _id: groupId,
+      tenantId,
+      isDeleted: false
     });
 
     if (!group) {
       throw new NotFoundError('Group not found');
     }
 
+
     // Check if user has permission to delete this group
     const isTrainer = group.trainerId.toString() === userId;
     const isAdmin = req.user.role === 'admin';
-    
+
     if (!isTrainer && !isAdmin) {
       throw new AuthorizationError('You do not have permission to delete this group');
     }
+
 
     // Soft delete
     group.isDeleted = true;
@@ -351,29 +369,31 @@ exports.addMemberToGroup = async (req, res) => {
     const { tenantId, userId } = req.user;
     const { userId: memberUserId, role = 'member' } = req.body;
 
-    const group = await Group.findOne({ 
-      _id: groupId, 
-      tenantId, 
-      isDeleted: false 
+    const group = await Group.findOne({
+      _id: groupId,
+      tenantId,
+      isDeleted: false
     });
 
     if (!group) {
       throw new NotFoundError('Group not found');
     }
 
+
     // Check if user has permission to add members
     const isTrainer = group.trainerId.toString() === userId;
     const isAdmin = req.user.role === 'admin';
-    
+
     if (!isTrainer && !isAdmin) {
       throw new AuthorizationError('You do not have permission to add members to this group');
     }
 
+
     // Verify user exists and belongs to tenant
-    const user = await User.findOne({ 
-      _id: memberUserId, 
-      tenantId, 
-      isActive: true 
+    const user = await User.findOne({
+      _id: memberUserId,
+      tenantId,
+      isActive: true
     });
 
     if (!user) {
@@ -381,6 +401,7 @@ exports.addMemberToGroup = async (req, res) => {
     }
 
     await group.addMember(memberUserId, role);
+
 
     // Populate references
     await group.populate('members.userId', 'firstName lastName email role');
@@ -422,20 +443,21 @@ exports.removeMemberFromGroup = async (req, res) => {
     const { groupId, userId: memberUserId } = req.params;
     const { tenantId, userId } = req.user;
 
-    const group = await Group.findOne({ 
-      _id: groupId, 
-      tenantId, 
-      isDeleted: false 
+    const group = await Group.findOne({
+      _id: groupId,
+      tenantId,
+      isDeleted: false
     });
 
     if (!group) {
       throw new NotFoundError('Group not found');
     }
 
+
     // Check if user has permission to remove members
     const isTrainer = group.trainerId.toString() === userId;
     const isAdmin = req.user.role === 'admin';
-    
+
     if (!isTrainer && !isAdmin) {
       throw new AuthorizationError('You do not have permission to remove members from this group');
     }
@@ -477,12 +499,12 @@ exports.getGroupMembers = async (req, res) => {
     const { groupId } = req.params;
     const { tenantId } = req.user;
 
-    const group = await Group.findOne({ 
-      _id: groupId, 
-      tenantId, 
-      isDeleted: false 
+    const group = await Group.findOne({
+      _id: groupId,
+      tenantId,
+      isDeleted: false
     })
-    .populate('members.userId', 'firstName lastName email role isActive');
+      .populate('members.userId', 'firstName lastName email role isActive');
 
     if (!group) {
       throw new NotFoundError('Group not found');
@@ -527,20 +549,21 @@ exports.updateMemberRole = async (req, res) => {
     const { tenantId, userId } = req.user;
     const { role } = req.body;
 
-    const group = await Group.findOne({ 
-      _id: groupId, 
-      tenantId, 
-      isDeleted: false 
+    const group = await Group.findOne({
+      _id: groupId,
+      tenantId,
+      isDeleted: false
     });
 
     if (!group) {
       throw new NotFoundError('Group not found');
     }
 
+
     // Check if user has permission to update member roles
     const isTrainer = group.trainerId.toString() === userId;
     const isAdmin = req.user.role === 'admin';
-    
+
     if (!isTrainer && !isAdmin) {
       throw new AuthorizationError('You do not have permission to update member roles in this group');
     }
@@ -583,15 +606,16 @@ exports.getGroupPerformance = async (req, res) => {
     const { groupId } = req.params;
     const { tenantId } = req.user;
 
-    const group = await Group.findOne({ 
-      _id: groupId, 
-      tenantId, 
-      isDeleted: false 
+    const group = await Group.findOne({
+      _id: groupId,
+      tenantId,
+      isDeleted: false
     });
 
     if (!group) {
       throw new NotFoundError('Group not found');
     }
+
 
     // Get group statistics
     const stats = await Group.getGroupStats(groupId);
@@ -627,4 +651,4 @@ exports.getGroupPerformance = async (req, res) => {
       });
     }
   }
-}; 
+};

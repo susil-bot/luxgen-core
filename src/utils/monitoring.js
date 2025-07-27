@@ -1,7 +1,7 @@
 const logger = require('./logger');
 
 class MonitoringSystem {
-  constructor() {
+  constructor () {
     this.metrics = {
       requests: {
         total: 0,
@@ -31,10 +31,11 @@ class MonitoringSystem {
         slowQueries: 0
       }
     };
-    
+
     this.startTime = Date.now();
     this.uptime = 0;
-    
+
+
     // Start monitoring intervals
     this.startMonitoring();
   }
@@ -42,21 +43,24 @@ class MonitoringSystem {
   /**
    * Start monitoring intervals
    */
-  startMonitoring() {
+  startMonitoring () {
     // Update uptime every second
     setInterval(() => {
       this.uptime = Date.now() - this.startTime;
     }, 1000);
+
 
     // Log performance metrics every 5 minutes
     setInterval(() => {
       this.logPerformanceMetrics();
     }, 5 * 60 * 1000);
 
+
     // Log memory usage every minute
     setInterval(() => {
       this.recordMemoryUsage();
     }, 60 * 1000);
+
 
     // Clean up old metrics every hour
     setInterval(() => {
@@ -67,21 +71,25 @@ class MonitoringSystem {
   /**
    * Record HTTP request
    */
-  recordRequest(method, route, statusCode, responseTime) {
-    this.metrics.requests.total++;
-    
+  recordRequest (method, route, statusCode, responseTime) {
+    this.metrics.requests.total += 1;
+
+
     // Record by method
-    this.metrics.requests.byMethod[method] = 
+    this.metrics.requests.byMethod[method] =
       (this.metrics.requests.byMethod[method] || 0) + 1;
-    
+
+
     // Record by route
-    this.metrics.requests.byRoute[route] = 
+    this.metrics.requests.byRoute[route] =
       (this.metrics.requests.byRoute[route] || 0) + 1;
-    
+
+
     // Record by status
-    this.metrics.requests.byStatus[statusCode] = 
+    this.metrics.requests.byStatus[statusCode] =
       (this.metrics.requests.byStatus[statusCode] || 0) + 1;
-    
+
+
     // Record response time
     this.metrics.requests.responseTimes.push({
       timestamp: Date.now(),
@@ -89,12 +97,14 @@ class MonitoringSystem {
       route,
       method
     });
-    
+
+
     // Keep only last 1000 response times
     if (this.metrics.requests.responseTimes.length > 1000) {
       this.metrics.requests.responseTimes.shift();
     }
-    
+
+
     // Record slow requests (> 1 second)
     if (responseTime > 1000) {
       this.metrics.performance.slowQueries.push({
@@ -103,7 +113,8 @@ class MonitoringSystem {
         method,
         responseTime
       });
-      
+
+
       // Keep only last 100 slow queries
       if (this.metrics.performance.slowQueries.length > 100) {
         this.metrics.performance.slowQueries.shift();
@@ -114,17 +125,19 @@ class MonitoringSystem {
   /**
    * Record error
    */
-  recordError(errorType, route, error) {
-    this.metrics.errors.total++;
-    
+  recordError (errorType, route, error) {
+    this.metrics.errors.total += 1;
+
+
     // Record by type
-    this.metrics.errors.byType[errorType] = 
+    this.metrics.errors.byType[errorType] =
       (this.metrics.errors.byType[errorType] || 0) + 1;
-    
+
+
     // Record by route
-    this.metrics.errors.byRoute[route] = 
+    this.metrics.errors.byRoute[route] =
       (this.metrics.errors.byRoute[route] || 0) + 1;
-    
+
     logger.error(`❌ Error recorded: ${errorType} on ${route}`, {
       error: error.message,
       stack: error.stack,
@@ -135,13 +148,14 @@ class MonitoringSystem {
   /**
    * Record cache hit/miss
    */
-  recordCacheHit(hit) {
+  recordCacheHit (hit) {
     if (hit) {
-      this.metrics.cache.hits++;
+      this.metrics.cache.hits += 1;
     } else {
-      this.metrics.cache.misses++;
+      this.metrics.cache.misses += 1;
     }
-    
+
+
     // Calculate hit rate
     const total = this.metrics.cache.hits + this.metrics.cache.misses;
     this.metrics.cache.hitRate = total > 0 ? (this.metrics.cache.hits / total) * 100 : 0;
@@ -150,15 +164,16 @@ class MonitoringSystem {
   /**
    * Record database query
    */
-  recordDatabaseQuery(query, duration) {
-    this.metrics.database.queries++;
-    
+  recordDatabaseQuery (query, duration) {
+    this.metrics.database.queries += 1;
+
+
     // Record slow queries (> 100ms)
     if (duration > 100) {
-      this.metrics.database.slowQueries++;
-      
+      this.metrics.database.slowQueries += 1;
+
       logger.warn(`🐌 Slow database query detected: ${duration}ms`, {
-        query: query.substring(0, 200) + '...',
+        query: `${query.substring(0, 200)}...`,
         duration,
         timestamp: new Date().toISOString()
       });
@@ -168,9 +183,9 @@ class MonitoringSystem {
   /**
    * Record memory usage
    */
-  recordMemoryUsage() {
+  recordMemoryUsage () {
     const memUsage = process.memoryUsage();
-    
+
     this.metrics.performance.memoryUsage.push({
       timestamp: Date.now(),
       rss: memUsage.rss,
@@ -178,15 +193,18 @@ class MonitoringSystem {
       heapTotal: memUsage.heapTotal,
       external: memUsage.external
     });
-    
+
+
     // Keep only last 100 memory readings
     if (this.metrics.performance.memoryUsage.length > 100) {
       this.metrics.performance.memoryUsage.shift();
     }
-    
+
+
     // Log high memory usage
     const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
-    if (heapUsedMB > 500) { // 500MB threshold
+    if (heapUsedMB > 500) {
+      // 500MB threshold
       logger.warn(`⚠️ High memory usage detected: ${heapUsedMB.toFixed(2)}MB`);
     }
   }
@@ -194,14 +212,14 @@ class MonitoringSystem {
   /**
    * Get current metrics
    */
-  getMetrics() {
-    const avgResponseTime = this.metrics.requests.responseTimes.length > 0 ?
-      this.metrics.requests.responseTimes.reduce((sum, rt) => sum + rt.responseTime, 0) / 
+  getMetrics () {
+    const avgResponseTime = this.metrics.requests.responseTimes.length > 0
+      ? this.metrics.requests.responseTimes.reduce((sum, rt) => sum + rt.responseTime, 0) /
       this.metrics.requests.responseTimes.length : 0;
-    
-    const latestMemory = this.metrics.performance.memoryUsage.length > 0 ?
-      this.metrics.performance.memoryUsage[this.metrics.performance.memoryUsage.length - 1] : null;
-    
+
+    const latestMemory = this.metrics.performance.memoryUsage.length > 0
+      ? this.metrics.performance.memoryUsage[this.metrics.performance.memoryUsage.length - 1] : null;
+
     return {
       uptime: this.uptime,
       requests: {
@@ -224,12 +242,13 @@ class MonitoringSystem {
       database: {
         queries: this.metrics.database.queries,
         slowQueries: this.metrics.database.slowQueries,
-        slowQueryRate: this.metrics.database.queries > 0 ? 
-          (this.metrics.database.slowQueries / this.metrics.database.queries) * 100 : 0
+        slowQueryRate: this.metrics.database.queries > 0
+          ? (this.metrics.database.slowQueries / this.metrics.database.queries) * 100 : 0
       },
       performance: {
         memoryUsage: latestMemory,
-        slowQueries: this.metrics.performance.slowQueries.slice(-10) // Last 10 slow queries
+        slowQueries: this.metrics.performance.slowQueries.slice(-10)
+        // Last 10 slow queries
       },
       timestamp: new Date().toISOString()
     };
@@ -238,13 +257,13 @@ class MonitoringSystem {
   /**
    * Get health status
    */
-  getHealthStatus() {
+  getHealthStatus () {
     const metrics = this.getMetrics();
     const avgResponseTime = metrics.requests.averageResponseTime;
-    const errorRate = metrics.requests.total > 0 ? 
-      (metrics.errors.total / metrics.requests.total) * 100 : 0;
-    const memoryUsage = metrics.performance.memoryUsage;
-    
+    const errorRate = metrics.requests.total > 0
+      ? (metrics.errors.total / metrics.requests.total) * 100 : 0;
+    const { memoryUsage } = metrics.performance;
+
     const health = {
       status: 'healthy',
       checks: {
@@ -272,26 +291,27 @@ class MonitoringSystem {
       uptime: this.uptime,
       timestamp: new Date().toISOString()
     };
-    
+
+
     // Determine overall status
     const criticalChecks = Object.values(health.checks).filter(check => check.status === 'critical');
     const warningChecks = Object.values(health.checks).filter(check => check.status === 'warning');
-    
+
     if (criticalChecks.length > 0) {
       health.status = 'critical';
     } else if (warningChecks.length > 0) {
       health.status = 'warning';
     }
-    
+
     return health;
   }
 
   /**
    * Log performance metrics
    */
-  logPerformanceMetrics() {
+  logPerformanceMetrics () {
     const metrics = this.getMetrics();
-    
+
     logger.info('📊 Performance Metrics', {
       uptime: `${Math.floor(metrics.uptime / 1000 / 60)} minutes`,
       totalRequests: metrics.requests.total,
@@ -299,37 +319,40 @@ class MonitoringSystem {
       errorRate: `${((metrics.errors.total / metrics.requests.total) * 100).toFixed(2)}%`,
       cacheHitRate: `${metrics.cache.hitRate.toFixed(2)}%`,
       slowQueryRate: `${metrics.database.slowQueryRate.toFixed(2)}%`,
-      memoryUsage: metrics.performance.memoryUsage ? 
-        `${(metrics.performance.memoryUsage.heapUsed / 1024 / 1024).toFixed(2)}MB` : 'unknown'
+      memoryUsage: metrics.performance.memoryUsage
+        ? `${(metrics.performance.memoryUsage.heapUsed / 1024 / 1024).toFixed(2)}MB` : 'unknown'
     });
   }
 
   /**
    * Clean up old metrics
    */
-  cleanupOldMetrics() {
+  cleanupOldMetrics () {
     const oneHourAgo = Date.now() - (60 * 60 * 1000);
-    
+
+
     // Clean up old response times
-    this.metrics.requests.responseTimes = 
+    this.metrics.requests.responseTimes =
       this.metrics.requests.responseTimes.filter(rt => rt.timestamp > oneHourAgo);
-    
+
+
     // Clean up old slow queries
-    this.metrics.performance.slowQueries = 
+    this.metrics.performance.slowQueries =
       this.metrics.performance.slowQueries.filter(sq => sq.timestamp > oneHourAgo);
-    
+
+
     // Clean up old memory usage (keep last 24 hours)
     const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-    this.metrics.performance.memoryUsage = 
+    this.metrics.performance.memoryUsage =
       this.metrics.performance.memoryUsage.filter(mu => mu.timestamp > oneDayAgo);
-    
+
     logger.debug('🧹 Cleaned up old metrics');
   }
 
   /**
    * Reset metrics
    */
-  resetMetrics() {
+  resetMetrics () {
     this.metrics = {
       requests: {
         total: 0,
@@ -359,12 +382,13 @@ class MonitoringSystem {
         slowQueries: 0
       }
     };
-    
+
     logger.info('🔄 Metrics reset');
   }
 }
 
+
 // Create singleton instance
 const monitoringSystem = new MonitoringSystem();
 
-module.exports = monitoringSystem; 
+module.exports = monitoringSystem;

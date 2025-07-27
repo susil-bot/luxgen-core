@@ -1,11 +1,11 @@
-const { 
-  getTenantConfig, 
-  getActiveTenantConfigs, 
-  isTenantActive, 
-  getTenantFeature, 
+const {
+  getTenantConfig,
+  getActiveTenantConfigs,
+  isTenantActive,
+  getTenantFeature,
   isFeatureEnabled,
   getTenantLimits,
-  validateTenantConfig 
+  validateTenantConfig
 } = require('../config/tenants');
 
 /**
@@ -14,7 +14,7 @@ const {
 exports.getTenantConfig = async (req, res) => {
   try {
     const { slug } = req.params;
-    
+
     if (!slug) {
       return res.status(400).json({
         success: false,
@@ -23,13 +23,14 @@ exports.getTenantConfig = async (req, res) => {
     }
 
     const config = getTenantConfig(slug);
-    
+
     if (!config) {
       return res.status(404).json({
         success: false,
         message: 'Tenant configuration not found'
       });
     }
+
 
     // Remove sensitive information
     const safeConfig = {
@@ -45,7 +46,6 @@ exports.getTenantConfig = async (req, res) => {
       success: true,
       data: safeConfig
     });
-
   } catch (error) {
     console.error('Error getting tenant config:', error);
     res.status(500).json({
@@ -62,7 +62,8 @@ exports.getTenantConfig = async (req, res) => {
 exports.getAllTenantConfigs = async (req, res) => {
   try {
     const activeConfigs = getActiveTenantConfigs();
-    
+
+
     // Remove sensitive information from all configs
     const safeConfigs = {};
     Object.keys(activeConfigs).forEach(slug => {
@@ -81,7 +82,6 @@ exports.getAllTenantConfigs = async (req, res) => {
       success: true,
       data: safeConfigs
     });
-
   } catch (error) {
     console.error('Error getting all tenant configs:', error);
     res.status(500).json({
@@ -98,7 +98,7 @@ exports.getAllTenantConfigs = async (req, res) => {
 exports.checkFeature = async (req, res) => {
   try {
     const { slug, feature } = req.params;
-    
+
     if (!slug || !feature) {
       return res.status(400).json({
         success: false,
@@ -118,7 +118,6 @@ exports.checkFeature = async (req, res) => {
         config: featureConfig
       }
     });
-
   } catch (error) {
     console.error('Error checking feature:', error);
     res.status(500).json({
@@ -135,7 +134,7 @@ exports.checkFeature = async (req, res) => {
 exports.getTenantLimits = async (req, res) => {
   try {
     const { slug } = req.params;
-    
+
     if (!slug) {
       return res.status(400).json({
         success: false,
@@ -152,7 +151,6 @@ exports.getTenantLimits = async (req, res) => {
         limits
       }
     });
-
   } catch (error) {
     console.error('Error getting tenant limits:', error);
     res.status(500).json({
@@ -169,7 +167,7 @@ exports.getTenantLimits = async (req, res) => {
 exports.validateConfig = async (req, res) => {
   try {
     const config = req.body;
-    
+
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -183,7 +181,6 @@ exports.validateConfig = async (req, res) => {
       success: true,
       data: validation
     });
-
   } catch (error) {
     console.error('Error validating config:', error);
     res.status(500).json({
@@ -200,7 +197,7 @@ exports.validateConfig = async (req, res) => {
 exports.getTenantBranding = async (req, res) => {
   try {
     const { slug } = req.params;
-    
+
     if (!slug) {
       return res.status(400).json({
         success: false,
@@ -209,7 +206,7 @@ exports.getTenantBranding = async (req, res) => {
     }
 
     const config = getTenantConfig(slug);
-    
+
     if (!config) {
       return res.status(404).json({
         success: false,
@@ -226,7 +223,6 @@ exports.getTenantBranding = async (req, res) => {
         branding
       }
     });
-
   } catch (error) {
     console.error('Error getting tenant branding:', error);
     res.status(500).json({
@@ -243,7 +239,7 @@ exports.getTenantBranding = async (req, res) => {
 exports.getTenantSettings = async (req, res) => {
   try {
     const { slug } = req.params;
-    
+
     if (!slug) {
       return res.status(400).json({
         success: false,
@@ -252,7 +248,7 @@ exports.getTenantSettings = async (req, res) => {
     }
 
     const config = getTenantConfig(slug);
-    
+
     if (!config) {
       return res.status(404).json({
         success: false,
@@ -269,7 +265,6 @@ exports.getTenantSettings = async (req, res) => {
         settings
       }
     });
-
   } catch (error) {
     console.error('Error getting tenant settings:', error);
     res.status(500).json({
@@ -280,4 +275,4 @@ exports.getTenantSettings = async (req, res) => {
   }
 };
 
-module.exports = exports; 
+module.exports = exports;

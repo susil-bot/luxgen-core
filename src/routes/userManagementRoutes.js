@@ -2,12 +2,15 @@ const express = require('express');
 const { body, param, query } = require('express-validator');
 const userManagementController = require('../controllers/userManagementController');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+
 // const { validateRequest } = require('../middleware/validation');
 
 const router = express.Router();
 
+
 // Apply authentication to all routes
 router.use(authenticateToken);
+
 
 // Validation schemas
 const createUserValidation = [
@@ -153,6 +156,7 @@ const queryValidation = [
     .withMessage('Search term must be less than 100 characters')
 ];
 
+
 // User CRUD operations
 router.get('/', userManagementController.getAllUsers);
 router.get('/:userId', userManagementController.getUserById);
@@ -160,15 +164,18 @@ router.post('/', userManagementController.createUser);
 router.put('/:userId', userManagementController.updateUser);
 router.delete('/:userId', userManagementController.deleteUser);
 
+
 // Bulk operations (admin only)
 router.post('/bulk-action', requireAdmin, userManagementController.bulkUserAction);
+
 
 // User health and monitoring
 router.get('/:userId/health', userManagementController.getUserHealth);
 
+
 // User management actions (admin only)
-router.post('/:userId/reset-password', requireAdmin, userManagementController.resetUserPassword);
+router.post('/:(userId/reset-password)', requireAdmin, userManagementController.resetUserPassword);
 router.post('/:userId/suspend', requireAdmin, userManagementController.suspendUser);
 router.post('/:userId/activate', requireAdmin, userManagementController.activateUser);
 
-module.exports = router; 
+module.exports = router;

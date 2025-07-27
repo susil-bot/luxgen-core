@@ -2,12 +2,15 @@ const express = require('express');
 const { body, param, query } = require('express-validator');
 const groupController = require('../controllers/groupController');
 const { authenticateToken, requireAdmin, requireTrainer } = require('../middleware/auth');
+
 // const { validateRequest } = require('../middleware/validation');
 
 const router = express.Router();
 
+
 // Apply authentication to all routes
 router.use(authenticateToken);
+
 
 // Validation schemas
 const createGroupValidation = [
@@ -135,6 +138,7 @@ const queryValidation = [
     .withMessage('Search term must be less than 100 characters')
 ];
 
+
 // Group CRUD operations
 router.get('/', groupController.getAllGroups);
 router.get('/:groupId', groupController.getGroupById);
@@ -142,13 +146,15 @@ router.post('/', groupController.createGroup);
 router.put('/:groupId', groupController.updateGroup);
 router.delete('/:groupId', groupController.deleteGroup);
 
+
 // Group member management
 router.get('/:groupId/members', groupController.getGroupMembers);
 router.post('/:groupId/members', groupController.addMemberToGroup);
 router.delete('/:groupId/members/:userId', groupController.removeMemberFromGroup);
 router.put('/:groupId/members/:userId', groupController.updateMemberRole);
 
+
 // Group performance and analytics
 router.get('/:groupId/performance', groupController.getGroupPerformance);
 
-module.exports = router; 
+module.exports = router;

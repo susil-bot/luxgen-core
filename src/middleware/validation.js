@@ -1,6 +1,7 @@
 const { body, query, param, validationResult } = require('express-validator');
 const { ValidationError } = require('../utils/errors');
 
+
 // Enhanced validation middleware for express-validator
 const validateRequest = (req, res, next) => {
   const errors = validationResult(req);
@@ -17,16 +18,18 @@ const validateRequest = (req, res, next) => {
   next();
 };
 
+
 // Custom validation middleware for AI routes
 const validateRequestCustom = (validationRules) => {
   return (req, res, next) => {
     try {
       const errors = [];
-      
+
       for (const rule of validationRules) {
         const { field, type, required, minLength, maxLength, min, max, enum: enumValues } = rule;
         const value = req.body[field];
-        
+
+
         // Check if required
         if (required && (value === undefined || value === null || value === '')) {
           errors.push({
@@ -36,12 +39,14 @@ const validateRequestCustom = (validationRules) => {
           });
           continue;
         }
-        
+
+
         // Skip validation if value is not provided and not required
         if (value === undefined || value === null || value === '') {
           continue;
         }
-        
+
+
         // Type validation
         if (type === 'string' && typeof value !== 'string') {
           errors.push({
@@ -74,7 +79,8 @@ const validateRequestCustom = (validationRules) => {
             type: 'type'
           });
         }
-        
+
+
         // String-specific validations
         if (type === 'string' && typeof value === 'string') {
           if (minLength && value.length < minLength) {
@@ -84,7 +90,7 @@ const validateRequestCustom = (validationRules) => {
               type: 'minLength'
             });
           }
-          
+
           if (maxLength && value.length > maxLength) {
             errors.push({
               field,
@@ -93,7 +99,8 @@ const validateRequestCustom = (validationRules) => {
             });
           }
         }
-        
+
+
         // Number-specific validations
         if (type === 'number' && typeof value === 'number') {
           if (min !== undefined && value < min) {
@@ -103,7 +110,7 @@ const validateRequestCustom = (validationRules) => {
               type: 'min'
             });
           }
-          
+
           if (max !== undefined && value > max) {
             errors.push({
               field,
@@ -112,7 +119,8 @@ const validateRequestCustom = (validationRules) => {
             });
           }
         }
-        
+
+
         // Enum validation
         if (enumValues && !enumValues.includes(value)) {
           errors.push({
@@ -122,17 +130,18 @@ const validateRequestCustom = (validationRules) => {
           });
         }
       }
-      
+
       if (errors.length > 0) {
         throw new ValidationError('Validation failed', errors);
       }
-      
+
       next();
     } catch (error) {
       next(error);
     }
   };
 };
+
 
 // Enhanced password validation with strong requirements
 const strongPasswordValidation = [
@@ -151,6 +160,7 @@ const strongPasswordValidation = [
     })
 ];
 
+
 // Enhanced email validation with additional checks
 const enhancedEmailValidation = [
   body('email')
@@ -168,6 +178,7 @@ const enhancedEmailValidation = [
     })
 ];
 
+
 // Common validation rules
 const commonValidations = {
   id: param('id').isMongoId().withMessage('Invalid ID format'),
@@ -182,6 +193,7 @@ const commonValidations = {
     query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('SortOrder must be asc or desc')
   ]
 };
+
 
 // User validation schemas
 const userValidations = {
@@ -253,6 +265,7 @@ const userValidations = {
   ]
 };
 
+
 // Group validation schemas
 const groupValidations = {
   create: [
@@ -275,6 +288,7 @@ const groupValidations = {
     validateRequest
   ]
 };
+
 
 // Poll validation schemas
 const pollValidations = {
@@ -306,6 +320,7 @@ const pollValidations = {
     validateRequest
   ]
 };
+
 
 // Training validation schemas
 const trainingValidations = {
@@ -390,6 +405,7 @@ const trainingValidations = {
   }
 };
 
+
 // Presentation validation schemas
 const presentationValidations = {
   create: [
@@ -430,6 +446,7 @@ const presentationValidations = {
     validateRequest
   ]
 };
+
 
 // AI validation schemas
 const aiValidations = {
@@ -499,6 +516,7 @@ const aiValidations = {
   ]
 };
 
+
 // Tenant validation schemas
 const tenantValidations = {
   create: [
@@ -549,6 +567,7 @@ const tenantValidations = {
   ]
 };
 
+
 // Knowledge base validation schemas
 const knowledgeBaseValidations = {
   add: [
@@ -578,4 +597,4 @@ module.exports = {
   aiValidations,
   tenantValidations,
   knowledgeBaseValidations
-}; 
+};

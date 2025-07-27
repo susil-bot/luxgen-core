@@ -1,3 +1,4 @@
+
 // Export all models for easy importing
 const User = require('./User');
 const Tenant = require('./Tenant');
@@ -27,4 +28,4 @@ module.exports = {
   TrainingModule,
   TrainingAssessment,
   Presentation
-}; 
+};

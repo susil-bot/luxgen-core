@@ -8,6 +8,7 @@ exports.getTenantSchema = async (req, res) => {
   try {
     const { tenantId } = req.params;
 
+
     // Check if user has access to this tenant
     if (req.user.role !== 'super_admin' && req.user.tenantId !== tenantId) {
       return res.status(403).json({
@@ -28,7 +29,6 @@ exports.getTenantSchema = async (req, res) => {
       success: true,
       data: tenant
     });
-
   } catch (error) {
     console.error('Get tenant schema error:', error);
     res.status(500).json({
@@ -45,6 +45,7 @@ exports.getTenantSchema = async (req, res) => {
 exports.createTenantSchema = async (req, res) => {
   try {
     const tenantData = req.body;
+
 
     // Check if tenant with same slug already exists
     const existingTenant = await TenantSchema.findOne({ slug: tenantData.slug });
@@ -70,7 +71,6 @@ exports.createTenantSchema = async (req, res) => {
       message: 'Tenant created successfully',
       data: tenant
     });
-
   } catch (error) {
     console.error('Create tenant schema error:', error);
     res.status(500).json({
@@ -88,6 +88,7 @@ exports.updateTenantSchema = async (req, res) => {
   try {
     const { tenantId } = req.params;
     const updateData = req.body;
+
 
     // Check if user has access to this tenant
     if (req.user.role !== 'super_admin' && req.user.tenantId !== tenantId) {
@@ -113,7 +114,6 @@ exports.updateTenantSchema = async (req, res) => {
       message: 'Tenant updated successfully',
       data: tenant
     });
-
   } catch (error) {
     console.error('Update tenant schema error:', error);
     res.status(500).json({
@@ -131,6 +131,7 @@ exports.updateTenantStyling = async (req, res) => {
   try {
     const { tenantId } = req.params;
     const stylingUpdates = req.body;
+
 
     // Check if user has access to this tenant
     if (req.user.role !== 'super_admin' && req.user.tenantId !== tenantId) {
@@ -155,7 +156,6 @@ exports.updateTenantStyling = async (req, res) => {
       message: 'Tenant styling updated successfully',
       data: tenant.styling
     });
-
   } catch (error) {
     console.error('Update tenant styling error:', error);
     res.status(500).json({
@@ -186,7 +186,6 @@ exports.getTenantCSS = async (req, res) => {
     res.setHeader('Content-Type', 'text/css');
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.send(css);
-
   } catch (error) {
     console.error('Get tenant CSS error:', error);
     res.status(500).json({
@@ -203,6 +202,7 @@ exports.getTenantCSS = async (req, res) => {
 exports.getTenantStyling = async (req, res) => {
   try {
     const { tenantId } = req.params;
+
 
     // Check if user has access to this tenant
     if (req.user.role !== 'super_admin' && req.user.tenantId !== tenantId) {
@@ -224,7 +224,6 @@ exports.getTenantStyling = async (req, res) => {
       success: true,
       data: tenant.stylingConfig
     });
-
   } catch (error) {
     console.error('Get tenant styling error:', error);
     res.status(500).json({
@@ -242,6 +241,7 @@ exports.resetTenantStyling = async (req, res) => {
   try {
     const { tenantId } = req.params;
 
+
     // Check if user has access to this tenant
     if (req.user.role !== 'super_admin' && req.user.tenantId !== tenantId) {
       return res.status(403).json({
@@ -257,6 +257,7 @@ exports.resetTenantStyling = async (req, res) => {
         message: 'Tenant not found'
       });
     }
+
 
     // Reset styling to defaults
     tenant.styling = {
@@ -360,7 +361,6 @@ exports.resetTenantStyling = async (req, res) => {
       message: 'Tenant styling reset to defaults',
       data: tenant.styling
     });
-
   } catch (error) {
     console.error('Reset tenant styling error:', error);
     res.status(500).json({
@@ -379,8 +379,12 @@ exports.getAllTenants = async (req, res) => {
     const { page = 1, limit = 10, status, subscriptionStatus } = req.query;
 
     const query = {};
-    if (status) query.status = status;
-    if (subscriptionStatus) query['subscription.status'] = subscriptionStatus;
+    if (status) {
+      query.status = status;
+    }
+    if (subscriptionStatus) {
+      query['subscription.status'] = subscriptionStatus;
+    }
 
     const tenants = await TenantSchema.find(query)
       .sort({ createdAt: -1 })
@@ -398,7 +402,6 @@ exports.getAllTenants = async (req, res) => {
         total
       }
     });
-
   } catch (error) {
     console.error('Get all tenants error:', error);
     res.status(500).json({
@@ -428,7 +431,6 @@ exports.getTenantBySlug = async (req, res) => {
       success: true,
       data: tenant
     });
-
   } catch (error) {
     console.error('Get tenant by slug error:', error);
     res.status(500).json({
@@ -462,7 +464,6 @@ exports.updateTenantUsage = async (req, res) => {
       message: 'Usage statistics updated successfully',
       data: tenant.usage
     });
-
   } catch (error) {
     console.error('Update tenant usage error:', error);
     res.status(500).json({
@@ -486,7 +487,6 @@ exports.getExpiringTenants = async (req, res) => {
       success: true,
       data: tenants
     });
-
   } catch (error) {
     console.error('Get expiring tenants error:', error);
     res.status(500).json({
@@ -510,7 +510,6 @@ exports.getTenantsByColor = async (req, res) => {
       success: true,
       data: tenants
     });
-
   } catch (error) {
     console.error('Get tenants by color error:', error);
     res.status(500).json({
@@ -521,4 +520,4 @@ exports.getTenantsByColor = async (req, res) => {
   }
 };
 
-module.exports = exports; 
+module.exports = exports;

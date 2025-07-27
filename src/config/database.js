@@ -1,8 +1,10 @@
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 
+
 // Enhanced database configuration with connection pooling and retry logic
 const databaseConfig = {
+
   // Connection options with pooling
   options: {
     maxPoolSize: 10,
@@ -19,8 +21,10 @@ const databaseConfig = {
     bufferCommands: false
   },
 
+
   // Index configuration for performance
   indexes: {
+
     // User indexes
     userIndexes: [
       { email: 1, tenantId: 1 },
@@ -28,6 +32,7 @@ const databaseConfig = {
       { tenantId: 1, status: 1 },
       { createdAt: -1 }
     ],
+
 
     // Training indexes
     trainingSessionIndexes: [
@@ -44,12 +49,14 @@ const databaseConfig = {
       { tags: 1, tenantId: 1 }
     ],
 
+
     // Poll indexes
     pollIndexes: [
       { tenantId: 1, status: 1 },
       { createdBy: 1, tenantId: 1 },
       { createdAt: -1 }
     ],
+
 
     // Presentation indexes
     presentationIndexes: [
@@ -59,6 +66,7 @@ const databaseConfig = {
     ]
   }
 };
+
 
 // Enhanced connection function with retry logic
 const connectToDatabase = async (uri) => {
@@ -73,6 +81,7 @@ const connectToDatabase = async (uri) => {
 
       logger.info('✅ Database connected successfully');
 
+
       // Set up connection event listeners
       mongoose.connection.on('error', (error) => {
         logger.error('❌ Database connection error:', error);
@@ -86,18 +95,20 @@ const connectToDatabase = async (uri) => {
         logger.info('🔄 Database reconnected');
       });
 
+
       // Create indexes for performance
       await createIndexes();
 
       return true;
     } catch (error) {
-      retryCount++;
+      retryCount += 1;
       logger.error(`❌ Database connection attempt ${retryCount} failed:`, error.message);
 
       if (retryCount >= maxRetries) {
         logger.error('💥 Maximum database connection retries reached');
         throw error;
       }
+
 
       // Exponential backoff
       const delay = Math.pow(2, retryCount) * 1000;
@@ -107,6 +118,7 @@ const connectToDatabase = async (uri) => {
   }
 };
 
+
 // Create database indexes for performance
 const createIndexes = async () => {
   try {
@@ -114,34 +126,61 @@ const createIndexes = async () => {
 
     const { User, TrainingSession, TrainingCourse, Poll, Presentation } = require('../models');
 
-    // User indexes
-    await User.collection.createIndexes(databaseConfig.indexes.userIndexes);
 
-    // Training indexes
-    await TrainingSession.collection.createIndexes(databaseConfig.indexes.trainingSessionIndexes);
-    await TrainingCourse.collection.createIndexes(databaseConfig.indexes.trainingCourseIndexes);
+    // Create indexes one by one to avoid configuration issues
+    if (User && User.collection) {
+      await User.collection.createIndex({ email: 1, tenantId: 1 });
+      await User.collection.createIndex({ tenantId: 1, role: 1 });
+      await User.collection.createIndex({ tenantId: 1, status: 1 });
+      await User.collection.createIndex({ createdAt: -1 });
+    }
 
-    // Poll indexes
-    await Poll.collection.createIndexes(databaseConfig.indexes.pollIndexes);
+    if (TrainingSession && TrainingSession.collection) {
+      await TrainingSession.collection.createIndex({ tenantId: 1, scheduledAt: 1 });
+      await TrainingSession.collection.createIndex({ tenantId: 1, status: 1 });
+      await TrainingSession.collection.createIndex({ trainerId: 1, tenantId: 1 });
+    }
 
-    // Presentation indexes
-    await Presentation.collection.createIndexes(databaseConfig.indexes.presentationIndexes);
+    if (TrainingCourse && TrainingCourse.collection) {
+      await TrainingCourse.collection.createIndex({ tenantId: 1, status: 1 });
+      await TrainingCourse.collection.createIndex({ instructorId: 1, tenantId: 1 });
+      await TrainingCourse.collection.createIndex({ category: 1, tenantId: 1 });
+    }
+
+    if (Poll && Poll.collection) {
+      await Poll.collection.createIndex({ tenantId: 1, status: 1 });
+      await Poll.collection.createIndex({ createdBy: 1, tenantId: 1 });
+      await Poll.collection.createIndex({ createdAt: -1 });
+    }
+
+    if (Presentation && Presentation.collection) {
+      await Presentation.collection.createIndex({ tenantId: 1, status: 1 });
+      await Presentation.collection.createIndex({ createdBy: 1, tenantId: 1 });
+      await Presentation.collection.createIndex({ tags: 1, tenantId: 1 });
+    }
 
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.error('❌ Error creating database indexes:', error);
+
     // Don't throw error as indexes are optional for functionality
   }
 };
 
+
 // Enhanced query optimization helper
 const optimizeQuery = (query, options = {}) => {
   const {
-    lean = true, // Use lean queries for better performance
-    limit = 50,  // Default limit
-    select = null, // Fields to select
-    populate = null, // Fields to populate
-    sort = null // Sort options
+    lean = true,
+    // Use lean queries for better performance
+    limit = 50,
+    // Default limit
+    select = null,
+    // Fields to select
+    populate = null,
+    // Fields to populate
+    sort = null
+    // Sort options
   } = options;
 
   if (lean) {
@@ -166,6 +205,7 @@ const optimizeQuery = (query, options = {}) => {
 
   return query;
 };
+
 
 // Pagination helper
 const createPaginationOptions = (req) => {

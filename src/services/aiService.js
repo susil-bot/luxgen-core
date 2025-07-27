@@ -6,16 +6,17 @@
 const EnhancedAIService = require('./aiServiceEnhanced');
 
 class AIService {
-  constructor() {
+  constructor () {
     this.enhancedService = EnhancedAIService;
   }
 
-  async initialize() {
+  async initialize () {
     return this.enhancedService.initialize();
   }
 
+
   // Legacy methods for backward compatibility
-  async generateContent(prompt, options = {}) {
+  async generateContent (prompt, options = {}) {
     return this.enhancedService.generateContent({
       type: 'text',
       prompt,
@@ -25,7 +26,7 @@ class AIService {
     });
   }
 
-  async generateContentWithRAG(prompt, options = {}) {
+  async generateContentWithRAG (prompt, options = {}) {
     return this.enhancedService.generateContent({
       type: 'text',
       prompt,
@@ -36,7 +37,7 @@ class AIService {
     });
   }
 
-  async addToKnowledgeBase(documentId, content, metadata = {}) {
+  async addToKnowledgeBase (documentId, content, metadata = {}) {
     // Legacy method - now handled by content library
     return {
       documentId,
@@ -45,7 +46,7 @@ class AIService {
     };
   }
 
-  async searchKnowledgeBase(query, maxResults = 5) {
+  async searchKnowledgeBase (query, maxResults = 5) {
     // Legacy method - return mock results
     return [
       {
@@ -56,12 +57,12 @@ class AIService {
     ];
   }
 
-  async clearKnowledgeBase() {
+  async clearKnowledgeBase () {
     // Legacy method
     return { success: true, message: 'Knowledge base cleared' };
   }
 
-  getKnowledgeBaseStats() {
+  getKnowledgeBaseStats () {
     // Legacy method
     return {
       totalDocuments: 0,
@@ -71,15 +72,15 @@ class AIService {
     };
   }
 
-  async checkHealth() {
+  async checkHealth () {
     return this.enhancedService.getHealth({ userId: 'legacy', tenantId: 'legacy' });
   }
 
-  async healthCheck() {
+  async healthCheck () {
     return this.enhancedService.getHealth({ userId: 'legacy', tenantId: 'legacy' });
   }
 
-  async getContentLibrary() {
+  async getContentLibrary () {
     return this.enhancedService.getContentLibrary({
       userId: 'legacy',
       tenantId: 'legacy',
@@ -88,7 +89,7 @@ class AIService {
     });
   }
 
-  getContentCategories() {
+  getContentCategories () {
     return [
       'Training Materials',
       'Assessments',
@@ -100,17 +101,17 @@ class AIService {
     ];
   }
 
-  getRecentContent() {
+  getRecentContent () {
     return [];
   }
 
-  getPopularContent() {
+  getPopularContent () {
     return [];
   }
 
-  getContentTemplates() {
+  getContentTemplates () {
     return this.enhancedService.getTemplates({ userId: 'legacy', tenantId: 'legacy' });
   }
 }
 
-module.exports = new AIService(); 
+module.exports = new AIService();

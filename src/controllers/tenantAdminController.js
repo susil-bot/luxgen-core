@@ -17,8 +17,9 @@ exports.addUserToTenant = async (req, res) => {
       });
     }
 
+
     // Get tenant ID from JWT (for tenant admins) or from request (for super admins)
-    let tenantId = req.user.tenantId;
+    let { tenantId } = req.user;
     if (req.user.role === 'super_admin' && req.body.tenantId) {
       tenantId = req.body.tenantId;
     }
@@ -29,6 +30,7 @@ exports.addUserToTenant = async (req, res) => {
         message: 'User not associated with any tenant'
       });
     }
+
 
     // Get tenant configuration
     const tenant = await Tenant.findById(tenantId);
@@ -47,12 +49,13 @@ exports.addUserToTenant = async (req, res) => {
       });
     }
 
+
     // Check user limits
     const limits = getTenantLimits(tenant.slug);
-    const currentUserCount = await User.countDocuments({ 
-      tenantId, 
-      isActive: true, 
-      isDeleted: false 
+    const currentUserCount = await User.countDocuments({
+      tenantId,
+      isActive: true,
+      isDeleted: false
     });
 
     if (currentUserCount >= limits.maxUsers) {
@@ -64,6 +67,7 @@ exports.addUserToTenant = async (req, res) => {
 
     const { email, firstName, lastName, role = 'user', phone, department } = req.body;
 
+
     // Validate required fields
     if (!email || !firstName || !lastName) {
       return res.status(400).json({
@@ -72,11 +76,12 @@ exports.addUserToTenant = async (req, res) => {
       });
     }
 
+
     // Check if user already exists in this tenant
-    const existingUser = await User.findOne({ 
-      email, 
+    const existingUser = await User.findOne({
+      email,
       tenantId,
-      isDeleted: false 
+      isDeleted: false
     });
 
     if (existingUser) {
@@ -86,9 +91,11 @@ exports.addUserToTenant = async (req, res) => {
       });
     }
 
+
     // Generate temporary password
     const tempPassword = Math.random().toString(36).slice(-8);
     const hashedPassword = await bcrypt.hash(tempPassword, 12);
+
 
     // Create new user
     const user = new User({
@@ -101,7 +108,8 @@ exports.addUserToTenant = async (req, res) => {
       phone,
       department,
       isActive: true,
-      isEmailVerified: true, // Auto-verified since admin is adding
+      isEmailVerified: true,
+      // Auto-verified since admin is adding
       createdBy: req.user._id,
       profile: {
         company: tenant.name,
@@ -111,10 +119,11 @@ exports.addUserToTenant = async (req, res) => {
 
     await user.save();
 
+
     // Generate password setup token
     const setupToken = jwt.sign(
-      { 
-        userId: user._id, 
+      {
+        userId: user._id,
         email: user.email,
         type: 'password_setup',
         tenantId: user.tenantId
@@ -143,7 +152,6 @@ exports.addUserToTenant = async (req, res) => {
         }
       }
     });
-
   } catch (error) {
     console.error('Error adding user to tenant:', error);
     res.status(500).json({
@@ -167,8 +175,9 @@ exports.getTenantUsers = async (req, res) => {
       });
     }
 
+
     // Get tenant ID from JWT (for tenant admins) or from request (for super admins)
-    let tenantId = req.user.tenantId;
+    let { tenantId } = req.user;
     if (req.user.role === 'super_admin' && req.query.tenantId) {
       tenantId = req.query.tenantId;
     }
@@ -179,6 +188,7 @@ exports.getTenantUsers = async (req, res) => {
         message: 'User not associated with any tenant'
       });
     }
+
 
     // Get tenant configuration
     const tenant = await Tenant.findById(tenantId);
@@ -192,10 +202,11 @@ exports.getTenantUsers = async (req, res) => {
     const { page = 1, limit = 10, search, role, status } = req.query;
     const skip = (page - 1) * limit;
 
+
     // Build query
-    const query = { 
-      tenantId, 
-      isDeleted: false 
+    const query = {
+      tenantId,
+      isDeleted: false
     };
 
     if (search) {
@@ -213,6 +224,7 @@ exports.getTenantUsers = async (req, res) => {
     if (status) {
       query.isActive = status === 'active';
     }
+
 
     // Get users with pagination
     const users = await User.find(query)
@@ -239,7 +251,6 @@ exports.getTenantUsers = async (req, res) => {
         }
       }
     });
-
   } catch (error) {
     console.error('Error getting tenant users:', error);
     res.status(500).json({
@@ -266,8 +277,9 @@ exports.updateTenantUser = async (req, res) => {
     const { userId } = req.params;
     const { firstName, lastName, role, phone, department, isActive } = req.body;
 
+
     // Get tenant ID from JWT (for tenant admins) or from request (for super admins)
-    let tenantId = req.user.tenantId;
+    let { tenantId } = req.user;
     if (req.user.role === 'super_admin' && req.body.tenantId) {
       tenantId = req.body.tenantId;
     }
@@ -279,11 +291,12 @@ exports.updateTenantUser = async (req, res) => {
       });
     }
 
+
     // Find user in the specific tenant
-    const user = await User.findOne({ 
-      _id: userId, 
+    const user = await User.findOne({
+      _id: userId,
       tenantId,
-      isDeleted: false 
+      isDeleted: false
     });
 
     if (!user) {
@@ -293,6 +306,7 @@ exports.updateTenantUser = async (req, res) => {
       });
     }
 
+
     // Prevent admin from modifying super_admin users
     if (user.role === 'super_admin' && req.user.role !== 'super_admin') {
       return res.status(403).json({
@@ -301,13 +315,26 @@ exports.updateTenantUser = async (req, res) => {
       });
     }
 
+
     // Update user fields
-    if (firstName) user.firstName = firstName;
-    if (lastName) user.lastName = lastName;
-    if (role) user.role = role;
-    if (phone) user.phone = phone;
-    if (department) user.department = department;
-    if (typeof isActive === 'boolean') user.isActive = isActive;
+    if (firstName) {
+      user.firstName = firstName;
+    }
+    if (lastName) {
+      user.lastName = lastName;
+    }
+    if (role) {
+      user.role = role;
+    }
+    if (phone) {
+      user.phone = phone;
+    }
+    if (department) {
+      user.department = department;
+    }
+    if (typeof isActive === 'boolean') {
+      user.isActive = isActive;
+    }
 
     user.updatedBy = req.user._id;
     user.updatedAt = new Date();
@@ -330,7 +357,6 @@ exports.updateTenantUser = async (req, res) => {
         }
       }
     });
-
   } catch (error) {
     console.error('Error updating tenant user:', error);
     res.status(500).json({
@@ -356,8 +382,9 @@ exports.removeUserFromTenant = async (req, res) => {
 
     const { userId } = req.params;
 
+
     // Get tenant ID from JWT (for tenant admins) or from request (for super admins)
-    let tenantId = req.user.tenantId;
+    let { tenantId } = req.user;
     if (req.user.role === 'super_admin' && req.body.tenantId) {
       tenantId = req.body.tenantId;
     }
@@ -369,11 +396,12 @@ exports.removeUserFromTenant = async (req, res) => {
       });
     }
 
+
     // Find user in the specific tenant
-    const user = await User.findOne({ 
-      _id: userId, 
+    const user = await User.findOne({
+      _id: userId,
       tenantId,
-      isDeleted: false 
+      isDeleted: false
     });
 
     if (!user) {
@@ -383,6 +411,7 @@ exports.removeUserFromTenant = async (req, res) => {
       });
     }
 
+
     // Prevent admin from removing super_admin users
     if (user.role === 'super_admin' && req.user.role !== 'super_admin') {
       return res.status(403).json({
@@ -391,6 +420,7 @@ exports.removeUserFromTenant = async (req, res) => {
       });
     }
 
+
     // Prevent admin from removing themselves
     if (user._id.toString() === req.user._id.toString()) {
       return res.status(400).json({
@@ -398,6 +428,7 @@ exports.removeUserFromTenant = async (req, res) => {
         message: 'Cannot remove yourself from the tenant'
       });
     }
+
 
     // Soft delete the user
     user.isActive = false;
@@ -415,7 +446,6 @@ exports.removeUserFromTenant = async (req, res) => {
         email: user.email
       }
     });
-
   } catch (error) {
     console.error('Error removing user from tenant:', error);
     res.status(500).json({
@@ -426,4 +456,4 @@ exports.removeUserFromTenant = async (req, res) => {
   }
 };
 
-module.exports = exports; 
+module.exports = exports;

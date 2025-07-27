@@ -12,8 +12,9 @@ const identifyTenant = async (req, res, next) => {
     let tenantSlug = null;
     let identificationMethod = null;
 
-    // Method 1: Subdomain-based identification
-    const hostname = req.hostname;
+    
+// Method 1: Subdomain-based identification
+    const { hostname } = req;
     if (hostname.includes('.')) {
       const subdomain = hostname.split('.')[0];
       if (subdomain !== 'www' && subdomain !== 'api' && subdomain !== 'localhost') {
@@ -22,22 +23,27 @@ const identifyTenant = async (req, res, next) => {
       }
     }
 
-    // Method 2: Path-based identification
+    
+// Method 2: Path-based identification
     if (!tenantSlug && req.path.startsWith('/tenant/')) {
       const pathParts = req.path.split('/');
-      tenantSlug = pathParts[2]; // /tenant/acme/...
+      tenantSlug = pathParts[2]; 
+// /tenant/acme/...
       identificationMethod = 'path';
-      // Remove tenant from path for route matching
+      
+// Remove tenant from path for route matching
       req.url = req.url.replace(`/tenant/${tenantSlug}`, '');
     }
 
-    // Method 3: Header-based identification
+    
+// Method 3: Header-based identification
     if (!tenantSlug) {
       const headerTenantId = req.headers['x-tenant-id'];
       const headerTenantSlug = req.headers['x-tenant-slug'];
-      
+
       if (headerTenantId) {
-        // Find tenant by ID in database
+        
+// Find tenant by ID in database
         const dbTenant = await Tenant.findById(headerTenantId);
         if (dbTenant) {
           tenantSlug = dbTenant.slug;
@@ -49,7 +55,8 @@ const identifyTenant = async (req, res, next) => {
       }
     }
 
-    // Method 4: Query parameter identification
+    
+// Method 4: Query parameter identification
     if (!tenantSlug) {
       const queryTenantSlug = req.query.tenant;
       if (queryTenantSlug) {
@@ -58,15 +65,18 @@ const identifyTenant = async (req, res, next) => {
       }
     }
 
-    // Method 5: JWT token identification (for authenticated requests)
+    
+// Method 5: JWT token identification (for authenticated requests)
     if (!tenantSlug && req.user && req.user.tenantSlug) {
       tenantSlug = req.user.tenantSlug;
       identificationMethod = 'jwt';
     }
 
-    // Validate tenant using configuration file
+    
+// Validate tenant using configuration file
     if (tenantSlug) {
-      // Check if tenant is active in configuration
+      
+// Check if tenant is active in configuration
       if (!isTenantActive(tenantSlug)) {
         return res.status(400).json({
           success: false,
@@ -76,17 +86,20 @@ const identifyTenant = async (req, res, next) => {
         });
       }
 
-      // Get tenant configuration
-      const tenantConfig = getTenantConfig(tenantSlug);
       
-      // Get tenant from database (for additional data)
-      const dbTenant = await Tenant.findOne({ 
-        slug: tenantSlug, 
-        status: 'active', 
-        isDeleted: false 
+// Get tenant configuration
+      const tenantConfig = getTenantConfig(tenantSlug);
+
+      
+// Get tenant from database (for additional data)
+      const dbTenant = await Tenant.findOne({
+        slug: tenantSlug,
+        status: 'active',
+        isDeleted: false
       });
 
-      // Create tenant object with config + database data
+      
+// Create tenant object with config + database data
       tenant = {
         ...tenantConfig,
         _id: dbTenant?._id,
@@ -94,12 +107,14 @@ const identifyTenant = async (req, res, next) => {
       };
     }
 
-    // Store tenant information in request
+    
+// Store tenant information in request
     req.tenant = tenant;
     req.tenantSlug = tenantSlug;
     req.tenantIdentificationMethod = identificationMethod;
 
-    // Add tenant info to response headers for debugging
+    
+// Add tenant info to response headers for debugging
     if (tenant) {
       res.setHeader('X-Tenant-ID', tenant._id?.toString() || 'config-only');
       res.setHeader('X-Tenant-Slug', tenant.slug);
@@ -124,8 +139,10 @@ const requireTenant = (req, res, next) => {
       success: false,
       message: 'Tenant not identified. Please provide tenant information via subdomain, path, header, or query parameter.',
       availableMethods: [
-        'Subdomain: https://tenant-slug.luxgen.com',
-        'Path: https://luxgen.com/tenant/tenant-slug',
+        'Subdomain: https:
+//tenant-slug.luxgen.com',
+        'Path: https:
+//luxgen.com/(tenant/tenant-slug)',
         'Header: X-Tenant-Slug: tenant-slug',
         'Query: ?tenant=tenant-slug'
       ],
@@ -140,7 +157,8 @@ const requireTenant = (req, res, next) => {
  * Allows requests to proceed with or without tenant identification
  */
 const optionalTenant = (req, res, next) => {
-  // Always proceed, tenant may or may not be identified
+  
+// Always proceed, tenant may or may not be identified
   next();
 };
 
@@ -186,8 +204,10 @@ const tenantRateLimit = (req, res, next) => {
     });
   }
 
-  // TODO: Implement rate limiting logic based on apiConfig.rateLimit
-  // For now, just proceed
+  
+// TODO: Implement rate limiting logic based on apiConfig.rateLimit
+  
+// For now, just proceed
   next();
 };
 
@@ -197,4 +217,4 @@ module.exports = {
   optionalTenant,
   requireFeature,
   tenantRateLimit
-}; 
+};

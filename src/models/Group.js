@@ -94,9 +94,8 @@ const groupSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }
-}, {
-  timestamps: true
-});
+}, { timestamps: true });
+
 
 // Indexes
 groupSchema.index({ tenantId: 1, isDeleted: 1 });
@@ -104,133 +103,138 @@ groupSchema.index({ trainerId: 1, isActive: 1 });
 groupSchema.index({ 'members.userId': 1 });
 groupSchema.index({ category: 1, isActive: 1 });
 
+
 // Virtual for member count
-groupSchema.virtual('memberCount').get(function() {
+groupSchema.virtual('memberCount').get(function () {
   return this.members.filter(member => member.status === 'active').length;
 });
 
+
 // Virtual for available spots
-groupSchema.virtual('availableSpots').get(function() {
+groupSchema.virtual('availableSpots').get(function () {
   return Math.max(0, this.maxSize - this.memberCount);
 });
 
+
 // Pre-save middleware to update currentSize
-groupSchema.pre('save', function(next) {
+groupSchema.pre('save', function (next) {
   this.currentSize = this.memberCount;
   this.updatedAt = new Date();
   next();
 });
 
+
 // Instance methods
-groupSchema.methods.addMember = function(userId, role = 'member') {
-  const existingMember = this.members.find(member => 
+groupSchema.methods.addMember = function (userId, role = 'member') {
+  const existingMember = this.members.find(member =>
     member.userId.toString() === userId.toString()
   );
-  
+
   if (existingMember) {
     throw new Error('User is already a member of this group');
   }
-  
+
   if (this.currentSize >= this.maxSize) {
     throw new Error('Group is at maximum capacity');
   }
-  
+
   this.members.push({
     userId,
     role,
     joinedAt: new Date(),
     status: 'active'
   });
-  
+
   return this.save();
 };
 
-groupSchema.methods.removeMember = function(userId) {
-  const memberIndex = this.members.findIndex(member => 
+groupSchema.methods.removeMember = function (userId) {
+  const memberIndex = this.members.findIndex(member =>
     member.userId.toString() === userId.toString()
   );
-  
+
   if (memberIndex === -1) {
     throw new Error('User is not a member of this group');
   }
-  
+
   this.members.splice(memberIndex, 1);
   return this.save();
 };
 
-groupSchema.methods.updateMemberRole = function(userId, newRole) {
-  const member = this.members.find(member => 
+groupSchema.methods.updateMemberRole = function (userId, newRole) {
+  const member = this.members.find(member =>
     member.userId.toString() === userId.toString()
   );
-  
+
   if (!member) {
     throw new Error('User is not a member of this group');
   }
-  
+
   member.role = newRole;
   return this.save();
 };
 
-groupSchema.methods.suspendMember = function(userId) {
-  const member = this.members.find(member => 
+groupSchema.methods.suspendMember = function (userId) {
+  const member = this.members.find(member =>
     member.userId.toString() === userId.toString()
   );
-  
+
   if (!member) {
     throw new Error('User is not a member of this group');
   }
-  
+
   member.status = 'suspended';
   return this.save();
 };
 
-groupSchema.methods.activateMember = function(userId) {
-  const member = this.members.find(member => 
+groupSchema.methods.activateMember = function (userId) {
+  const member = this.members.find(member =>
     member.userId.toString() === userId.toString()
   );
-  
+
   if (!member) {
     throw new Error('User is not a member of this group');
   }
-  
+
   member.status = 'active';
   return this.save();
 };
 
+
 // Static methods
-groupSchema.statics.findByTenant = function(tenantId, options = {}) {
+groupSchema.statics.findByTenant = function (tenantId, options = {}) {
   const query = { tenantId, isDeleted: false };
-  
+
   if (options.isActive !== undefined) {
     query.isActive = options.isActive;
   }
-  
+
   if (options.category) {
     query.category = options.category;
   }
-  
+
   if (options.trainerId) {
     query.trainerId = options.trainerId;
   }
-  
+
   return this.find(query)
     .populate('trainerId', 'firstName lastName email')
     .populate('members.userId', 'firstName lastName email role')
     .sort({ createdAt: -1 });
 };
 
-groupSchema.statics.findByMember = function(userId) {
+groupSchema.statics.findByMember = function (userId) {
   return this.find({
     'members.userId': userId,
     isDeleted: false,
     isActive: true
   })
-  .populate('trainerId', 'firstName lastName email')
-  .populate('members.userId', 'firstName lastName email role')
-  .sort({ createdAt: -1 });
+    .populate('trainerId', 'firstName lastName email')
+    .populate('members.userId', 'firstName lastName email role')
+    .sort({ createdAt: -1 });
 };
 
-groupSchema.statics.getGroupStats = function(groupId) {
+groupSchema.statics.getGroupStats = function (groupId) {
   return this.aggregate([
     { $match: { _id: new mongoose.Types.ObjectId(groupId) } },
     {
@@ -270,4 +274,4 @@ groupSchema.statics.getGroupStats = function(groupId) {
   ]);
 };
 
-module.exports = mongoose.model('Group', groupSchema); 
+module.exports = mongoose.model('Group', groupSchema);

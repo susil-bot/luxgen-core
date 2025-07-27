@@ -250,7 +250,7 @@ const samplePolls = [
       {
         question: 'Which programming languages are you most comfortable with?',
         type: 'multiple_choice',
-        options: ['JavaScript', 'Python', 'Java', 'C++', 'Go', 'Rust'],
+        options: ['JavaScript', 'Python', 'Java', 'C += 1', 'Go', 'Rust'],
         required: true,
         order: 2
       },
@@ -285,19 +285,22 @@ const samplePolls = [
   }
 ];
 
-async function seedData() {
+async const seedData = () {
   try {
     console.log('🌱 Starting database seeding...');
+
     
-    // Connect to database
+// Connect to database
     await database.connect();
+
     
-    // Clear existing data
+// Clear existing data
     console.log('🗑️ Clearing existing data...');
     await User.deleteMany({});
     await Poll.deleteMany({});
+
     
-    // Create users
+// Create users
     console.log('👥 Creating users...');
     const createdUsers = [];
     for (const userData of sampleUsers) {
@@ -306,15 +309,18 @@ async function seedData() {
       createdUsers.push(user);
       console.log(`✅ Created user: ${user.email}`);
     }
+
     
-    // Create polls
+// Create polls
     console.log('📊 Creating polls...');
     for (const pollData of samplePolls) {
-      // Set createdBy to first trainer user
+      
+// Set createdBy to first trainer user
       const trainer = createdUsers.find(u => u.role === 'trainer');
       pollData.createdBy = trainer._id;
+
       
-      // Update recipient user IDs
+// Update recipient user IDs
       pollData.recipients = pollData.recipients.map(recipient => {
         const user = createdUsers.find(u => u.email === recipient.email);
         return {
@@ -322,49 +328,51 @@ async function seedData() {
           userId: user ? user._id : null
         };
       });
+
       
-      // Create poll without responses and feedback first
+// Create poll without responses and feedback first
       const pollWithoutResponses = {
         ...pollData,
         responses: [],
         feedback: []
       };
-      
+
       const poll = new Poll(pollWithoutResponses);
       await poll.save();
+
       
-      // Add responses if they exist
+// Add responses if they exist
       if (pollData.responses.length > 0) {
         const response = pollData.responses[0];
         const user = createdUsers.find(u => u.email === response.userEmail);
-        
+
         if (user) {
           const answers = response.answers.map((answer, index) => ({
             questionId: poll.questions[index]._id,
             answer: answer.answer,
             questionText: answer.questionText
           }));
-          
+
           await poll.addResponse(user._id, response.userName, response.userEmail, answers);
         }
       }
+
       
-      // Add feedback if it exists
+// Add feedback if it exists
       if (pollData.feedback.length > 0) {
         const feedback = pollData.feedback[0];
         const user = createdUsers.find(u => u.email === feedback.userEmail);
-        
+
         if (user) {
           await poll.addFeedback(user._id, feedback.userName, feedback.userEmail, feedback.rating, feedback.comment);
         }
       }
-      
+
       console.log(`✅ Created poll: ${poll.title}`);
     }
-    
+
     console.log('🎉 Database seeding completed successfully!');
     console.log(`📊 Created ${createdUsers.length} users and ${samplePolls.length} polls`);
-    
   } catch (error) {
     console.error('❌ Error seeding database:', error);
   } finally {
@@ -373,9 +381,10 @@ async function seedData() {
   }
 }
 
+
 // Run seeding if this file is executed directly
 if (require.main === module) {
   seedData();
 }
 
-module.exports = seedData; 
+module.exports = seedData;

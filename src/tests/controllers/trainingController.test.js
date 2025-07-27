@@ -5,9 +5,11 @@ const TrainingController = require('../../controllers/trainingController');
 const TrainingSession = require('../../models/TrainingSession');
 const TrainingCourse = require('../../models/TrainingCourse');
 
+
 // Create Express app for testing
 const app = express();
 app.use(express.json());
+
 
 // Mock middleware
 const mockAuthMiddleware = (req, res, next) => {
@@ -15,11 +17,14 @@ const mockAuthMiddleware = (req, res, next) => {
   next();
 };
 
+
 // Apply middleware and routes
 app.use(mockAuthMiddleware);
 
+
 // Initialize controller
 const trainingController = new TrainingController();
+
 
 // Test routes
 app.get('/api/v1/training/sessions', trainingController.getTrainingSessions);
@@ -220,6 +225,7 @@ describe('TrainingController', () => {
     it('should return trainer statistics', async () => {
       const trainerId = testUtils.testConfig.testUsers[1]._id;
 
+
       // Create test sessions for the trainer
       const testSessions = [
         {
@@ -228,7 +234,7 @@ describe('TrainingController', () => {
           scheduledAt: new Date(),
           duration: 120,
           status: 'completed',
-          trainerId: trainerId,
+          trainerId,
           participants: [testUtils.testConfig.testUsers[2]._id],
           attendance: [
             {
@@ -242,10 +248,11 @@ describe('TrainingController', () => {
         {
           title: 'Trainer Session 2',
           sessionType: 'lecture',
-          scheduledAt: new Date(Date.now() + 86400000), // Tomorrow
+          scheduledAt: new Date(Date.now() + 86400000),
+          // Tomorrow
           duration: 90,
           status: 'scheduled',
-          trainerId: trainerId,
+          trainerId,
           participants: [testUtils.testConfig.testUsers[2]._id],
           capacity: 15,
           tenantId: testUtils.testConfig.testUsers[0].tenantId
@@ -291,6 +298,7 @@ describe('TrainingController', () => {
     it('should return participant statistics', async () => {
       const participantId = testUtils.testConfig.testUsers[2]._id;
 
+
       // Create test sessions where user is a participant
       const testSessions = [
         {
@@ -303,7 +311,7 @@ describe('TrainingController', () => {
           participants: [participantId],
           attendance: [
             {
-              participantId: participantId,
+              participantId,
               attended: true
             }
           ],
@@ -320,7 +328,7 @@ describe('TrainingController', () => {
           participants: [participantId],
           attendance: [
             {
-              participantId: participantId,
+              participantId,
               attended: false
             }
           ],
@@ -331,6 +339,7 @@ describe('TrainingController', () => {
 
       await TrainingSession.insertMany(testSessions);
 
+
       // Create test courses where user is enrolled
       const testCourses = [
         {
@@ -340,10 +349,10 @@ describe('TrainingController', () => {
           level: 'beginner',
           duration: 480,
           instructorId: testUtils.testConfig.testUsers[1]._id,
-          enrollments: [{ participantId: participantId }],
+          enrollments: [{ participantId }],
           progress: [
             {
-              participantId: participantId,
+              participantId,
               completed: true,
               progress: 100
             }
@@ -403,6 +412,7 @@ describe('TrainingController', () => {
       expect(response.body.success).toBe(false);
       expect(response.body.error).toBe('Database connection failed');
 
+
       // Restore original implementation
       jest.restoreAllMocks();
     });
@@ -415,7 +425,8 @@ describe('TrainingController', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.pagination.page).toBe(1);
-      expect(response.body.data.pagination.limit).toBe(100); // Max limit enforced
+      expect(response.body.data.pagination.limit).toBe(100);
+      // Max limit enforced
     });
   });
-}); 
+});

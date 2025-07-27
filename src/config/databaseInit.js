@@ -6,17 +6,18 @@
 const DatabaseSetup = require('../scripts/setupDatabase');
 
 class DatabaseInitializer {
-  constructor() {
+  constructor () {
     this.setup = new DatabaseSetup();
   }
 
-  async initialize() {
+  async initialize () {
     try {
       console.log('🚀 Initializing comprehensive database setup...');
+
       
-      // Use the comprehensive database setup
+// Use the comprehensive database setup
       await this.setup.initialize();
-      
+
       console.log('✅ Database initialization completed');
     } catch (error) {
       console.error('❌ Database initialization failed:', error.message);
@@ -25,8 +26,8 @@ class DatabaseInitializer {
   }
 }
 
-function createDatabaseInitializer() {
+const createDatabaseInitializer = () {
   return new DatabaseInitializer();
 }
 
-module.exports = { createDatabaseInitializer }; 
+module.exports = { createDatabaseInitializer };

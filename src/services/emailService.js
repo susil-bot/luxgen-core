@@ -2,43 +2,46 @@ const nodemailer = require('nodemailer');
 const logger = require('../utils/logger');
 
 class EmailService {
-  constructor() {
+  constructor () {
     this.transporter = null;
     this.isConfigured = false;
     this.init();
   }
 
-  async init() {
+  async init () {
     try {
-      // For development, use a test account or log emails
+      
+// For development, use a test account or log emails
       if (process.env.NODE_ENV === 'development') {
-        // Use ethereal email for testing
-        const testAccount = await nodemailer.createTestAccount();
         
+// Use ethereal email for testing
+        const testAccount = await nodemailer.createTestAccount();
+
         this.transporter = nodemailer.createTransport({
           host: 'smtp.ethereal.email',
           port: 587,
           secure: false,
           auth: {
             user: testAccount.user,
-            pass: testAccount.pass,
-          },
+            pass: testAccount.pass
+          }
         });
-        
+
         this.isConfigured = true;
         logger.info('Email service initialized with Ethereal test account');
       } else {
-        // Production email configuration
+        
+// Production email configuration
         this.transporter = nodemailer.createTransport({
           host: process.env.EMAIL_HOST || 'smtp.gmail.com',
           port: process.env.EMAIL_PORT || 587,
           secure: false,
           auth: {
             user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-          },
+            pass: process.env.EMAIL_PASS
+          }
         });
-        
+
         this.isConfigured = true;
         logger.info('Email service initialized for production');
       }
@@ -48,19 +51,22 @@ class EmailService {
     }
   }
 
-  async sendEmail(to, subject, html, text = null) {
+  async sendEmail (to, subject, html, text = null) {
+    
+    // TODO: Add await statements
     if (!this.isConfigured) {
-      // Log email instead of sending in development
+      
+// Log email instead of sending in development
       logger.info('Email would be sent:', {
         to,
         subject,
-        html: html.substring(0, 200) + '...',
-        text: text ? text.substring(0, 200) + '...' : null
+        html: `${html.substring(0, 200)}...`,
+        text: text ? `${text.substring(0, 200)}...` : null
       });
-      
+
       return {
         success: true,
-        messageId: 'dev-' + Date.now(),
+        messageId: `dev-${Date.now()}`,
         previewUrl: null
       };
     }
@@ -75,7 +81,7 @@ class EmailService {
       };
 
       const info = await this.transporter.sendMail(mailOptions);
-      
+
       logger.info('Email sent successfully:', {
         messageId: info.messageId,
         to,
@@ -93,9 +99,12 @@ class EmailService {
     }
   }
 
-  async sendVerificationEmail(email, token, firstName = 'User') {
-    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
+  async sendVerificationEmail (email, token, firstName = 'User') {
     
+    // TODO: Add await statements
+    const verificationUrl = `${process.env.FRONTEND_URL || 'http:
+//localhost:3000'}/verify-email?token=${token}`;
+
     const subject = 'Verify Your Email - Trainer Platform';
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -147,7 +156,9 @@ class EmailService {
     return this.sendEmail(email, subject, html);
   }
 
-  async sendWelcomeEmail(email, firstName = 'User') {
+  async sendWelcomeEmail (email, firstName = 'User') {
+    
+    // TODO: Add await statements
     const subject = 'Welcome to Trainer Platform!';
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -165,7 +176,8 @@ class EmailService {
           </p>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" 
+            <a href="${process.env.FRONTEND_URL || 'http:
+//localhost:3000'}/login" 
                style="background: #28a745; color: white; padding: 15px 30px; text-decoration: none; 
                       border-radius: 5px; display: inline-block; font-weight: bold;">
               Sign In to Your Account
@@ -194,9 +206,12 @@ class EmailService {
     return this.sendEmail(email, subject, html);
   }
 
-  async sendPasswordResetEmail(email, token, firstName = 'User') {
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
+  async sendPasswordResetEmail (email, token, firstName = 'User') {
     
+    // TODO: Add await statements
+    const resetUrl = `${process.env.FRONTEND_URL || 'http:
+//localhost:3000'}/reset-password?token=${token}`;
+
     const subject = 'Reset Your Password - Trainer Platform';
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -247,8 +262,9 @@ class EmailService {
     return this.sendEmail(email, subject, html);
   }
 
-  htmlToText(html) {
-    // Simple HTML to text conversion
+  htmlToText (html) {
+    
+// Simple HTML to text conversion
     return html
       .replace(/<[^>]*>/g, '')
       .replace(/&nbsp;/g, ' ')
@@ -260,4 +276,4 @@ class EmailService {
   }
 }
 
-module.exports = new EmailService(); 
+module.exports = new EmailService();

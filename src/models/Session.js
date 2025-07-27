@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 
 const sessionSchema = new mongoose.Schema({
+
   // Core session information
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -13,7 +14,8 @@ const sessionSchema = new mongoose.Schema({
     ref: 'Tenant',
     required: true
   },
-  
+
+
   // Token information
   tokenHash: {
     type: String,
@@ -24,7 +26,8 @@ const sessionSchema = new mongoose.Schema({
     type: String,
     sparse: true
   },
-  
+
+
   // Session metadata
   ipAddress: {
     type: String,
@@ -44,7 +47,8 @@ const sessionSchema = new mongoose.Schema({
     os: String,
     version: String
   },
-  
+
+
   // Location information
   location: {
     country: String,
@@ -56,7 +60,8 @@ const sessionSchema = new mongoose.Schema({
       longitude: Number
     }
   },
-  
+
+
   // Session status and timing
   isActive: {
     type: Boolean,
@@ -70,7 +75,8 @@ const sessionSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  
+
+
   // Security information
   security: {
     isSecure: {
@@ -94,7 +100,8 @@ const sessionSchema = new mongoose.Schema({
       max: 100
     }
   },
-  
+
+
   // Session context
   context: {
     loginMethod: {
@@ -109,7 +116,8 @@ const sessionSchema = new mongoose.Schema({
     permissions: [String],
     roles: [String]
   },
-  
+
+
   // Activity tracking
   activity: {
     pageViews: {
@@ -123,7 +131,8 @@ const sessionSchema = new mongoose.Schema({
     lastApiCall: Date,
     lastPageView: Date
   },
-  
+
+
   // Metadata
   metadata: {
     type: mongoose.Schema.Types.Mixed,
@@ -135,20 +144,24 @@ const sessionSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+
 // Virtual for is expired
-sessionSchema.virtual('isExpired').get(function() {
+sessionSchema.virtual('isExpired').get(function () {
   return this.expiresAt < new Date();
 });
 
+
 // Virtual for session duration
-sessionSchema.virtual('duration').get(function() {
+sessionSchema.virtual('duration').get(function () {
   return Date.now() - this.createdAt.getTime();
 });
 
+
 // Virtual for time until expiry
-sessionSchema.virtual('timeUntilExpiry').get(function() {
+sessionSchema.virtual('timeUntilExpiry').get(function () {
   return this.expiresAt.getTime() - Date.now();
 });
+
 
 // Indexes for performance
 sessionSchema.index({ userId: 1, isActive: 1 });
@@ -157,61 +170,70 @@ sessionSchema.index({ expiresAt: 1 });
 sessionSchema.index({ lastActivityAt: -1 });
 sessionSchema.index({ createdAt: -1 });
 
+
 // Pre-save middleware
-sessionSchema.pre('save', function(next) {
-  // Auto-deactivate expired sessions
+sessionSchema.pre('save', function (next) {
+// Auto-deactivate expired sessions
   if (this.isExpired) {
     this.isActive = false;
   }
-  
+
   next();
 });
 
+
 // Instance methods
-sessionSchema.methods.updateActivity = async function() {
+sessionSchema.methods.updateActivity = async function () {
   this.lastActivityAt = new Date();
   this.activity.pageViews += 1;
   this.lastPageView = new Date();
   return this.save();
 };
 
-sessionSchema.methods.updateApiActivity = async function() {
+sessionSchema.methods.updateApiActivity = async function () {
   this.lastActivityAt = new Date();
   this.activity.apiCalls += 1;
   this.lastApiCall = new Date();
   return this.save();
 };
 
-sessionSchema.methods.extend = async function(duration = 24 * 60 * 60 * 1000) { // 24 hours
+sessionSchema.methods.extend = async function (duration = 24 * 60 * 60 * 1000) {
+// 24 hours
   this.expiresAt = new Date(Date.now() + duration);
   return this.save();
 };
 
-sessionSchema.methods.deactivate = async function() {
+sessionSchema.methods.deactivate = async function () {
   this.isActive = false;
   return this.save();
 };
 
-sessionSchema.methods.updateSecurityInfo = async function(securityInfo) {
+sessionSchema.methods.updateSecurityInfo = async function (securityInfo) {
+  // TODO: Add await statements
   this.security = { ...this.security, ...securityInfo };
   return this.save();
 };
 
+
 // Static methods
-sessionSchema.statics.createSession = async function(userId, tenantId, options = {}) {
+sessionSchema.statics.createSession = async function (userId, tenantId, options = {}) {
+  // TODO: Add await statements
   const Session = mongoose.model('Session');
-  
+
+
   // Generate token hash
   const token = crypto.randomBytes(32).toString('hex');
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-  
+
+
   // Generate refresh token
   const refreshToken = crypto.randomBytes(32).toString('hex');
   const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-  
+
+
   // Calculate expiry
   const expiresAt = new Date(Date.now() + (options.duration || 24 * 60 * 60 * 1000));
-  
+
   const session = new Session({
     userId,
     tenantId,
@@ -225,9 +247,9 @@ sessionSchema.statics.createSession = async function(userId, tenantId, options =
     security: options.security,
     context: options.context
   });
-  
+
   await session.save();
-  
+
   return {
     session,
     token,
@@ -235,32 +257,36 @@ sessionSchema.statics.createSession = async function(userId, tenantId, options =
   };
 };
 
-sessionSchema.statics.findByToken = function(token) {
+sessionSchema.statics.findByToken = function (token) {
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
   return this.findOne({ tokenHash, isActive: true });
 };
 
-sessionSchema.statics.findByRefreshToken = function(refreshToken) {
+sessionSchema.statics.findByRefreshToken = function (refreshToken) {
   const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
   return this.findOne({ refreshTokenHash, isActive: true });
 };
 
-sessionSchema.statics.findActiveByUser = function(userId) {
-  return this.find({ userId, isActive: true, expiresAt: { $gt: new Date() } });
+sessionSchema.statics.findActiveByUser = function (userId) {
+  return this.find({
+    userId, isActive: true, expiresAt: { $gt: new Date() }
+  });
 };
 
-sessionSchema.statics.findActiveByTenant = function(tenantId) {
-  return this.find({ tenantId, isActive: true, expiresAt: { $gt: new Date() } });
+sessionSchema.statics.findActiveByTenant = function (tenantId) {
+  return this.find({
+    tenantId, isActive: true, expiresAt: { $gt: new Date() }
+  });
 };
 
-sessionSchema.statics.cleanupExpired = async function() {
+sessionSchema.statics.cleanupExpired = async function () {
   return this.updateMany(
     { expiresAt: { $lt: new Date() }, isActive: true },
     { isActive: false }
   );
 };
 
-sessionSchema.statics.getSessionStatistics = function(tenantId) {
+sessionSchema.statics.getSessionStatistics = function (tenantId) {
   return this.aggregate([
     { $match: { tenantId: new mongoose.Types.ObjectId(tenantId) } },
     {
@@ -291,4 +317,4 @@ sessionSchema.statics.getSessionStatistics = function(tenantId) {
   ]);
 };
 
-module.exports = mongoose.model('Session', sessionSchema); 
+module.exports = mongoose.model('Session', sessionSchema);

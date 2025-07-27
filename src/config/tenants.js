@@ -5,6 +5,7 @@
 
 const { loadAllTenants, loadTenant, getTenantAsset, getAvailableTenants } = require('./tenantLoader');
 
+
 // Default tenant configuration template
 const defaultConfig = {
   name: 'Default Tenant',
@@ -24,7 +25,8 @@ const defaultConfig = {
     requireEmailVerification: true,
     autoArchivePolls: true,
     maxUsers: 50,
-    sessionTimeout: 24, // hours
+    sessionTimeout: 24, 
+// hours
     passwordPolicy: {
       minLength: 8,
       requireUppercase: true,
@@ -48,15 +50,18 @@ const defaultConfig = {
   limits: {
     maxPollsPerUser: 50,
     maxResponsesPerPoll: 1000,
-    maxFileSize: 10485760, // 10MB
-    maxStoragePerUser: 1073741824 // 1GB
+    maxFileSize: 10485760, 
+// 10MB
+    maxStoragePerUser: 1073741824 
+// 1GB
   }
 };
+
 
 // Load all tenant configurations dynamically
 let tenantConfigs = null;
 
-function getTenantConfigs() {
+const getTenantConfigs = () {
   if (!tenantConfigs) {
     tenantConfigs = loadAllTenants();
   }
@@ -68,11 +73,12 @@ function getTenantConfigs() {
  * @param {string} slug - Tenant slug
  * @returns {Object} Tenant configuration
  */
-function getTenantConfig(slug) {
+const getTenantConfig = (slug) {
   const configs = getTenantConfigs();
   const config = configs[slug];
   if (!config) {
-    // Return default config if tenant not found
+    
+// Return default config if tenant not found
     return { ...defaultConfig, slug };
   }
   return config;
@@ -82,7 +88,7 @@ function getTenantConfig(slug) {
  * Get all active tenant configurations
  * @returns {Object} All active tenant configs
  */
-function getActiveTenantConfigs() {
+const getActiveTenantConfigs = () {
   const configs = getTenantConfigs();
   const activeConfigs = {};
   Object.keys(configs).forEach(slug => {
@@ -98,7 +104,7 @@ function getActiveTenantConfigs() {
  * @param {string} slug - Tenant slug
  * @returns {boolean} True if tenant is active
  */
-function isTenantActive(slug) {
+const isTenantActive = (slug) {
   const config = getTenantConfig(slug);
   return config && config.status === 'active';
 }
@@ -109,7 +115,7 @@ function isTenantActive(slug) {
  * @param {string} feature - Feature name
  * @returns {Object} Feature configuration
  */
-function getTenantFeature(slug, feature) {
+const getTenantFeature = (slug, feature) {
   const config = getTenantConfig(slug);
   return config.features[feature] || null;
 }
@@ -120,7 +126,7 @@ function getTenantFeature(slug, feature) {
  * @param {string} feature - Feature name
  * @returns {boolean} True if feature is enabled
  */
-function isFeatureEnabled(slug, feature) {
+const isFeatureEnabled = (slug, feature) {
   const featureConfig = getTenantFeature(slug, feature);
   return featureConfig && featureConfig.enabled;
 }
@@ -130,7 +136,7 @@ function isFeatureEnabled(slug, feature) {
  * @param {string} slug - Tenant slug
  * @returns {Object} Tenant limits
  */
-function getTenantLimits(slug) {
+const getTenantLimits = (slug) {
   const config = getTenantConfig(slug);
   return config.limits || defaultConfig.limits;
 }
@@ -140,13 +146,19 @@ function getTenantLimits(slug) {
  * @param {Object} config - Tenant configuration
  * @returns {Object} Validation result
  */
-function validateTenantConfig(config) {
+const validateTenantConfig = (config) {
   const errors = [];
-  
-  if (!config.slug) errors.push('Slug is required');
-  if (!config.name) errors.push('Name is required');
-  if (!config.status) errors.push('Status is required');
-  
+
+  if (!config.slug) {
+    errors.push('Slug is required');
+  }
+  if (!config.name) {
+    errors.push('Name is required');
+  }
+  if (!config.status) {
+    errors.push('Status is required');
+  }
+
   if (config.features) {
     Object.keys(config.features).forEach(feature => {
       if (typeof config.features[feature].enabled !== 'boolean') {
@@ -154,7 +166,7 @@ function validateTenantConfig(config) {
       }
     });
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors
@@ -172,4 +184,4 @@ module.exports = {
   validateTenantConfig,
   getTenantAsset,
   getAvailableTenants
-}; 
+};

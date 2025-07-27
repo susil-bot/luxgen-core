@@ -2,14 +2,18 @@ const express = require('express');
 const router = express.Router();
 const tenantController = require('../controllers/tenantController');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+
 // const { validateTenantData } = require('../utils/validation');
+
 
 // Public routes (no authentication required)
 router.post('/create', tenantController.createTenant);
 router.get('/verify/:token', tenantController.verifyTenant);
 
+
 // Protected routes (authentication required)
 router.use(authenticateToken);
+
 
 // Tenant management routes
 router.get('/', requireAdmin, tenantController.getTenants);
@@ -21,17 +25,22 @@ router.put('/:id', requireAdmin, tenantController.updateTenant);
 router.delete('/:id', requireAdmin, tenantController.deleteTenant);
 router.post('/:id/restore', requireAdmin, tenantController.restoreTenant);
 
+
 // Tenant verification routes
-router.post('/:id/resend-verification', requireAdmin, tenantController.resendVerification);
+router.post('/:(id/resend-verification)', requireAdmin, tenantController.resendVerification);
+
 
 // Subscription management routes
 router.put('/:id/subscription', requireAdmin, tenantController.updateSubscription);
 
+
 // Feature management routes
 router.put('/:id/features', requireAdmin, tenantController.updateFeatures);
 
+
 // Tenant statistics routes
 router.get('/:id/stats', requireAdmin, tenantController.getTenantStats);
+
 
 // Tenant analytics routes
 router.get('/:id/analytics', requireAdmin, tenantController.getTenantAnalytics);
@@ -39,11 +48,12 @@ router.get('/:id/users', requireAdmin, tenantController.getTenantUsers);
 router.get('/:id/settings', requireAdmin, tenantController.getTenantSettings);
 router.put('/:id/settings', requireAdmin, tenantController.updateTenantSettings);
 
+
 // Bulk operations (admin only)
 router.post('/bulk/restore', requireAdmin, async (req, res) => {
   try {
     const { tenantIds } = req.body;
-    
+
     if (!tenantIds || !Array.isArray(tenantIds) || tenantIds.length === 0) {
       return res.status(400).json({
         success: false,
@@ -53,8 +63,8 @@ router.post('/bulk/restore', requireAdmin, async (req, res) => {
 
     const result = await Tenant.updateMany(
       { _id: { $in: tenantIds }, isDeleted: true },
-      { 
-        isDeleted: false, 
+      {
+        isDeleted: false,
         deletedAt: null,
         deletedBy: null
       }
@@ -63,11 +73,8 @@ router.post('/bulk/restore', requireAdmin, async (req, res) => {
     res.json({
       success: true,
       message: `Restored ${result.modifiedCount} tenants`,
-      data: {
-        restored: result.modifiedCount
-      }
+      data: { restored: result.modifiedCount }
     });
-
   } catch (error) {
     console.error('Error in bulk restore:', error);
     res.status(500).json({
@@ -81,7 +88,7 @@ router.post('/bulk/restore', requireAdmin, async (req, res) => {
 router.post('/bulk/update', requireAdmin, async (req, res) => {
   try {
     const { tenantIds, updates } = req.body;
-    
+
     if (!tenantIds || !Array.isArray(tenantIds) || tenantIds.length === 0) {
       return res.status(400).json({
         success: false,
@@ -103,7 +110,6 @@ router.post('/bulk/update', requireAdmin, async (req, res) => {
         modified: result.modifiedCount
       }
     });
-
   } catch (error) {
     console.error('Error in bulk update:', error);
     res.status(500).json({
@@ -117,7 +123,7 @@ router.post('/bulk/update', requireAdmin, async (req, res) => {
 router.post('/bulk/delete', requireAdmin, async (req, res) => {
   try {
     const { tenantIds, permanent = false } = req.body;
-    
+
     if (!tenantIds || !Array.isArray(tenantIds) || tenantIds.length === 0) {
       return res.status(400).json({
         success: false,
@@ -128,20 +134,18 @@ router.post('/bulk/delete', requireAdmin, async (req, res) => {
     if (permanent) {
       // Permanent deletion
       const result = await Tenant.deleteMany({ _id: { $in: tenantIds } });
-      
+
       res.json({
         success: true,
         message: `Permanently deleted ${result.deletedCount} tenants`,
-        data: {
-          deleted: result.deletedCount
-        }
+        data: { deleted: result.deletedCount }
       });
     } else {
       // Soft deletion
       const result = await Tenant.updateMany(
         { _id: { $in: tenantIds }, isDeleted: false },
-        { 
-          isDeleted: true, 
+        {
+          isDeleted: true,
           deletedAt: new Date(),
           deletedBy: req.user.id
         }
@@ -150,12 +154,9 @@ router.post('/bulk/delete', requireAdmin, async (req, res) => {
       res.json({
         success: true,
         message: `Soft deleted ${result.modifiedCount} tenants`,
-        data: {
-          deleted: result.modifiedCount
-        }
+        data: { deleted: result.modifiedCount }
       });
     }
-
   } catch (error) {
     console.error('Error in bulk delete:', error);
     res.status(500).json({
@@ -166,23 +167,32 @@ router.post('/bulk/delete', requireAdmin, async (req, res) => {
   }
 });
 
+
 // Export tenants (admin only)
 router.get('/export/csv', requireAdmin, async (req, res) => {
   try {
     const { status, subscriptionStatus, industry, includeDeleted = false } = req.query;
-    
+
+
     // Build filter
     const filter = {};
     if (includeDeleted !== 'true') {
       filter.isDeleted = false;
     }
-    if (status) filter.status = status;
-    if (subscriptionStatus) filter['subscription.status'] = subscriptionStatus;
-    if (industry) filter.industry = industry;
+    if (status) {
+      filter.status = status;
+    }
+    if (subscriptionStatus) {
+      filter['subscription.status'] = subscriptionStatus;
+    }
+    if (industry) {
+      filter.industry = industry;
+    }
 
     const tenants = await Tenant.find(filter)
       .select('-verificationToken -verificationExpires')
       .lean();
+
 
     // Convert to CSV
     const csvHeader = [
@@ -224,7 +234,6 @@ router.get('/export/csv', requireAdmin, async (req, res) => {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=tenants.csv');
     res.send(csv);
-
   } catch (error) {
     console.error('Error exporting tenants:', error);
     res.status(500).json({
@@ -234,6 +243,7 @@ router.get('/export/csv', requireAdmin, async (req, res) => {
     });
   }
 });
+
 
 // Tenant search (admin only)
 router.get('/search/advanced', requireAdmin, async (req, res) => {
@@ -254,24 +264,40 @@ router.get('/search/advanced', requireAdmin, async (req, res) => {
       limit = 20
     } = req.query;
 
+
     // Build filter
     const filter = {};
-    
+
+
     // By default, exclude deleted tenants unless explicitly requested
     if (includeDeleted !== 'true') {
       filter.isDeleted = false;
     }
-    
-    if (status) filter.status = status;
-    if (subscriptionStatus) filter['subscription.status'] = subscriptionStatus;
-    if (industry) filter.industry = industry;
-    if (companySize) filter.companySize = companySize;
-    if (verified !== undefined) filter.isVerified = verified === 'true';
-    
+
+    if (status) {
+      filter.status = status;
+    }
+    if (subscriptionStatus) {
+      filter['subscription.status'] = subscriptionStatus;
+    }
+    if (industry) {
+      filter.industry = industry;
+    }
+    if (companySize) {
+      filter.companySize = companySize;
+    }
+    if (verified !== undefined) {
+      filter.isVerified = verified === 'true';
+    }
+
     if (dateFrom || dateTo) {
       filter.createdAt = {};
-      if (dateFrom) filter.createdAt.$gte = new Date(dateFrom);
-      if (dateTo) filter.createdAt.$lte = new Date(dateTo);
+      if (dateFrom) {
+        filter.createdAt.$gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        filter.createdAt.$lte = new Date(dateTo);
+      }
     }
 
     if (query) {
@@ -283,13 +309,15 @@ router.get('/search/advanced', requireAdmin, async (req, res) => {
       ];
     }
 
+
     // Build sort
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
+
     // Execute query
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const [tenants, total] = await Promise.all([
       Tenant.find(filter)
         .sort(sort)
@@ -323,7 +351,6 @@ router.get('/search/advanced', requireAdmin, async (req, res) => {
         verified
       }
     });
-
   } catch (error) {
     console.error('Error in advanced search:', error);
     res.status(500).json({
@@ -334,14 +361,15 @@ router.get('/search/advanced', requireAdmin, async (req, res) => {
   }
 });
 
+
 // Tenant analytics (admin only)
 router.get('/analytics/overview', requireAdmin, async (req, res) => {
   try {
     const { period = '30d' } = req.query;
-    
+
     let dateFilter = {};
     const now = new Date();
-    
+
     switch (period) {
       case '7d':
         dateFilter = { $gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) };
@@ -358,22 +386,14 @@ router.get('/analytics/overview', requireAdmin, async (req, res) => {
     }
 
     const analytics = await Tenant.aggregate([
-      {
-        $match: dateFilter
-      },
+      { $match: dateFilter },
       {
         $group: {
           _id: null,
           totalTenants: { $sum: 1 },
-          activeTenants: {
-            $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] }
-          },
-          verifiedTenants: {
-            $sum: { $cond: ['$isVerified', 1, 0] }
-          },
-          trialTenants: {
-            $sum: { $cond: [{ $eq: ['$subscription.status', 'trial'] }, 1, 0] }
-          },
+          activeTenants: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } },
+          verifiedTenants: { $sum: { $cond: ['$isVerified', 1, 0] } },
+          trialTenants: { $sum: { $cond: [{ $eq: ['$subscription.status', 'trial'] }, 1, 0] } },
           totalPolls: { $sum: '$usage.pollsCreated' },
           totalRecipients: { $sum: '$usage.totalRecipients' },
           totalResponses: { $sum: '$usage.totalResponses' }
@@ -381,23 +401,19 @@ router.get('/analytics/overview', requireAdmin, async (req, res) => {
       }
     ]);
 
+
     // Get daily signups for the period
     const dailySignups = await Tenant.aggregate([
-      {
-        $match: dateFilter
-      },
+      { $match: dateFilter },
       {
         $group: {
-          _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
-          },
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
           count: { $sum: 1 }
         }
       },
-      {
-        $sort: { _id: 1 }
-      }
+      { $sort: { _id: 1 } }
     ]);
+
 
     // Get subscription distribution
     const subscriptionDistribution = await Tenant.aggregate([
@@ -407,9 +423,7 @@ router.get('/analytics/overview', requireAdmin, async (req, res) => {
           count: { $sum: 1 }
         }
       },
-      {
-        $sort: { count: -1 }
-      }
+      { $sort: { count: -1 } }
     ]);
 
     res.json({
@@ -421,7 +435,6 @@ router.get('/analytics/overview', requireAdmin, async (req, res) => {
         period
       }
     });
-
   } catch (error) {
     console.error('Error fetching analytics:', error);
     res.status(500).json({
@@ -432,4 +445,4 @@ router.get('/analytics/overview', requireAdmin, async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

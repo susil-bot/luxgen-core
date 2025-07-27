@@ -4,6 +4,7 @@
  */
 
 module.exports = {
+
   // Basic tenant information
   name: 'Demo Company',
   slug: 'demo-tenant',
@@ -11,44 +12,46 @@ module.exports = {
   contactEmail: 'admin@democompany.com',
   industry: 'Technology',
   companySize: '11-50',
-  
+
+
   // Tenant description
   description: 'A demonstration tenant for showcasing LuxGen features',
-  
+
+
   // Features configuration
   features: {
-    polls: { 
-      enabled: true, 
+    polls: {
+      enabled: true,
       maxPolls: 50,
       allowAnonymous: true,
       requireApproval: false
     },
-    analytics: { 
+    analytics: {
       enabled: true,
       retention: '30days',
       exportEnabled: true
     },
-    branding: { 
+    branding: {
       enabled: true,
       allowCustomLogo: true,
       allowCustomColors: true
     },
-    customFields: { 
+    customFields: {
       enabled: false,
       maxFields: 10
     },
-    apiAccess: { 
-      enabled: true, 
+    apiAccess: {
+      enabled: true,
       rateLimit: 1000,
       allowWebhooks: true
     },
-    fileUpload: { 
-      enabled: true, 
+    fileUpload: {
+      enabled: true,
       maxSize: '10MB',
       allowedTypes: ['image/*', 'application/pdf', 'text/*']
     },
-    notifications: { 
-      enabled: true, 
+    notifications: {
+      enabled: true,
       channels: ['email', 'in-app'],
       allowSMS: false
     },
@@ -59,13 +62,15 @@ module.exports = {
     }
   },
 
+
   // Tenant settings
   settings: {
     allowPublicPolls: true,
     requireEmailVerification: false,
     autoArchivePolls: false,
     maxUsers: 25,
-    sessionTimeout: 12, // hours
+    sessionTimeout: 12,
+    // hours
     allowGuestAccess: true,
     passwordPolicy: {
       minLength: 8,
@@ -73,7 +78,8 @@ module.exports = {
       requireLowercase: true,
       requireNumbers: true,
       requireSpecialChars: false,
-      maxAge: 90 // days
+      maxAge: 90
+      // days
     },
     security: {
       mfa: { enabled: false },
@@ -82,39 +88,41 @@ module.exports = {
     }
   },
 
+
   // Branding configuration
   branding: {
-    logo: '/branding/demo-tenant/logo.png',
+    logo: '/branding/(demo-tenant/logo).png',
     primaryColor: '#007bff',
     secondaryColor: '#6c757d',
     accentColor: '#28a745',
-    customCss: '/branding/demo-tenant/custom.css',
-    favicon: '/branding/demo-tenant/favicon.ico',
+    customCss: '/branding/(demo-tenant/custom).css',
+    favicon: '/branding/(demo-tenant/favicon).ico',
     theme: 'light',
     customFont: null,
     headerText: 'Demo Company Portal',
     footerText: '© 2024 Demo Company. Powered by LuxGen.'
   },
 
+
   // Third-party integrations
   integrations: {
-    email: { 
-      provider: 'smtp', 
+    email: {
+      provider: 'smtp',
       config: {
         host: process.env.DEMO_SMTP_HOST || 'smtp.gmail.com',
         port: process.env.DEMO_SMTP_PORT || 587,
         secure: false
       }
     },
-    storage: { 
-      provider: 'local', 
+    storage: {
+      provider: 'local',
       config: {
-        path: '/uploads/demo-tenant',
+        path: '/(uploads/demo-tenant)',
         backupEnabled: true
       }
     },
-    analytics: { 
-      provider: 'internal', 
+    analytics: {
+      provider: 'internal',
       config: {
         trackingId: 'DEMO-001',
         anonymizeData: true
@@ -129,16 +137,20 @@ module.exports = {
     }
   },
 
+
   // Usage limits
   limits: {
     maxPollsPerUser: 25,
     maxResponsesPerPoll: 500,
-    maxFileSize: 10485760, // 10MB
-    maxStoragePerUser: 1073741824, // 1GB
+    maxFileSize: 10485760,
+    // 10MB
+    maxStoragePerUser: 1073741824,
+    // 1GB
     maxApiCallsPerHour: 1000,
     maxUsers: 25,
     maxCustomFields: 10
   },
+
 
   // Custom configurations
   custom: {
@@ -150,6 +162,7 @@ module.exports = {
     timeFormat: '12h'
   },
 
+
   // Metadata
   metadata: {
     createdAt: '2024-01-01T00:00:00Z',
@@ -158,4 +171,4 @@ module.exports = {
     version: '1.0.0',
     tags: ['demo', 'sample', 'technology']
   }
-}; 
+};

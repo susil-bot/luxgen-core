@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
+
 // Import all route modules
 const tenantRoutes = require('./tenantRoutes');
 const tenantSchemaRoutes = require('./tenantSchemaRoutes');
@@ -14,17 +15,22 @@ const userRegistrationRoutes = require('./userRegistrationRoutes');
 const authRoutes = require('./authRoutes');
 const pollsRoutes = require('./polls');
 
+
 // New route modules
 const trainingRoutes = require('./trainingRoutes');
 const presentationRoutes = require('./presentationRoutes');
 
+
 // Import middleware
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+
 // const { validateRequest } = require('../middleware/validation');
+
 
 // API versioning
 const API_VERSION = 'v1';
 const API_PREFIX = `/api/${API_VERSION}`;
+
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -39,12 +45,13 @@ router.get('/health', (req, res) => {
   });
 });
 
+
 // Database health check
 router.get('/health/db', async (req, res) => {
   try {
     const databaseManager = require('../config/database');
     const health = await databaseManager.healthCheck();
-    
+
     res.status(200).json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
@@ -59,6 +66,7 @@ router.get('/health/db', async (req, res) => {
   }
 });
 
+
 // API documentation endpoint
 router.get('/docs', (req, res) => {
   res.json({
@@ -67,39 +75,39 @@ router.get('/docs', (req, res) => {
     endpoints: {
       health: {
         GET: `${API_PREFIX}/health - Service health check`,
-        GET: `${API_PREFIX}/health/db - Database health check`
+        GET: `${API_PREFIX}/(health/db - Database) health check`
       },
       tenants: {
         base: `${API_PREFIX}/tenants`,
         endpoints: [
-          'POST /create - Create new tenant',
+          '(POST /create - Create) new tenant',
           'GET / - List all tenants',
-          'GET /deleted - List deleted tenants',
+          '(GET /deleted - List) deleted tenants',
           'GET /:id - Get tenant by ID',
           'GET /slug/:slug - Get tenant by slug',
           'PUT /:id - Update tenant',
           'DELETE /:id - Soft delete tenant',
-          'POST /:id/restore - Restore deleted tenant',
-          'GET /stats - Get tenant statistics',
-          'GET /:id/analytics - Get tenant analytics',
-          'GET /:id/users - Get tenant users',
-          'GET /:id/settings - Get tenant settings',
-          'PUT /:id/settings - Update tenant settings',
-          'POST /bulk/update - Bulk update tenants',
-          'POST /bulk/delete - Bulk delete tenants',
-          'POST /bulk/restore - Bulk restore tenants'
+          'POST /:(id/restore - Restore) deleted tenant',
+          '(GET /stats - Get) tenant statistics',
+          'GET /:(id/analytics - Get) tenant analytics',
+          'GET /:(id/users - Get) tenant users',
+          'GET /:(id/settings - Get) tenant settings',
+          'PUT /:(id/settings - Update) tenant settings',
+          'POST /(bulk/update - Bulk) update tenants',
+          'POST /(bulk/delete - Bulk) delete tenants',
+          'POST /(bulk/restore - Bulk) restore tenants'
         ]
       },
       users: {
         base: `${API_PREFIX}/users`,
         endpoints: [
-          'POST /register - Register new user',
+          '(POST /register - Register) new user',
           'GET / - List users',
           'GET /:id - Get user by ID',
           'PUT /:id - Update user',
           'DELETE /:id - Delete user',
-          'POST /login - User login',
-          'POST /logout - User logout'
+          '(POST /login - User) login',
+          '(POST /logout - User) logout'
         ]
       },
       polls: {
@@ -110,43 +118,43 @@ router.get('/docs', (req, res) => {
           'GET /:id - Get poll by ID',
           'PUT /:id - Update poll',
           'DELETE /:id - Delete poll',
-          'POST /:id/responses - Submit poll response',
-          'GET /:id/results - Get poll results'
+          'POST /:(id/responses - Submit) poll response',
+          'GET /:(id/results - Get) poll results'
         ]
       },
       training: {
         base: `${API_PREFIX}/training`,
         endpoints: [
-          'GET /sessions - List training sessions',
+          '(GET /sessions - List) training sessions',
           'GET /sessions/:id - Get session by ID',
-          'POST /sessions - Create training session',
+          '(POST /sessions - Create) training session',
           'PUT /sessions/:id - Update session',
           'DELETE /sessions/:id - Delete session',
-          'POST /sessions/:id/participants - Add participant',
+          'POST /sessions/:(id/participants - Add) participant',
           'DELETE /sessions/:id/participants/:userId - Remove participant',
           'POST /sessions/:id/attendance/:userId - Mark attendance',
-          'POST /sessions/:id/complete - Complete session',
-          'GET /courses - List training courses',
+          'POST /sessions/:(id/complete - Complete) session',
+          '(GET /courses - List) training courses',
           'GET /courses/:id - Get course by ID',
-          'POST /courses - Create course',
+          '(POST /courses - Create) course',
           'PUT /courses/:id - Update course',
           'DELETE /courses/:id - Delete course',
-          'POST /courses/:id/enroll - Enroll in course',
-          'GET /courses/:id/participants/:participantId/progress - Get progress',
-          'POST /courses/:id/modules/:moduleId/complete - Complete module',
-          'GET /modules - List training modules',
+          'POST /courses/:(id/enroll - Enroll) in course',
+          'GET /courses/:id/participants/:(participantId/progress - Get) progress',
+          'POST /courses/:id/modules/:(moduleId/complete - Complete) module',
+          '(GET /modules - List) training modules',
           'GET /modules/:id - Get module by ID',
-          'POST /modules - Create module',
+          '(POST /modules - Create) module',
           'PUT /modules/:id - Update module',
           'DELETE /modules/:id - Delete module',
-          'GET /assessments - List assessments',
+          '(GET /assessments - List) assessments',
           'GET /assessments/:id - Get assessment by ID',
-          'POST /assessments - Create assessment',
+          '(POST /assessments - Create) assessment',
           'PUT /assessments/:id - Update assessment',
           'DELETE /assessments/:id - Delete assessment',
-          'POST /assessments/:id/submit - Submit assessment',
-          'GET /trainers/:trainerId/stats - Get trainer stats',
-          'GET /participants/:participantId/stats - Get participant stats'
+          'POST /assessments/:(id/submit - Submit) assessment',
+          'GET /trainers/:(trainerId/stats - Get) trainer stats',
+          'GET /participants/:(participantId/stats - Get) participant stats'
         ]
       },
       presentations: {
@@ -157,21 +165,21 @@ router.get('/docs', (req, res) => {
           'POST / - Create presentation',
           'PUT /:id - Update presentation',
           'DELETE /:id - Delete presentation',
-          'POST /:id/start - Start presentation',
+          'POST /:(id/start - Start) presentation',
           'POST /:id/end/:sessionId - End presentation',
-          'POST /:id/sessions/:sessionId/participants - Add participant',
+          'POST /:id/sessions/:(sessionId/participants - Add) participant',
           'DELETE /:id/sessions/:sessionId/participants/:userId - Remove participant',
-          'POST /:id/sessions/:sessionId/advance - Advance slide',
-          'POST /:id/polls - Add poll to presentation',
-          'POST /:id/sessions/:sessionId/polls/:pollId/activate - Activate poll',
-          'POST /:id/sessions/:sessionId/polls/:pollId/deactivate - Deactivate poll',
-          'POST /:id/sessions/:sessionId/polls/:pollId/responses - Submit poll response',
-          'GET /:id/sessions/:sessionId/polls/:pollId/results - Get poll results',
-          'POST /:id/slides - Add slide',
+          'POST /:id/sessions/:(sessionId/advance - Advance) slide',
+          'POST /:(id/polls - Add) poll to presentation',
+          'POST /:id/sessions/:sessionId/polls/:(pollId/activate - Activate) poll',
+          'POST /:id/sessions/:sessionId/polls/:(pollId/deactivate - Deactivate) poll',
+          'POST /:id/sessions/:sessionId/polls/:(pollId/responses - Submit) poll response',
+          'GET /:id/sessions/:sessionId/polls/:(pollId/results - Get) poll results',
+          'POST /:(id/slides - Add) slide',
           'PUT /:id/slides/:slideIndex - Update slide',
           'DELETE /:id/slides/:slideIndex - Remove slide',
-          'GET /:id/stats - Get presentation stats',
-          'GET /:id/sessions/:sessionId/stats - Get session stats'
+          'GET /:(id/stats - Get) presentation stats',
+          'GET /:id/sessions/:(sessionId/stats - Get) session stats'
         ]
       },
       schemas: {
@@ -188,6 +196,7 @@ router.get('/docs', (req, res) => {
   });
 });
 
+
 // Mount all route modules with proper prefixes
 router.use(`${API_PREFIX}/tenants`, tenantRoutes);
 router.use(`${API_PREFIX}/schemas`, tenantSchemaRoutes);
@@ -201,9 +210,11 @@ router.use(`${API_PREFIX}/ai`, aiRoutes);
 router.use(`${API_PREFIX}/groups`, groupRoutes);
 router.use(`${API_PREFIX}/users`, userManagementRoutes);
 
+
 // New route modules
 router.use(`${API_PREFIX}/training`, trainingRoutes);
 router.use(`${API_PREFIX}/presentations`, presentationRoutes);
+
 
 // 404 handler for undefined routes
 router.use('*', (req, res) => {
@@ -216,10 +227,11 @@ router.use('*', (req, res) => {
   });
 });
 
+
 // Global error handler
 router.use((error, req, res, next) => {
   console.error('Global error handler:', error);
-  
+
   res.status(error.status || 500).json({
     success: false,
     message: error.message || 'Internal server error',
@@ -230,4 +242,4 @@ router.use((error, req, res, next) => {
   });
 });
 
-module.exports = router; 
+module.exports = router;

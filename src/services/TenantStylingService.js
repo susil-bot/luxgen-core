@@ -1,17 +1,18 @@
 const Tenant = require('../models/Tenant');
 
 class TenantStylingService {
-  constructor() {
+  constructor () {
+
     // No database connection needed - uses Mongoose models
   }
 
   /**
    * Get tenant styling configuration by tenant ID
    */
-  async getTenantStyling(tenantId) {
+  async getTenantStyling (tenantId) {
     try {
       const tenant = await Tenant.findById(tenantId);
-      
+
       if (!tenant) {
         return this.getDefaultStyling();
       }
@@ -27,7 +28,7 @@ class TenantStylingService {
   /**
    * Get default styling configuration
    */
-  getDefaultStyling() {
+  getDefaultStyling () {
     return {
       branding: {
         logo: '',
@@ -130,7 +131,7 @@ class TenantStylingService {
   /**
    * Merge tenant settings with defaults
    */
-  mergeWithDefaults(tenantSettings) {
+  mergeWithDefaults (tenantSettings) {
     const defaults = this.getDefaultStyling();
     return this.deepMerge(defaults, tenantSettings);
   }
@@ -138,9 +139,10 @@ class TenantStylingService {
   /**
    * Generate CSS variables from styling configuration
    */
-  generateCSSVariables(styling) {
+  generateCSSVariables (styling) {
     const variables = [];
-    
+
+
     // Branding colors
     if (styling.branding) {
       Object.entries(styling.branding).forEach(([key, value]) => {
@@ -150,24 +152,26 @@ class TenantStylingService {
       });
     }
 
+
     // Typography
     if (styling.typography) {
       if (styling.typography.fontFamily) {
         variables.push(`--font-family: ${styling.typography.fontFamily};`);
       }
-      
+
       if (styling.typography.fontSize) {
         Object.entries(styling.typography.fontSize).forEach(([key, value]) => {
           variables.push(`--font-size-${key}: ${value};`);
         });
       }
-      
+
       if (styling.typography.fontWeight) {
         Object.entries(styling.typography.fontWeight).forEach(([key, value]) => {
           variables.push(`--font-weight-${key}: ${value};`);
         });
       }
     }
+
 
     // Spacing
     if (styling.spacing) {
@@ -176,12 +180,14 @@ class TenantStylingService {
       });
     }
 
+
     // Border radius
     if (styling.borderRadius) {
       Object.entries(styling.borderRadius).forEach(([key, value]) => {
         variables.push(`--border-radius-${key}: ${value};`);
       });
     }
+
 
     // Shadows
     if (styling.shadows) {
@@ -196,7 +202,7 @@ class TenantStylingService {
   /**
    * Generate Tailwind config from styling
    */
-  generateTailwindConfig(styling) {
+  generateTailwindConfig (styling) {
     return {
       theme: {
         extend: {
@@ -218,9 +224,7 @@ class TenantStylingService {
               900: this.generateColorShades(styling.branding.secondaryColor, 900)
             }
           } : {},
-          fontFamily: styling.typography?.fontFamily ? {
-            sans: styling.typography.fontFamily.split(', ').map(font => font.replace(/['"]/g, ''))
-          } : {},
+          fontFamily: styling.typography?.fontFamily ? { sans: styling.typography.fontFamily.split(', ').map(font => font.replace(/['"]/g, '')) } : {},
           fontSize: styling.typography?.fontSize || {},
           fontWeight: styling.typography?.fontWeight || {},
           spacing: styling.spacing || {},
@@ -234,7 +238,7 @@ class TenantStylingService {
   /**
    * Generate color shades
    */
-  generateColorShades(baseColor, shade) {
+  generateColorShades (baseColor, shade) {
     // Simple color shade generation - in production, use a proper color library
     return baseColor;
   }
@@ -242,14 +246,15 @@ class TenantStylingService {
   /**
    * Generate tenant CSS
    */
-  async generateTenantCSS(tenantId) {
+  async generateTenantCSS (tenantId) {
     try {
       const styling = await this.getTenantStyling(tenantId);
       const cssVariables = this.generateCSSVariables(styling);
-      
+
+
       // Add component-specific styles
       const componentStyles = this.generateComponentStyles(styling);
-      
+
       return `${cssVariables}\n\n${componentStyles}`;
     } catch (error) {
       console.error('Error generating tenant CSS:', error);
@@ -260,9 +265,9 @@ class TenantStylingService {
   /**
    * Generate component-specific styles
    */
-  generateComponentStyles(styling) {
+  generateComponentStyles (styling) {
     let styles = '';
-    
+
     if (styling.components?.button) {
       Object.entries(styling.components.button).forEach(([variant, config]) => {
         styles += `
@@ -282,7 +287,7 @@ class TenantStylingService {
     }
 
     if (styling.components?.card) {
-      const card = styling.components.card;
+      const { card } = styling.components;
       styles += `
 .card {
   background-color: ${card.backgroundColor};
@@ -300,18 +305,20 @@ class TenantStylingService {
   /**
    * Update tenant styling
    */
-  async updateTenantStyling(tenantId, stylingUpdates) {
+  async updateTenantStyling (tenantId, stylingUpdates) {
     try {
       const tenant = await Tenant.findById(tenantId);
-      
+
       if (!tenant) {
         throw new Error('Tenant not found');
       }
 
+
       // Merge existing branding with updates
       const currentBranding = tenant.branding || {};
       const updatedBranding = this.deepMerge(currentBranding, stylingUpdates);
-      
+
+
       // Update tenant
       tenant.branding = updatedBranding;
       await tenant.save();
@@ -326,9 +333,9 @@ class TenantStylingService {
   /**
    * Deep merge objects
    */
-  deepMerge(target, source) {
+  deepMerge (target, source) {
     const result = { ...target };
-    
+
     for (const key in source) {
       if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
         result[key] = this.deepMerge(result[key] || {}, source[key]);
@@ -336,22 +343,22 @@ class TenantStylingService {
         result[key] = source[key];
       }
     }
-    
+
     return result;
   }
 
   /**
    * Get multiple tenant styling
    */
-  async getMultipleTenantStyling(tenantIds) {
+  async getMultipleTenantStyling (tenantIds) {
     try {
       const tenants = await Tenant.find({ _id: { $in: tenantIds } });
       const stylingMap = {};
-      
+
       tenants.forEach(tenant => {
         stylingMap[tenant._id.toString()] = this.mergeWithDefaults(tenant.branding || {});
       });
-      
+
       return stylingMap;
     } catch (error) {
       console.error('Error getting multiple tenant styling:', error);
@@ -360,4 +367,4 @@ class TenantStylingService {
   }
 }
 
-module.exports = new TenantStylingService(); 
+module.exports = new TenantStylingService();

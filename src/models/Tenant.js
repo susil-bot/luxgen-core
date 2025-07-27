@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const tenantSchema = new mongoose.Schema({
+
   // Core tenant information
   name: {
     type: String,
@@ -27,7 +28,8 @@ const tenantSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  
+
+
   // Contact information
   contact: {
     email: {
@@ -44,7 +46,8 @@ const tenantSchema = new mongoose.Schema({
       trim: true
     }
   },
-  
+
+
   // Address information
   address: {
     street: String,
@@ -53,7 +56,8 @@ const tenantSchema = new mongoose.Schema({
     country: String,
     postalCode: String
   },
-  
+
+
   // Business information
   business: {
     industry: {
@@ -67,7 +71,8 @@ const tenantSchema = new mongoose.Schema({
     foundedYear: Number,
     taxId: String
   },
-  
+
+
   // Subscription and billing
   subscription: {
     plan: {
@@ -90,7 +95,8 @@ const tenantSchema = new mongoose.Schema({
     stripeCustomerId: String,
     stripeSubscriptionId: String
   },
-  
+
+
   // Usage limits
   limits: {
     maxUsers: {
@@ -114,7 +120,8 @@ const tenantSchema = new mongoose.Schema({
       min: 0
     }
   },
-  
+
+
   // Current usage
   usage: {
     currentUsers: {
@@ -138,7 +145,8 @@ const tenantSchema = new mongoose.Schema({
       min: 0
     }
   },
-  
+
+
   // Status and settings
   isActive: {
     type: Boolean,
@@ -149,7 +157,8 @@ const tenantSchema = new mongoose.Schema({
     default: false
   },
   deletedAt: Date,
-  
+
+
   // Branding and customization
   branding: {
     logo: String,
@@ -169,7 +178,8 @@ const tenantSchema = new mongoose.Schema({
     customCSS: String,
     customJS: String
   },
-  
+
+
   // Feature flags
   features: {
     polls: {
@@ -201,7 +211,8 @@ const tenantSchema = new mongoose.Schema({
       default: false
     }
   },
-  
+
+
   // Settings and configuration
   settings: {
     timezone: {
@@ -236,12 +247,14 @@ const tenantSchema = new mongoose.Schema({
     },
     sessionTimeout: {
       type: Number,
-      default: 24, // hours
+      default: 24,
+      // hours
       min: 1,
       max: 168
     }
   },
-  
+
+
   // Security settings
   security: {
     passwordPolicy: {
@@ -275,7 +288,8 @@ const tenantSchema = new mongoose.Schema({
       },
       lockoutDuration: {
         type: Number,
-        default: 15, // minutes
+        default: 15,
+        // minutes
         min: 1
       },
       requireMFA: {
@@ -286,7 +300,8 @@ const tenantSchema = new mongoose.Schema({
     ipWhitelist: [String],
     ipBlacklist: [String]
   },
-  
+
+
   // Integration settings
   integrations: {
     sso: {
@@ -314,7 +329,8 @@ const tenantSchema = new mongoose.Schema({
       config: mongoose.Schema.Types.Mixed
     }
   },
-  
+
+
   // Metadata
   metadata: {
     type: mongoose.Schema.Types.Mixed,
@@ -326,36 +342,41 @@ const tenantSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+
 // Virtual for display name
-tenantSchema.virtual('displayName').get(function() {
+tenantSchema.virtual('displayName').get(function () {
   return this.name || this.slug;
 });
 
+
 // Virtual for is trial
-tenantSchema.virtual('isTrial').get(function() {
-  return this.subscription.status === 'trial' && 
-         this.subscription.trialEndsAt && 
+tenantSchema.virtual('isTrial').get(function () {
+  return this.subscription.status === 'trial' &&
+         this.subscription.trialEndsAt &&
          this.subscription.trialEndsAt > new Date();
 });
 
+
 // Virtual for is expired
-tenantSchema.virtual('isExpired').get(function() {
-  return this.subscription.expiresAt && 
+tenantSchema.virtual('isExpired').get(function () {
+  return this.subscription.expiresAt &&
          this.subscription.expiresAt < new Date();
 });
 
+
 // Virtual for usage percentage
-tenantSchema.virtual('usagePercentage').get(function() {
+tenantSchema.virtual('usagePercentage').get(function () {
   const userPercentage = (this.usage.currentUsers / this.limits.maxUsers) * 100;
   const storagePercentage = (this.usage.currentStorageGB / this.limits.maxStorageGB) * 100;
   const pollPercentage = (this.usage.currentPolls / this.limits.maxPolls) * 100;
-  
+
   return {
     users: Math.min(userPercentage, 100),
     storage: Math.min(storagePercentage, 100),
     polls: Math.min(pollPercentage, 100)
   };
 });
+
 
 // Indexes for performance
 tenantSchema.index({ slug: 1 });
@@ -366,23 +387,26 @@ tenantSchema.index({ 'subscription.status': 1 });
 tenantSchema.index({ 'subscription.expiresAt': 1 });
 tenantSchema.index({ createdAt: -1 });
 
+
 // Pre-save middleware
-tenantSchema.pre('save', function(next) {
-  // Ensure slug is URL-friendly
+tenantSchema.pre('save', function (next) {
+// Ensure slug is URL-friendly
   if (this.isModified('slug')) {
     this.slug = this.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
   }
-  
+
+
   // Set deletedAt when isDeleted is true
   if (this.isDeleted && !this.deletedAt) {
     this.deletedAt = new Date();
   }
-  
+
   next();
 });
 
+
 // Instance methods
-tenantSchema.methods.isWithinLimits = function() {
+tenantSchema.methods.isWithinLimits = function () {
   return {
     users: this.usage.currentUsers < this.limits.maxUsers,
     storage: this.usage.currentStorageGB < this.limits.maxStorageGB,
@@ -390,15 +414,15 @@ tenantSchema.methods.isWithinLimits = function() {
   };
 };
 
-tenantSchema.methods.canAddUser = function() {
+tenantSchema.methods.canAddUser = function () {
   return this.usage.currentUsers < this.limits.maxUsers;
 };
 
-tenantSchema.methods.canCreatePoll = function() {
+tenantSchema.methods.canCreatePoll = function () {
   return this.usage.currentPolls < this.limits.maxPolls;
 };
 
-tenantSchema.methods.incrementUserCount = async function() {
+tenantSchema.methods.incrementUserCount = async function () {
   if (this.canAddUser()) {
     this.usage.currentUsers += 1;
     return this.save();
@@ -406,14 +430,14 @@ tenantSchema.methods.incrementUserCount = async function() {
   throw new Error('User limit exceeded');
 };
 
-tenantSchema.methods.decrementUserCount = async function() {
+tenantSchema.methods.decrementUserCount = async function () {
   if (this.usage.currentUsers > 0) {
     this.usage.currentUsers -= 1;
     return this.save();
   }
 };
 
-tenantSchema.methods.incrementPollCount = async function() {
+tenantSchema.methods.incrementPollCount = async function () {
   if (this.canCreatePoll()) {
     this.usage.currentPolls += 1;
     return this.save();
@@ -421,34 +445,39 @@ tenantSchema.methods.incrementPollCount = async function() {
   throw new Error('Poll limit exceeded');
 };
 
-tenantSchema.methods.decrementPollCount = async function() {
+tenantSchema.methods.decrementPollCount = async function () {
   if (this.usage.currentPolls > 0) {
     this.usage.currentPolls -= 1;
     return this.save();
   }
 };
 
+
 // Static methods
-tenantSchema.statics.findBySlug = function(slug) {
-  return this.findOne({ slug: slug.toLowerCase(), isActive: true, isDeleted: false });
+tenantSchema.statics.findBySlug = function (slug) {
+  return this.findOne({
+    slug: slug.toLowerCase(), isActive: true, isDeleted: false
+  });
 };
 
-tenantSchema.statics.findByDomain = function(domain) {
-  return this.findOne({ domain: domain.toLowerCase(), isActive: true, isDeleted: false });
+tenantSchema.statics.findByDomain = function (domain) {
+  return this.findOne({
+    domain: domain.toLowerCase(), isActive: true, isDeleted: false
+  });
 };
 
-tenantSchema.statics.findActive = function() {
+tenantSchema.statics.findActive = function () {
   return this.find({ isActive: true, isDeleted: false });
 };
 
-tenantSchema.statics.findExpired = function() {
+tenantSchema.statics.findExpired = function () {
   return this.find({
     'subscription.expiresAt': { $lt: new Date() },
     'subscription.status': { $in: ['active', 'trial'] }
   });
 };
 
-tenantSchema.statics.getTenantStatistics = function() {
+tenantSchema.statics.getTenantStatistics = function () {
   return this.aggregate([
     { $match: { isDeleted: false } },
     {
@@ -459,10 +488,12 @@ tenantSchema.statics.getTenantStatistics = function() {
         trialTenants: {
           $sum: {
             $cond: [
-              { $and: [
-                { $eq: ['$subscription.status', 'trial'] },
-                { $gt: ['$subscription.trialEndsAt', new Date()] }
-              ]},
+              {
+                $and: [
+                  { $eq: ['$subscription.status', 'trial'] },
+                  { $gt: ['$subscription.trialEndsAt', new Date()] }
+                ]
+              },
               1,
               0
             ]
@@ -482,4 +513,4 @@ tenantSchema.statics.getTenantStatistics = function() {
   ]);
 };
 
-module.exports = mongoose.model('Tenant', tenantSchema); 
+module.exports = mongoose.model('Tenant', tenantSchema);

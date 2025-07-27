@@ -19,9 +19,12 @@ exports.registerUser = async (req, res) => {
       company,
       role,
       marketingConsent,
-      tenantSlug,  // New: Allow tenant selection
-      tenantId     // New: Alternative tenant identification
+      tenantSlug,
+      // New: Allow tenant selection
+      tenantId
+      // New: Alternative tenant identification
     } = req.body;
+
 
     // Validate required fields
     if (!email || !password || !firstName || !lastName) {
@@ -30,6 +33,7 @@ exports.registerUser = async (req, res) => {
         message: 'Missing required fields: email, password, firstName, lastName'
       });
     }
+
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,6 +44,7 @@ exports.registerUser = async (req, res) => {
       });
     }
 
+
     // Validate password strength
     if (password.length < 6) {
       return res.status(400).json({
@@ -47,6 +52,7 @@ exports.registerUser = async (req, res) => {
         message: 'Password must be at least 6 characters long'
       });
     }
+
 
     // Check if user already exists (globally)
     const existingUser = await User.findOne({ email });
@@ -59,28 +65,29 @@ exports.registerUser = async (req, res) => {
       });
     }
 
+
     // Multi-tenant logic: Find the correct tenant
     let tenant;
-    
+
     if (tenantId) {
       // Direct tenant ID provided
-      tenant = await require('../models/Tenant').findOne({ 
-        _id: tenantId, 
-        isActive: true, 
-        isDeleted: { $ne: true } 
+      tenant = await require('../models/Tenant').findOne({
+        _id: tenantId,
+        isActive: true,
+        isDeleted: { $ne: true }
       });
     } else if (tenantSlug) {
       // Tenant slug provided
-      tenant = await require('../models/Tenant').findOne({ 
-        slug: tenantSlug, 
-        isActive: true, 
-        isDeleted: { $ne: true } 
+      tenant = await require('../models/Tenant').findOne({
+        slug: tenantSlug,
+        isActive: true,
+        isDeleted: { $ne: true }
       });
     } else {
       // Fallback to default tenant (for backward compatibility)
-      tenant = await require('../models/Tenant').findOne({ 
-        isActive: true, 
-        isDeleted: { $ne: true } 
+      tenant = await require('../models/Tenant').findOne({
+        isActive: true,
+        isDeleted: { $ne: true }
       });
     }
 
@@ -91,18 +98,20 @@ exports.registerUser = async (req, res) => {
       });
     }
 
+
     // Check if user already exists in this specific tenant
-    const existingTenantUser = await User.findOne({ 
-      email, 
-      tenantId: tenant._id 
+    const existingTenantUser = await User.findOne({
+      email,
+      tenantId: tenant._id
     });
-    
+
     if (existingTenantUser) {
       return res.status(400).json({
         success: false,
         message: 'User already exists in this organization'
       });
     }
+
 
     // Create user with tenant association
     const user = new User({
@@ -116,7 +125,8 @@ exports.registerUser = async (req, res) => {
       company,
       marketingConsent: marketingConsent || false,
       isActive: true,
-      isVerified: true, // Skip email verification for now
+      isVerified: true,
+      // Skip email verification for now
       lastLogin: new Date(),
       registrationSource: 'api',
       userAgent: req.headers['user-agent'],
@@ -126,17 +136,18 @@ exports.registerUser = async (req, res) => {
 
     await user.save();
 
+
     // Generate JWT token with tenant information
     const jwtToken = jwt.sign(
-      { 
-        userId: user._id, 
-        email: user.email, 
-        role: user.role, 
+      {
+        userId: user._id,
+        email: user.email,
+        role: user.role,
         tenantId: user.tenantId,
         tenantSlug: tenant.slug
       },
       process.env.JWT_SECRET || 'your-secret-key',
-      { 
+      {
         expiresIn: '24h',
         issuer: 'trainer-platform',
         audience: 'trainer-platform-users'
@@ -163,7 +174,6 @@ exports.registerUser = async (req, res) => {
         token: jwtToken
       }
     });
-
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({
@@ -189,24 +199,27 @@ exports.verifyEmail = async (req, res) => {
       });
     }
 
+
     // Verify email
     user.verifyEmail();
     await user.save();
 
+
     // Get tenant information
     const tenant = await require('../models/Tenant').findById(user.tenantId);
 
+
     // Generate JWT token with tenant information
     const jwtToken = jwt.sign(
-      { 
-        userId: user._id, 
-        email: user.email, 
-        role: user.role, 
+      {
+        userId: user._id,
+        email: user.email,
+        role: user.role,
         tenantId: user.tenantId,
         tenantSlug: tenant?.slug
       },
       process.env.JWT_SECRET || 'your-secret-key',
-      { 
+      {
         expiresIn: '24h',
         issuer: 'trainer-platform',
         audience: 'trainer-platform-users'
@@ -228,7 +241,6 @@ exports.verifyEmail = async (req, res) => {
         token: jwtToken
       }
     });
-
   } catch (error) {
     console.error('Email verification error:', error);
     res.status(500).json({
@@ -261,18 +273,20 @@ exports.resendVerificationEmail = async (req, res) => {
       });
     }
 
+
     // Generate new verification token
     user.generateEmailVerificationToken();
     await user.save();
 
+
     // Send verification email (implement email service)
+
     // await sendVerificationEmail(user.email, user.emailVerificationToken);
 
     res.json({
       success: true,
       message: 'Verification email sent successfully'
     });
-
   } catch (error) {
     console.error('Resend verification error:', error);
     res.status(500).json({
@@ -298,18 +312,20 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
+
     // Generate password reset token
     user.generatePasswordResetToken();
     await user.save();
 
+
     // Send password reset email (implement email service)
+
     // await sendPasswordResetEmail(user.email, user.passwordResetToken);
 
     res.json({
       success: true,
       message: 'Password reset email sent successfully'
     });
-
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({
@@ -336,6 +352,7 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
+
     // Reset password
     user.resetPassword(newPassword);
     await user.save();
@@ -344,7 +361,6 @@ exports.resetPassword = async (req, res) => {
       success: true,
       message: 'Password reset successfully'
     });
-
   } catch (error) {
     console.error('Reset password error:', error);
     res.status(500).json({
@@ -372,7 +388,6 @@ exports.getProfile = async (req, res) => {
       success: true,
       data: user
     });
-
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({
@@ -396,6 +411,7 @@ exports.updateProfile = async (req, res) => {
       });
     }
 
+
     // Update allowed fields
     const allowedFields = ['firstName', 'lastName', 'phone', 'company', 'jobTitle', 'department', 'bio', 'addresses', 'preferences'];
     allowedFields.forEach(field => {
@@ -411,7 +427,6 @@ exports.updateProfile = async (req, res) => {
       message: 'Profile updated successfully',
       data: user
     });
-
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({
@@ -437,6 +452,7 @@ exports.changePassword = async (req, res) => {
       });
     }
 
+
     // Verify current password
     const isPasswordValid = await user.comparePassword(currentPassword);
     if (!isPasswordValid) {
@@ -446,6 +462,7 @@ exports.changePassword = async (req, res) => {
       });
     }
 
+
     // Update password
     user.password = newPassword;
     await user.save();
@@ -454,7 +471,6 @@ exports.changePassword = async (req, res) => {
       success: true,
       message: 'Password changed successfully'
     });
-
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({
@@ -471,7 +487,8 @@ exports.changePassword = async (req, res) => {
 exports.loginUser = async (req, res) => {
   const startTime = Date.now();
   const { email, password } = req.body;
-  
+
+
   // Log login attempt
   console.log(`🔐 Login attempt for email: ${email}`);
   logger.info(`🔐 Login attempt for email: ${email}`, {
@@ -489,12 +506,13 @@ exports.loginUser = async (req, res) => {
         userAgent: req.get('User-Agent'),
         timestamp: new Date().toISOString()
       });
-      
+
       return res.status(400).json({
         success: false,
         message: 'Email and password are required'
       });
     }
+
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -505,12 +523,13 @@ exports.loginUser = async (req, res) => {
         userAgent: req.get('User-Agent'),
         timestamp: new Date().toISOString()
       });
-      
+
       return res.status(400).json({
         success: false,
         message: 'Invalid email format'
       });
     }
+
 
     // Find user by email
     const user = await User.findOne({ email, isActive: true });
@@ -521,7 +540,7 @@ exports.loginUser = async (req, res) => {
         userAgent: req.get('User-Agent'),
         timestamp: new Date().toISOString()
       });
-      
+
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -529,6 +548,7 @@ exports.loginUser = async (req, res) => {
     }
 
     console.log(`👤 User found: ${user.firstName} ${user.lastName} (${user.role})`);
+
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -540,7 +560,7 @@ exports.loginUser = async (req, res) => {
         userId: user._id,
         timestamp: new Date().toISOString()
       });
-      
+
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -549,10 +569,12 @@ exports.loginUser = async (req, res) => {
 
     console.log(`✅ Password verified for user: ${user.email}`);
 
+
     // Update last login
     user.lastLogin = new Date();
     await user.save();
     console.log(`📅 Last login updated for user: ${user.email}`);
+
 
     // Get tenant information
     const tenant = await require('../models/Tenant').findById(user.tenantId);
@@ -562,17 +584,18 @@ exports.loginUser = async (req, res) => {
       console.log(`⚠️ No tenant found for user: ${user.email}`);
     }
 
+
     // Generate JWT token with tenant information
     const jwtToken = jwt.sign(
-      { 
-        userId: user._id, 
-        email: user.email, 
-        role: user.role, 
+      {
+        userId: user._id,
+        email: user.email,
+        role: user.role,
         tenantId: user.tenantId,
         tenantSlug: tenant?.slug
       },
       process.env.JWT_SECRET || 'your-secret-key',
-      { 
+      {
         expiresIn: '24h',
         issuer: 'trainer-platform',
         audience: 'trainer-platform-users'
@@ -581,7 +604,8 @@ exports.loginUser = async (req, res) => {
 
     const responseTime = Date.now() - startTime;
     console.log(`🎉 Login successful for ${email} (${responseTime}ms)`);
-    
+
+
     // Log successful login
     logger.info(`🎉 Login successful for ${email}`, {
       ip: req.ip,
@@ -615,12 +639,12 @@ exports.loginUser = async (req, res) => {
         token: jwtToken
       }
     });
-
   } catch (error) {
     const responseTime = Date.now() - startTime;
     console.error(`💥 Login error for ${email}:`, error.message);
     console.error(`⏱️ Response time: ${responseTime}ms`);
-    
+
+
     // Log login error
     logger.error(`💥 Login error for ${email}`, {
       ip: req.ip,
@@ -629,7 +653,7 @@ exports.loginUser = async (req, res) => {
       responseTime,
       timestamp: new Date().toISOString()
     });
-    
+
     res.status(500).json({
       success: false,
       message: 'Login failed',
@@ -643,13 +667,14 @@ exports.loginUser = async (req, res) => {
  */
 exports.logout = async (req, res) => {
   try {
-    const token = req.token;
-    
+    const { token } = req;
+
     if (token) {
       // In a production environment, you would blacklist the token
+
       // For now, we'll just return success
       console.log(`🔓 Logout successful for user: ${req.user.email}`);
-      
+
       logger.info(`🔓 Logout successful for user: ${req.user.email}`, {
         userId: req.user._id,
         ip: req.ip,
@@ -664,7 +689,7 @@ exports.logout = async (req, res) => {
     });
   } catch (error) {
     console.error('💥 Logout error:', error.message);
-    
+
     logger.error(`💥 Logout error for user: ${req.user?.email}`, {
       userId: req.user?._id,
       ip: req.ip,
@@ -672,7 +697,7 @@ exports.logout = async (req, res) => {
       error: error.message,
       timestamp: new Date().toISOString()
     });
-    
+
     res.status(500).json({
       success: false,
       message: 'Logout failed',
@@ -695,8 +720,9 @@ exports.verifyEmail = async (req, res) => {
       });
     }
 
+
     // Find user by verification token
-    const user = await User.findOne({ 
+    const user = await User.findOne({
       emailVerificationToken: token,
       emailVerificationExpires: { $gt: Date.now() }
     });
@@ -707,6 +733,7 @@ exports.verifyEmail = async (req, res) => {
         message: 'Invalid or expired verification token'
       });
     }
+
 
     // Update user verification status
     user.isVerified = true;
@@ -765,11 +792,14 @@ exports.resendVerificationEmail = async (req, res) => {
       });
     }
 
+
     // Generate new verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
     user.emailVerificationToken = verificationToken;
-    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    // 24 hours
     await user.save();
+
 
     // Send verification email
     await emailService.sendVerificationEmail(user.email, verificationToken);
@@ -818,11 +848,14 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
+
     // Generate password reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.passwordResetToken = resetToken;
-    user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
+    // 1 hour
     await user.save();
+
 
     // Send password reset email
     await emailService.sendPasswordResetEmail(user.email, resetToken);
@@ -869,8 +902,9 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
+
     // Find user by reset token
-    const user = await User.findOne({ 
+    const user = await User.findOne({
       passwordResetToken: token,
       passwordResetExpires: { $gt: Date.now() }
     });
@@ -881,6 +915,7 @@ exports.resetPassword = async (req, res) => {
         message: 'Invalid or expired reset token'
       });
     }
+
 
     // Hash new password
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -924,8 +959,10 @@ exports.refreshToken = async (req, res) => {
       });
     }
 
+
     // Verify refresh token
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'your_jwt_secret_key_here_2024');
+
 
     // Find user
     const user = await User.findById(decoded.userId);
@@ -935,6 +972,7 @@ exports.refreshToken = async (req, res) => {
         message: 'Invalid refresh token'
       });
     }
+
 
     // Generate new access token
     const newToken = jwt.sign(
@@ -961,9 +999,7 @@ exports.refreshToken = async (req, res) => {
     res.json({
       success: true,
       message: 'Token refreshed successfully',
-      data: {
-        token: newToken
-      }
+      data: { token: newToken }
     });
   } catch (error) {
     logger.error('Error refreshing token:', error);

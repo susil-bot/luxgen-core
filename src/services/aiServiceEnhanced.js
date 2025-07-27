@@ -7,10 +7,10 @@ const Groq = require('groq-sdk');
 const OpenAI = require('openai');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
-const cacheManager = require('../utils/cache');
+const _cacheManager = require('../utils/cache');
 
 class EnhancedAIService {
-  constructor() {
+  constructor () {
     this.groqClient = null;
     this.openaiClient = null;
     this.isInitialized = false;
@@ -20,14 +20,16 @@ class EnhancedAIService {
     this.topP = parseFloat(process.env.AI_TOP_P) || 0.9;
     this.frequencyPenalty = parseFloat(process.env.AI_FREQUENCY_PENALTY) || 0.0;
     this.presencePenalty = parseFloat(process.env.AI_PRESENCE_PENALTY) || 0.0;
-    
+
+
     // Rate limiting
     this.rateLimits = {
       standard: { perMinute: 60, perHour: 1000 },
       premium: { perMinute: 120, perHour: 2000 },
       enterprise: { perMinute: 300, perHour: 5000 }
     };
-    
+
+
     // In-memory storage (in production, use proper databases)
     this.conversations = new Map();
     this.contentLibrary = new Map();
@@ -39,25 +41,24 @@ class EnhancedAIService {
   /**
    * Initialize AI service
    */
-  async initialize() {
+  async initialize () {
+    // TODO: Add await statements
     try {
       logger.info('🤖 Initializing Enhanced AI Service...');
 
+
       // Initialize Groq client
       if (process.env.GROQ_API_KEY) {
-        this.groqClient = new Groq({
-          apiKey: process.env.GROQ_API_KEY,
-        });
+        this.groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
         logger.info('✅ Groq client initialized');
       } else {
         logger.warn('⚠️ GROQ_API_KEY not found - AI features disabled');
       }
 
+
       // Initialize OpenAI client
       if (process.env.OPENAI_API_KEY) {
-        this.openaiClient = new OpenAI({
-          apiKey: process.env.OPENAI_API_KEY,
-        });
+        this.openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
         logger.info('✅ OpenAI client initialized');
       } else {
         logger.warn('⚠️ OPENAI_API_KEY not found - Some features disabled');
@@ -65,7 +66,7 @@ class EnhancedAIService {
 
       this.isInitialized = true;
       logger.info('🎉 Enhanced AI Service initialized successfully');
-      
+
       return true;
     } catch (error) {
       logger.error('❌ Failed to initialize Enhanced AI Service:', error.message);
@@ -76,7 +77,8 @@ class EnhancedAIService {
   /**
    * Generate content with enhanced options
    */
-  async generateContent({ type, prompt, context, options, userId, tenantId }) {
+  async generateContent ({ type, prompt, context, options, userId, tenantId }) {
+    // TODO: Add await statements
     try {
       if (!this.isInitialized || !this.groqClient) {
         throw new Error('AI Service not available');
@@ -91,9 +93,13 @@ class EnhancedAIService {
         language = 'english'
       } = options || {};
 
+
       // Build system prompt based on type and options
-      let systemPrompt = this.buildSystemPrompt(type, { tone, style, length, language });
-      
+      const systemPrompt = this.buildSystemPrompt(type, {
+        tone, style, length, language
+      });
+
+
       // Add context if provided
       let enhancedPrompt = prompt;
       if (context) {
@@ -117,10 +123,11 @@ class EnhancedAIService {
       });
 
       const content = completion.choices[0]?.message?.content;
-      
+
       if (!content) {
         throw new Error('No content generated');
       }
+
 
       // Track usage
       this.trackUsage(userId, 'content_generation', type);
@@ -144,7 +151,8 @@ class EnhancedAIService {
   /**
    * Generate training materials
    */
-  async generateTrainingMaterial({ topic, context, options, userId, tenantId }) {
+  async generateTrainingMaterial ({ topic, context, options, userId, tenantId }) {
+    // TODO: Add await statements
     const enhancedOptions = {
       ...options,
       type: 'training_material',
@@ -153,7 +161,7 @@ class EnhancedAIService {
     };
 
     const prompt = `Create comprehensive training material about: ${topic}`;
-    
+
     return this.generateContent({
       type: 'training_material',
       prompt,
@@ -167,7 +175,8 @@ class EnhancedAIService {
   /**
    * Generate assessment questions
    */
-  async generateAssessmentQuestions({ topic, questionCount, options, userId, tenantId }) {
+  async generateAssessmentQuestions ({ topic, questionCount, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       types = ['multiple_choice', 'true_false'],
       difficulty = 'intermediate',
@@ -191,7 +200,8 @@ class EnhancedAIService {
   /**
    * Generate presentation outline
    */
-  async generatePresentationOutline({ topic, options, userId, tenantId }) {
+  async generatePresentationOutline ({ topic, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       duration = 'medium',
       style = 'educational',
@@ -215,7 +225,8 @@ class EnhancedAIService {
   /**
    * Improve content
    */
-  async improveContent({ content, improvement, options, userId, tenantId }) {
+  async improveContent ({ content, improvement, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       targetLength,
       tone = 'professional',
@@ -223,19 +234,19 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Improve the following content for ${improvement}:`;
-    
+
     if (targetLength) {
       prompt += ` Target length: ${targetLength} words.`;
     }
-    
+
     if (tone) {
       prompt += ` Tone: ${tone}.`;
     }
-    
+
     if (style) {
       prompt += ` Style: ${style}.`;
     }
-    
+
     prompt += `\n\nContent:\n${content}`;
 
     return this.generateContent({
@@ -250,18 +261,19 @@ class EnhancedAIService {
   /**
    * Translate content
    */
-  async translateContent({ content, targetLanguage, preserveTone, options, userId, tenantId }) {
+  async translateContent ({ content, targetLanguage, preserveTone, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       formality = 'formal',
       context = 'business'
     } = options || {};
 
     let prompt = `Translate the following content to ${targetLanguage}`;
-    
+
     if (preserveTone) {
       prompt += ' while preserving the original tone';
     }
-    
+
     prompt += `.\nFormality: ${formality}\nContext: ${context}\n\nContent:\n${content}`;
 
     return this.generateContent({
@@ -276,7 +288,8 @@ class EnhancedAIService {
   /**
    * Generate blog post
    */
-  async generateBlogPost({ topic, options, userId, tenantId }) {
+  async generateBlogPost ({ topic, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       length = 'medium',
       tone = 'professional',
@@ -285,19 +298,19 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Write a blog post about: ${topic}`;
-    
+
     if (length) {
       prompt += `\nLength: ${length}`;
     }
-    
+
     if (tone) {
       prompt += `\nTone: ${tone}`;
     }
-    
+
     if (targetAudience) {
       prompt += `\nTarget audience: ${targetAudience}`;
     }
-    
+
     if (keywords.length > 0) {
       prompt += `\nKeywords: ${keywords.join(', ')}`;
     }
@@ -314,7 +327,8 @@ class EnhancedAIService {
   /**
    * Generate social media content
    */
-  async generateSocialMedia({ platform, topic, options, userId, tenantId }) {
+  async generateSocialMedia ({ platform, topic, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       tone = 'engaging',
       includeHashtags = true,
@@ -322,15 +336,15 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create ${platform} content about: ${topic}`;
-    
+
     if (tone) {
       prompt += `\nTone: ${tone}`;
     }
-    
+
     if (includeHashtags) {
       prompt += '\nInclude relevant hashtags';
     }
-    
+
     if (callToAction) {
       prompt += `\nCall to action: ${callToAction}`;
     }
@@ -338,7 +352,9 @@ class EnhancedAIService {
     return this.generateContent({
       type: 'social_media',
       prompt,
-      options: { ...options, type: 'social_media', platform },
+      options: {
+        ...options, type: 'social_media', platform
+      },
       userId,
       tenantId
     });
@@ -347,7 +363,8 @@ class EnhancedAIService {
   /**
    * Generate email content
    */
-  async generateEmail({ type, topic, options, userId, tenantId }) {
+  async generateEmail ({ type, topic, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       recipientType = 'client',
       tone = 'professional',
@@ -355,15 +372,15 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Write a ${type} email about: ${topic}`;
-    
+
     if (recipientType) {
       prompt += `\nRecipient: ${recipientType}`;
     }
-    
+
     if (tone) {
       prompt += `\nTone: ${tone}`;
     }
-    
+
     if (includeCallToAction) {
       prompt += '\nInclude a call to action';
     }
@@ -371,7 +388,9 @@ class EnhancedAIService {
     return this.generateContent({
       type: 'email',
       prompt,
-      options: { ...options, type: 'email', emailType: type },
+      options: {
+        ...options, type: 'email', emailType: type
+      },
       userId,
       tenantId
     });
@@ -380,26 +399,27 @@ class EnhancedAIService {
   /**
    * Generate product description
    */
-  async generateProductDescription({ productName, features, targetAudience, options, userId, tenantId }) {
+  async generateProductDescription ({ productName, features, targetAudience, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       style = 'marketing',
       length = 'medium'
     } = options || {};
 
     let prompt = `Write a product description for: ${productName}`;
-    
+
     if (targetAudience) {
       prompt += `\nTarget audience: ${targetAudience}`;
     }
-    
+
     if (features && features.length > 0) {
       prompt += `\nFeatures: ${features.join(', ')}`;
     }
-    
+
     if (style) {
       prompt += `\nStyle: ${style}`;
     }
-    
+
     if (length) {
       prompt += `\nLength: ${length}`;
     }
@@ -416,22 +436,23 @@ class EnhancedAIService {
   /**
    * Generate image prompt
    */
-  async generateImagePrompt({ description, style, options, userId, tenantId }) {
+  async generateImagePrompt ({ description, style, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       aspectRatio = '16:9',
       mood = 'professional'
     } = options || {};
 
     let prompt = `Create a detailed image prompt for: ${description}`;
-    
+
     if (style) {
       prompt += `\nStyle: ${style}`;
     }
-    
+
     if (aspectRatio) {
       prompt += `\nAspect ratio: ${aspectRatio}`;
     }
-    
+
     if (mood) {
       prompt += `\nMood: ${mood}`;
     }
@@ -448,26 +469,27 @@ class EnhancedAIService {
   /**
    * Generate video script
    */
-  async generateVideoScript({ topic, duration, style, options, userId, tenantId }) {
+  async generateVideoScript ({ topic, duration, style, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       includeVisuals = true,
       targetAudience = 'general'
     } = options || {};
 
     let prompt = `Create a video script about: ${topic}`;
-    
+
     if (duration) {
       prompt += `\nDuration: ${duration}`;
     }
-    
+
     if (style) {
       prompt += `\nStyle: ${style}`;
     }
-    
+
     if (includeVisuals) {
       prompt += '\nInclude visual descriptions';
     }
-    
+
     if (targetAudience) {
       prompt += `\nTarget audience: ${targetAudience}`;
     }
@@ -484,22 +506,23 @@ class EnhancedAIService {
   /**
    * Generate audio script
    */
-  async generateAudioScript({ topic, type, duration, options, userId, tenantId }) {
+  async generateAudioScript ({ topic, type, duration, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       tone = 'professional',
       includeMusic = true
     } = options || {};
 
     let prompt = `Create an audio script for ${type} about: ${topic}`;
-    
+
     if (duration) {
       prompt += `\nDuration: ${duration} minutes`;
     }
-    
+
     if (tone) {
       prompt += `\nTone: ${tone}`;
     }
-    
+
     if (includeMusic) {
       prompt += '\nInclude music cues';
     }
@@ -513,12 +536,14 @@ class EnhancedAIService {
     });
   }
 
+
   // ==================== CONVERSATION MANAGEMENT ====================
 
   /**
    * Create a new conversation
    */
-  async createConversation({ niche, title, initialMessage, userId, tenantId }) {
+  async createConversation ({ niche, title, initialMessage, userId, tenantId }) {
+    // TODO: Add await statements
     const conversationId = crypto.randomUUID();
     const conversation = {
       id: conversationId,
@@ -541,14 +566,14 @@ class EnhancedAIService {
     }
 
     this.conversations.set(conversationId, conversation);
-    
+
     return conversation;
   }
 
   /**
    * Get user's conversations
    */
-  async getConversations({ userId, tenantId, page = 1, limit = 10, niche }) {
+  async getConversations ({ userId, tenantId, page = 1, limit = 10, niche }) {
     const conversations = Array.from(this.conversations.values())
       .filter(conv => conv.userId === userId && conv.tenantId === tenantId)
       .filter(conv => !niche || conv.niche === niche)
@@ -572,26 +597,28 @@ class EnhancedAIService {
   /**
    * Get specific conversation
    */
-  async getConversation({ conversationId, userId, tenantId }) {
+  async getConversation ({ conversationId, userId, tenantId }) {
+    // TODO: Add await statements
     const conversation = this.conversations.get(conversationId);
-    
+
     if (!conversation || conversation.userId !== userId || conversation.tenantId !== tenantId) {
       throw new Error('Conversation not found');
     }
-    
+
     return conversation;
   }
 
   /**
    * Delete conversation
    */
-  async deleteConversation({ conversationId, userId, tenantId }) {
+  async deleteConversation ({ conversationId, userId, tenantId }) {
+    // TODO: Add await statements
     const conversation = this.conversations.get(conversationId);
-    
+
     if (!conversation || conversation.userId !== userId || conversation.tenantId !== tenantId) {
       throw new Error('Conversation not found');
     }
-    
+
     this.conversations.delete(conversationId);
     return { success: true };
   }
@@ -599,9 +626,10 @@ class EnhancedAIService {
   /**
    * Send message in conversation
    */
-  async sendMessage({ conversationId, content, type, metadata, userId, tenantId }) {
+  async sendMessage ({ conversationId, content, type, metadata, userId, tenantId }) {
+    // TODO: Add await statements
     const conversation = this.conversations.get(conversationId);
-    
+
     if (!conversation || conversation.userId !== userId || conversation.tenantId !== tenantId) {
       throw new Error('Conversation not found');
     }
@@ -623,11 +651,12 @@ class EnhancedAIService {
   /**
    * Generate AI response
    */
-  async generateResponse({ message, conversationId, context, userId, tenantId }) {
+  async generateResponse ({ message, conversationId, context, userId, tenantId }) {
+    // TODO: Add await statements
     const conversation = conversationId ? this.conversations.get(conversationId) : null;
-    
+
     let prompt = `User message: ${message}`;
-    
+
     if (conversation) {
       const recentMessages = conversation.messages.slice(-5);
       const conversationContext = recentMessages
@@ -635,7 +664,7 @@ class EnhancedAIService {
         .join('\n');
       prompt = `Conversation context:\n${conversationContext}\n\nUser message: ${message}`;
     }
-    
+
     if (context) {
       prompt = `Context: ${JSON.stringify(context)}\n\n${prompt}`;
     }
@@ -662,12 +691,14 @@ class EnhancedAIService {
     return response;
   }
 
+
   // ==================== TRAINING-SPECIFIC AI ====================
 
   /**
    * Generate training module
    */
-  async generateTrainingModule({ topic, options, userId, tenantId }) {
+  async generateTrainingModule ({ topic, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       duration = 2,
       difficulty = 'intermediate',
@@ -677,23 +708,23 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create a complete training module about: ${topic}`;
-    
+
     if (duration) {
       prompt += `\nDuration: ${duration} hours`;
     }
-    
+
     if (difficulty) {
       prompt += `\nDifficulty: ${difficulty}`;
     }
-    
+
     if (format) {
       prompt += `\nFormat: ${format}`;
     }
-    
+
     if (includeAssessment) {
       prompt += '\nInclude assessment questions';
     }
-    
+
     if (learningObjectives.length > 0) {
       prompt += `\nLearning objectives: ${learningObjectives.join(', ')}`;
     }
@@ -710,7 +741,8 @@ class EnhancedAIService {
   /**
    * Generate exercises
    */
-  async generateExercises({ topic, options, userId, tenantId }) {
+  async generateExercises ({ topic, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       type = 'individual',
       duration = 30,
@@ -719,19 +751,19 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create practical exercises for: ${topic}`;
-    
+
     if (type) {
       prompt += `\nType: ${type}`;
     }
-    
+
     if (duration) {
       prompt += `\nDuration: ${duration} minutes`;
     }
-    
+
     if (difficulty) {
       prompt += `\nDifficulty: ${difficulty}`;
     }
-    
+
     if (materials.length > 0) {
       prompt += `\nMaterials: ${materials.join(', ')}`;
     }
@@ -748,7 +780,8 @@ class EnhancedAIService {
   /**
    * Generate case studies
    */
-  async generateCaseStudies({ topic, options, userId, tenantId }) {
+  async generateCaseStudies ({ topic, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       industry = 'general',
       complexity = 'moderate',
@@ -757,19 +790,19 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create case studies for: ${topic}`;
-    
+
     if (industry) {
       prompt += `\nIndustry: ${industry}`;
     }
-    
+
     if (complexity) {
       prompt += `\nComplexity: ${complexity}`;
     }
-    
+
     if (includeSolutions) {
       prompt += '\nInclude solutions';
     }
-    
+
     if (learningOutcomes.length > 0) {
       prompt += `\nLearning outcomes: ${learningOutcomes.join(', ')}`;
     }
@@ -786,7 +819,8 @@ class EnhancedAIService {
   /**
    * Generate quiz
    */
-  async generateQuiz({ topic, options, userId, tenantId }) {
+  async generateQuiz ({ topic, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       questionCount = 10,
       types = ['multiple_choice', 'true_false'],
@@ -796,23 +830,23 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create a quiz about: ${topic}`;
-    
+
     if (questionCount) {
       prompt += `\nQuestions: ${questionCount}`;
     }
-    
+
     if (types.length > 0) {
       prompt += `\nQuestion types: ${types.join(', ')}`;
     }
-    
+
     if (difficulty) {
       prompt += `\nDifficulty: ${difficulty}`;
     }
-    
+
     if (timeLimit) {
       prompt += `\nTime limit: ${timeLimit} minutes`;
     }
-    
+
     if (passingScore) {
       prompt += `\nPassing score: ${passingScore}%`;
     }
@@ -829,7 +863,8 @@ class EnhancedAIService {
   /**
    * Generate scenarios
    */
-  async generateScenarios({ topic, options, userId, tenantId }) {
+  async generateScenarios ({ topic, options, userId, tenantId }) {
+    // TODO: Add await statements
     const {
       scenarioCount = 5,
       complexity = 'moderate',
@@ -838,19 +873,19 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create scenario-based assessments for: ${topic}`;
-    
+
     if (scenarioCount) {
       prompt += `\nNumber of scenarios: ${scenarioCount}`;
     }
-    
+
     if (complexity) {
       prompt += `\nComplexity: ${complexity}`;
     }
-    
+
     if (includeMultipleChoice) {
       prompt += '\nInclude multiple choice questions';
     }
-    
+
     if (includeEssay) {
       prompt += '\nInclude essay questions';
     }
@@ -864,12 +899,14 @@ class EnhancedAIService {
     });
   }
 
+
   // ==================== CONTENT MANAGEMENT ====================
 
   /**
    * Save content to library
    */
-  async saveContent({ title, content, type, category, tags, metadata, userId, tenantId }) {
+  async saveContent ({ title, content, type, category, tags, metadata, userId, tenantId }) {
+    // TODO: Add await statements
     const contentId = crypto.randomUUID();
     const savedContent = {
       id: contentId,
@@ -886,27 +923,28 @@ class EnhancedAIService {
     };
 
     this.contentLibrary.set(contentId, savedContent);
-    
+
     return savedContent;
   }
 
   /**
    * Get content library
    */
-  async getContentLibrary({ userId, tenantId, type, category, status, search, page = 1, limit = 10 }) {
+  async getContentLibrary ({ userId, tenantId, type, category, status, search, page = 1, limit = 10 }) {
+    // TODO: Add await statements
     let contents = Array.from(this.contentLibrary.values())
       .filter(content => content.userId === userId && content.tenantId === tenantId);
 
     if (type) {
       contents = contents.filter(content => content.type === type);
     }
-    
+
     if (category) {
       contents = contents.filter(content => content.category === category);
     }
-    
+
     if (search) {
-      contents = contents.filter(content => 
+      contents = contents.filter(content =>
         content.title.toLowerCase().includes(search.toLowerCase()) ||
         content.content.toLowerCase().includes(search.toLowerCase())
       );
@@ -932,24 +970,26 @@ class EnhancedAIService {
   /**
    * Update content
    */
-  async updateContent({ contentId, updateData, userId, tenantId }) {
+  async updateContent ({ contentId, updateData, userId, tenantId }) {
+    // TODO: Add await statements
     const content = this.contentLibrary.get(contentId);
-    
+
     if (!content || content.userId !== userId || content.tenantId !== tenantId) {
       throw new Error('Content not found');
     }
 
     Object.assign(content, updateData, { updatedAt: new Date() });
-    
+
     return content;
   }
 
   /**
    * Delete content
    */
-  async deleteContent({ contentId, userId, tenantId }) {
+  async deleteContent ({ contentId, userId, tenantId }) {
+    // TODO: Add await statements
     const content = this.contentLibrary.get(contentId);
-    
+
     if (!content || content.userId !== userId || content.tenantId !== tenantId) {
       throw new Error('Content not found');
     }
@@ -961,7 +1001,8 @@ class EnhancedAIService {
   /**
    * Get templates
    */
-  async getTemplates({ userId, tenantId }) {
+  async getTemplates ({ userId, tenantId }) {
+    // TODO: Add await statements
     // Return default templates and user-specific templates
     const defaultTemplates = [
       {
@@ -993,7 +1034,8 @@ class EnhancedAIService {
   /**
    * Create template
    */
-  async createTemplate({ name, description, type, platform, prompt, variables, userId, tenantId }) {
+  async createTemplate ({ name, description, type, platform, prompt, variables, userId, tenantId }) {
+    // TODO: Add await statements
     const templateId = crypto.randomUUID();
     const template = {
       id: templateId,
@@ -1009,16 +1051,18 @@ class EnhancedAIService {
     };
 
     this.templates.set(templateId, template);
-    
+
     return template;
   }
+
 
   // ==================== PREFERENCES & PERSONALIZATION ====================
 
   /**
    * Get user preferences
    */
-  async getPreferences({ userId, tenantId }) {
+  async getPreferences ({ userId, tenantId }) {
+    // TODO: Add await statements
     const preferences = this.userPreferences.get(`${userId}-${tenantId}`) || {
       defaultTone: 'professional',
       preferredLanguage: 'english',
@@ -1036,19 +1080,20 @@ class EnhancedAIService {
   /**
    * Update preferences
    */
-  async updatePreferences({ preferences, userId, tenantId }) {
+  async updatePreferences ({ preferences, userId, tenantId }) {
+    // TODO: Add await statements
     const key = `${userId}-${tenantId}`;
     const existingPreferences = this.userPreferences.get(key) || {};
-    
+
     this.userPreferences.set(key, { ...existingPreferences, ...preferences });
-    
+
     return this.userPreferences.get(key);
   }
 
   /**
    * Get niches
    */
-  async getNiches({ userId, tenantId }) {
+  async getNiches ({ userId, tenantId }) {
     const niches = [
       'Technology',
       'Healthcare',
@@ -1082,7 +1127,8 @@ class EnhancedAIService {
   /**
    * Set user niche
    */
-  async setNiche({ niche, description, keywords, userId, tenantId }) {
+  async setNiche ({ niche, description, keywords, userId, tenantId }) {
+    // TODO: Add await statements
     const userNiche = {
       niche,
       description,
@@ -1091,6 +1137,7 @@ class EnhancedAIService {
       tenantId,
       setAt: new Date()
     };
+
 
     // Store in user preferences
     const key = `${userId}-${tenantId}`;
@@ -1101,12 +1148,13 @@ class EnhancedAIService {
     return userNiche;
   }
 
+
   // ==================== ANALYTICS & INSIGHTS ====================
 
   /**
    * Get content performance
    */
-  async getContentPerformance({ contentId, dateRange, metrics, userId, tenantId }) {
+  async getContentPerformance ({ contentId, dateRange, metrics, userId, tenantId }) {
     // Mock analytics data
     return {
       engagement: {
@@ -1122,7 +1170,9 @@ class EnhancedAIService {
       },
       audience: {
         demographics: {
-          age: { '18-24': 25, '25-34': 35, '35-44': 25, '45+': 15 },
+          age: {
+            '18-24': 25, '25-34': 35, '35-44': 25, '45+': 15
+          },
           gender: { male: 45, female: 55 }
         },
         interests: ['technology', 'business', 'education'],
@@ -1134,9 +1184,10 @@ class EnhancedAIService {
   /**
    * Get conversation insights
    */
-  async getConversationInsights({ conversationId, dateRange, userId, tenantId }) {
+  async getConversationInsights ({ conversationId, dateRange, userId, tenantId }) {
+    // TODO: Add await statements
     const conversation = this.conversations.get(conversationId);
-    
+
     if (!conversation) {
       throw new Error('Conversation not found');
     }
@@ -1155,7 +1206,8 @@ class EnhancedAIService {
   /**
    * Get usage analytics
    */
-  async getUsageAnalytics({ userId, dateRange, type, tenantId }) {
+  async getUsageAnalytics ({ userId, dateRange, type, tenantId }) {
+    // TODO: Add await statements
     const userStats = this.usageStats.get(`${userId}-${tenantId}`) || {
       totalRequests: 0,
       contentGenerated: 0,
@@ -1175,12 +1227,13 @@ class EnhancedAIService {
     };
   }
 
+
   // ==================== PERFORMANCE & MONITORING ====================
 
   /**
    * Get health status
    */
-  async getHealth({ userId, tenantId }) {
+  async getHealth ({ userId, tenantId }) {
     return {
       status: 'healthy',
       models: {
@@ -1197,10 +1250,11 @@ class EnhancedAIService {
   /**
    * Get rate limits
    */
-  async getRateLimits({ userId, tenantId }) {
-    const userPlan = 'standard'; // In production, get from user profile
+  async getRateLimits ({ userId, tenantId }) {
+    const userPlan = 'standard';
+    // In production, get from user profile
     const limits = this.rateLimits[userPlan];
-    
+
     return {
       requestsPerMinute: limits.perMinute,
       requestsPerHour: limits.perHour,
@@ -1208,20 +1262,22 @@ class EnhancedAIService {
         minute: Math.floor(Math.random() * 20) + 5,
         hour: Math.floor(Math.random() * 100) + 50
       },
-      resetTime: new Date(Date.now() + 15 * 60 * 1000) // 15 minutes from now
+      resetTime: new Date(Date.now() + 15 * 60 * 1000)
+      // 15 minutes from now
     };
   }
+
 
   // ==================== UTILITY METHODS ====================
 
   /**
    * Build system prompt based on type and options
    */
-  buildSystemPrompt(type, options = {}) {
+  buildSystemPrompt (type, options = {}) {
     const { tone, style, length, language } = options;
-    
+
     let systemPrompt = 'You are a helpful AI assistant. ';
-    
+
     switch (type) {
       case 'training_material':
         systemPrompt += 'Create comprehensive, engaging, and educational training materials. Focus on practical examples, clear explanations, and actionable insights.';
@@ -1250,50 +1306,51 @@ class EnhancedAIService {
       default:
         systemPrompt += 'Provide clear, accurate, and useful responses.';
     }
-    
+
     if (tone) {
       systemPrompt += ` Maintain a ${tone} tone.`;
     }
-    
+
     if (style) {
       systemPrompt += ` Use a ${style} style.`;
     }
-    
+
     if (length) {
       systemPrompt += ` Keep the content ${length} in length.`;
     }
-    
+
     if (language && language !== 'english') {
       systemPrompt += ` Respond in ${language}.`;
     }
-    
+
     return systemPrompt;
   }
 
   /**
    * Track usage statistics
    */
-  trackUsage(userId, action, type) {
+  trackUsage (userId, action, type) {
     const key = `${userId}-${Date.now()}`;
     const stats = this.usageStats.get(key) || {
       totalRequests: 0,
       contentGenerated: 0,
       conversations: 0
     };
-    
-    stats.totalRequests++;
-    
+
+    stats.totalRequests += 1;
+
     if (action === 'content_generation') {
-      stats.contentGenerated++;
+      stats.contentGenerated += 1;
     } else if (action === 'conversation') {
-      stats.conversations++;
+      stats.conversations += 1;
     }
-    
+
     this.usageStats.set(key, stats);
   }
 }
 
+
 // Create and export singleton instance
 const enhancedAIService = new EnhancedAIService();
 
-module.exports = enhancedAIService; 
+module.exports = enhancedAIService;

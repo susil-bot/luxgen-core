@@ -10,21 +10,26 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { validateRequestCustom } = require('../middleware/validation');
 const rateLimit = require('express-rate-limit');
 
+
 // Rate limiting for AI endpoints
 const aiRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  // 15 minutes
+  max: 100,
+  // limit each IP to 100 requests per windowMs
   message: {
     success: false,
     error: 'Too many AI requests, please try again later.',
     retryAfter: 900
   },
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: false
 });
+
 
 // Apply rate limiting to all AI routes
 router.use(aiRateLimit);
+
 
 // ==================== CONTENT GENERATION ====================
 
@@ -32,60 +37,85 @@ router.use(aiRateLimit);
  * Generate general content based on type and prompt
  * POST /api/v1/ai/generate/content
  */
-router.post('/generate/content', 
+router.post('/generate/content',
   authenticateToken,
   validateRequestCustom([
-    { field: 'type', type: 'string', required: true, enum: ['text', 'image', 'video', 'audio'] },
-    { field: 'prompt', type: 'string', required: true, minLength: 1, maxLength: 2000 },
-    { field: 'context', type: 'string', required: false, maxLength: 1000 },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'type', type: 'string', required: true, enum: ['text', 'image', 'video', 'audio']
+    },
+    {
+      field: 'prompt', type: 'string', required: true, minLength: 1, maxLength: 2000
+    },
+    {
+      field: 'context', type: 'string', required: false, maxLength: 1000
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateContent
 );
 
 /**
  * Generate training materials for specific topics
- * POST /api/v1/ai/generate/training-material
+ * POST /api/v1/ai/(generate/training-material)
  */
-router.post('/generate/training-material',
+router.post('/(generate/training-material)',
   authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequestCustom([
-    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
-    { field: 'context', type: 'string', required: false, maxLength: 1000 },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500
+    },
+    {
+      field: 'context', type: 'string', required: false, maxLength: 1000
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateTrainingMaterial
 );
 
 /**
  * Generate assessment questions for training topics
- * POST /api/v1/ai/generate/assessment-questions
+ * POST /api/v1/ai/(generate/assessment-questions)
  */
-router.post('/generate/assessment-questions',
+router.post('/(generate/assessment-questions)',
   authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequestCustom([
-    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
-    { field: 'questionCount', type: 'number', required: true, min: 1, max: 50 },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500
+    },
+    {
+      field: 'questionCount', type: 'number', required: true, min: 1, max: 50
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateAssessmentQuestions
 );
 
 /**
  * Generate presentation outlines and slides
- * POST /api/v1/ai/generate/presentation-outline
+ * POST /api/v1/ai/(generate/presentation-outline)
  */
-router.post('/generate/presentation-outline',
+router.post('/(generate/presentation-outline)',
   authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequestCustom([
-    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generatePresentationOutline
 );
+
 
 // ==================== CONTENT IMPROVEMENT ====================
 
@@ -96,9 +126,15 @@ router.post('/generate/presentation-outline',
 router.post('/improve/content',
   authenticateToken,
   validateRequestCustom([
-    { field: 'content', type: 'string', required: true, minLength: 1, maxLength: 10000 },
-    { field: 'improvement', type: 'string', required: true, enum: ['grammar', 'style', 'tone', 'expand', 'summarize'] },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'content', type: 'string', required: true, minLength: 1, maxLength: 10000
+    },
+    {
+      field: 'improvement', type: 'string', required: true, enum: ['grammar', 'style', 'tone', 'expand', 'summarize']
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.improveContent
 );
@@ -110,39 +146,58 @@ router.post('/improve/content',
 router.post('/translate/content',
   authenticateToken,
   validateRequestCustom([
-    { field: 'content', type: 'string', required: true, minLength: 1, maxLength: 5000 },
-    { field: 'targetLanguage', type: 'string', required: true, minLength: 2, maxLength: 10 },
-    { field: 'preserveTone', type: 'boolean', required: false },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'content', type: 'string', required: true, minLength: 1, maxLength: 5000
+    },
+    {
+      field: 'targetLanguage', type: 'string', required: true, minLength: 2, maxLength: 10
+    },
+    {
+      field: 'preserveTone', type: 'boolean', required: false
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.translateContent
 );
+
 
 // ==================== SPECIALIZED CONTENT GENERATION ====================
 
 /**
  * Generate blog posts and articles
- * POST /api/v1/ai/generate/blog-post
+ * POST /api/v1/ai/(generate/blog-post)
  */
-router.post('/generate/blog-post',
+router.post('/(generate/blog-post)',
   authenticateToken,
   validateRequestCustom([
-    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateBlogPost
 );
 
 /**
  * Generate social media content for different platforms
- * POST /api/v1/ai/generate/social-media
+ * POST /api/v1/ai/(generate/social-media)
  */
-router.post('/generate/social-media',
+router.post('/(generate/social-media)',
   authenticateToken,
   validateRequestCustom([
-    { field: 'platform', type: 'string', required: true, enum: ['twitter', 'linkedin', 'instagram', 'facebook'] },
-    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'platform', type: 'string', required: true, enum: ['twitter', 'linkedin', 'instagram', 'facebook']
+    },
+    {
+      field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateSocialMedia
 );
@@ -154,73 +209,111 @@ router.post('/generate/social-media',
 router.post('/generate/email',
   authenticateToken,
   validateRequestCustom([
-    { field: 'type', type: 'string', required: true, enum: ['newsletter', 'marketing', 'announcement', 'follow-up'] },
-    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'type', type: 'string', required: true, enum: ['newsletter', 'marketing', 'announcement', 'follow-up']
+    },
+    {
+      field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateEmail
 );
 
 /**
  * Generate product descriptions and marketing copy
- * POST /api/v1/ai/generate/product-description
+ * POST /api/v1/ai/(generate/product-description)
  */
-router.post('/generate/product-description',
+router.post('/(generate/product-description)',
   authenticateToken,
   validateRequestCustom([
-    { field: 'productName', type: 'string', required: true, minLength: 1, maxLength: 200 },
-    { field: 'features', type: 'array', required: false },
-    { field: 'targetAudience', type: 'string', required: true, minLength: 1, maxLength: 200 },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'productName', type: 'string', required: true, minLength: 1, maxLength: 200
+    },
+    {
+      field: 'features', type: 'array', required: false
+    },
+    {
+      field: 'targetAudience', type: 'string', required: true, minLength: 1, maxLength: 200
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateProductDescription
 );
+
 
 // ==================== MEDIA CONTENT GENERATION ====================
 
 /**
  * Generate prompts for image generation
- * POST /api/v1/ai/generate/image-prompt
+ * POST /api/v1/ai/(generate/image-prompt)
  */
-router.post('/generate/image-prompt',
+router.post('/(generate/image-prompt)',
   authenticateToken,
   validateRequestCustom([
-    { field: 'description', type: 'string', required: true, minLength: 1, maxLength: 1000 },
-    { field: 'style', type: 'string', required: false, enum: ['realistic', 'artistic', 'cartoon', 'photographic'] },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'description', type: 'string', required: true, minLength: 1, maxLength: 1000
+    },
+    {
+      field: 'style', type: 'string', required: false, enum: ['realistic', 'artistic', 'cartoon', 'photographic']
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateImagePrompt
 );
 
 /**
  * Generate video scripts and storyboards
- * POST /api/v1/ai/generate/video-script
+ * POST /api/v1/ai/(generate/video-script)
  */
-router.post('/generate/video-script',
+router.post('/(generate/video-script)',
   authenticateToken,
   validateRequestCustom([
-    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
-    { field: 'duration', type: 'string', required: false, enum: ['short', 'medium', 'long'] },
-    { field: 'style', type: 'string', required: false, enum: ['educational', 'entertaining', 'promotional'] },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500
+    },
+    {
+      field: 'duration', type: 'string', required: false, enum: ['short', 'medium', 'long']
+    },
+    {
+      field: 'style', type: 'string', required: false, enum: ['educational', 'entertaining', 'promotional']
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateVideoScript
 );
 
 /**
  * Generate audio content scripts
- * POST /api/v1/ai/generate/audio-script
+ * POST /api/v1/ai/(generate/audio-script)
  */
-router.post('/generate/audio-script',
+router.post('/(generate/audio-script)',
   authenticateToken,
   validateRequestCustom([
-    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
-    { field: 'type', type: 'string', required: true, enum: ['podcast', 'voiceover', 'audio-book'] },
-    { field: 'duration', type: 'number', required: true, min: 1, max: 120 },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500
+    },
+    {
+      field: 'type', type: 'string', required: true, enum: ['podcast', 'voiceover', 'audio-book']
+    },
+    {
+      field: 'duration', type: 'number', required: true, min: 1, max: 120
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateAudioScript
 );
+
 
 // ==================== AI CHATBOT ENDPOINTS ====================
 
@@ -231,9 +324,15 @@ router.post('/generate/audio-script',
 router.post('/chat/conversations',
   authenticateToken,
   validateRequestCustom([
-    { field: 'niche', type: 'string', required: true, minLength: 1, maxLength: 100 },
-    { field: 'title', type: 'string', required: false, maxLength: 200 },
-    { field: 'initialMessage', type: 'string', required: false, maxLength: 1000 }
+    {
+      field: 'niche', type: 'string', required: true, minLength: 1, maxLength: 100
+    },
+    {
+      field: 'title', type: 'string', required: false, maxLength: 200
+    },
+    {
+      field: 'initialMessage', type: 'string', required: false, maxLength: 1000
+    }
   ]),
   aiController.createConversation
 );
@@ -272,34 +371,47 @@ router.delete('/chat/conversations/:conversationId',
 router.post('/chat/conversations/:conversationId/messages',
   authenticateToken,
   validateRequestCustom([
-    { field: 'content', type: 'string', required: true, minLength: 1, maxLength: 2000 },
-    { field: 'type', type: 'string', required: false, enum: ['text', 'content', 'followup', 'social'] },
-    { field: 'metadata', type: 'object', required: false }
+    {
+      field: 'content', type: 'string', required: true, minLength: 1, maxLength: 2000
+    },
+    {
+      field: 'type', type: 'string', required: false, enum: ['text', 'content', 'followup', 'social']
+    },
+    {
+      field: 'metadata', type: 'object', required: false
+    }
   ]),
   aiController.sendMessage
 );
 
 /**
  * Generate AI response for chat messages
- * POST /api/v1/ai/chat/generate-response
+ * POST /api/v1/ai/(chat/generate-response)
  */
-router.post('/chat/generate-response',
+router.post('/(chat/generate-response)',
   authenticateToken,
   validateRequestCustom([
-    { field: 'message', type: 'string', required: true, minLength: 1, maxLength: 2000 },
-    { field: 'conversationId', type: 'string', required: false },
-    { field: 'context', type: 'object', required: false }
+    {
+      field: 'message', type: 'string', required: true, minLength: 1, maxLength: 2000
+    },
+    {
+      field: 'conversationId', type: 'string', required: false
+    },
+    {
+      field: 'context', type: 'object', required: false
+    }
   ]),
   aiController.generateResponse
 );
+
 
 // ==================== ANALYTICS & INSIGHTS ====================
 
 /**
  * Get analytics for generated content
- * GET /api/v1/ai/analytics/content-performance
+ * GET /api/v1/ai/(analytics/content-performance)
  */
-router.get('/analytics/content-performance',
+router.get('/(analytics/content-performance)',
   authenticateToken,
   authorizeRoles('admin', 'trainer'),
   aiController.getContentPerformance
@@ -307,9 +419,9 @@ router.get('/analytics/content-performance',
 
 /**
  * Get insights from AI conversations
- * GET /api/v1/ai/analytics/conversation-insights
+ * GET /api/v1/ai/(analytics/conversation-insights)
  */
-router.get('/analytics/conversation-insights',
+router.get('/(analytics/conversation-insights)',
   authenticateToken,
   aiController.getConversationInsights
 );
@@ -323,77 +435,99 @@ router.get('/analytics/usage',
   aiController.getUsageAnalytics
 );
 
+
 // ==================== TRAINING-SPECIFIC AI ENDPOINTS ====================
 
 /**
  * Generate complete training modules
- * POST /api/v1/ai/training/generate-module
+ * POST /api/v1/ai/(training/generate-module)
  */
-router.post('/training/generate-module',
+router.post('/(training/generate-module)',
   authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequestCustom([
-    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateTrainingModule
 );
 
 /**
  * Generate practical exercises and activities
- * POST /api/v1/ai/training/generate-exercises
+ * POST /api/v1/ai/(training/generate-exercises)
  */
-router.post('/training/generate-exercises',
+router.post('/(training/generate-exercises)',
   authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequestCustom([
-    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateExercises
 );
 
 /**
  * Generate case studies and scenarios
- * POST /api/v1/ai/training/generate-case-studies
+ * POST /api/v1/ai/(training/generate-case)-studies
  */
-router.post('/training/generate-case-studies',
+router.post('/(training/generate-case)-studies',
   authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequestCustom([
-    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateCaseStudies
 );
 
 /**
  * Generate quizzes and assessments
- * POST /api/v1/ai/training/generate-quiz
+ * POST /api/v1/ai/(training/generate-quiz)
  */
-router.post('/training/generate-quiz',
+router.post('/(training/generate-quiz)',
   authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequestCustom([
-    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateQuiz
 );
 
 /**
  * Generate scenario-based assessments
- * POST /api/v1/ai/training/generate-scenarios
+ * POST /api/v1/ai/(training/generate-scenarios)
  */
-router.post('/training/generate-scenarios',
+router.post('/(training/generate-scenarios)',
   authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequestCustom([
-    { field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500 },
-    { field: 'options', type: 'object', required: false }
+    {
+      field: 'topic', type: 'string', required: true, minLength: 1, maxLength: 500
+    },
+    {
+      field: 'options', type: 'object', required: false
+    }
   ]),
   aiController.generateScenarios
 );
+
 
 // ==================== CONTENT MANAGEMENT ====================
 
@@ -404,12 +538,24 @@ router.post('/training/generate-scenarios',
 router.post('/content/save',
   authenticateToken,
   validateRequestCustom([
-    { field: 'title', type: 'string', required: true, minLength: 1, maxLength: 200 },
-    { field: 'content', type: 'string', required: true, minLength: 1, maxLength: 10000 },
-    { field: 'type', type: 'string', required: true, minLength: 1, maxLength: 50 },
-    { field: 'category', type: 'string', required: false, maxLength: 100 },
-    { field: 'tags', type: 'array', required: false },
-    { field: 'metadata', type: 'object', required: false }
+    {
+      field: 'title', type: 'string', required: true, minLength: 1, maxLength: 200
+    },
+    {
+      field: 'content', type: 'string', required: true, minLength: 1, maxLength: 10000
+    },
+    {
+      field: 'type', type: 'string', required: true, minLength: 1, maxLength: 50
+    },
+    {
+      field: 'category', type: 'string', required: false, maxLength: 100
+    },
+    {
+      field: 'tags', type: 'array', required: false
+    },
+    {
+      field: 'metadata', type: 'object', required: false
+    }
   ]),
   aiController.saveContent
 );
@@ -458,15 +604,28 @@ router.post('/templates',
   authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequestCustom([
-    { field: 'name', type: 'string', required: true, minLength: 1, maxLength: 100 },
-    { field: 'description', type: 'string', required: false, maxLength: 500 },
-    { field: 'type', type: 'string', required: true, enum: ['social', 'followup', 'training', 'assessment'] },
-    { field: 'platform', type: 'string', required: false, maxLength: 50 },
-    { field: 'prompt', type: 'string', required: true, minLength: 1, maxLength: 2000 },
-    { field: 'variables', type: 'array', required: false }
+    {
+      field: 'name', type: 'string', required: true, minLength: 1, maxLength: 100
+    },
+    {
+      field: 'description', type: 'string', required: false, maxLength: 500
+    },
+    {
+      field: 'type', type: 'string', required: true, enum: ['social', 'followup', 'training', 'assessment']
+    },
+    {
+      field: 'platform', type: 'string', required: false, maxLength: 50
+    },
+    {
+      field: 'prompt', type: 'string', required: true, minLength: 1, maxLength: 2000
+    },
+    {
+      field: 'variables', type: 'array', required: false
+    }
   ]),
   aiController.createTemplate
 );
+
 
 // ==================== PERSONALIZATION & PREFERENCES ====================
 
@@ -504,12 +663,19 @@ router.get('/niches',
 router.post('/niches',
   authenticateToken,
   validateRequestCustom([
-    { field: 'niche', type: 'string', required: true, minLength: 1, maxLength: 100 },
-    { field: 'description', type: 'string', required: false, maxLength: 500 },
-    { field: 'keywords', type: 'array', required: false }
+    {
+      field: 'niche', type: 'string', required: true, minLength: 1, maxLength: 100
+    },
+    {
+      field: 'description', type: 'string', required: false, maxLength: 500
+    },
+    {
+      field: 'keywords', type: 'array', required: false
+    }
   ]),
   aiController.setNiche
 );
+
 
 // ==================== PERFORMANCE & MONITORING ====================
 
@@ -524,11 +690,11 @@ router.get('/health',
 
 /**
  * Get current rate limit status
- * GET /api/v1/ai/rate-limits
+ * GET /api/v1/(ai/rate-limits)
  */
 router.get('/rate-limits',
   authenticateToken,
   aiController.getRateLimits
 );
 
-module.exports = router; 
+module.exports = router;

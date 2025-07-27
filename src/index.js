@@ -12,6 +12,7 @@ const { errorHandler } = require('./utils/errors');
 const cacheManager = require('./utils/cache');
 const aiService = require('./services/aiService');
 
+
 // Import error handling middleware
 const {
   requestLogger,
@@ -35,31 +36,41 @@ require('dotenv').config();
 const app = express();
 const PORT = environmentConfig.get('PORT', 3001);
 
+
 // Rate limiting
 const limiter = rateLimit(environmentConfig.getRateLimitConfig());
+
 
 // Security middleware
 app.use(helmet(environmentConfig.getSecurityConfig().helmet));
 
+
 // CORS configuration
 app.use(cors(environmentConfig.getCORSConfig()));
 
+
 // Response compression for better performance
 app.use(compression({
-  level: 6, // Compression level (0-9)
-  threshold: 1024, // Only compress responses larger than 1KB
+  level: 6, 
+// Compression level (0-9)
+  threshold: 1024, 
+// Only compress responses larger than 1KB
   filter: (req, res) => {
-    // Don't compress if client doesn't support it
+    
+// Don't compress if client doesn't support it
     if (req.headers['x-no-compression']) {
       return false;
     }
-    // Use compression for all other requests
+    
+// Use compression for all other requests
     return compression.filter(req, res);
   }
 }));
 
+
 // Rate limiting
 app.use('/api/', limiter);
+
 
 // Logging middleware
 app.use(morgan('combined', {
@@ -71,6 +82,7 @@ app.use(morgan('combined', {
   }
 }));
 
+
 // Body parsing middleware
 app.use(express.json({
   limit: '10mb',
@@ -80,11 +92,13 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+
 // Request logging middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - ${req.ip}`);
   next();
 });
+
 
 // Health check endpoints
 app.get('/health', (req, res) => {
@@ -130,6 +144,7 @@ app.get('/health/detailed', async (req, res) => {
   }
 });
 
+
 // Database status endpoint
 app.get('/api/database/status', async (req, res) => {
   try {
@@ -158,6 +173,7 @@ app.get('/api/database/status', async (req, res) => {
   }
 });
 
+
 // API information endpoint
 app.get('/api', (req, res) => {
   res.json({
@@ -178,13 +194,16 @@ app.get('/api', (req, res) => {
   });
 });
 
+
 // Apply request logging and performance monitoring BEFORE routes
 app.use(requestLogger);
 app.use(performanceMonitor);
 
+
 // Import and mount centralized API routes
 const apiRoutes = require('./routes/index');
 app.use('/', apiRoutes);
+
 
 // Apply comprehensive error handling middleware chain AFTER routes
 app.use(errorTracker);
@@ -201,6 +220,7 @@ app.use(notFoundErrorHandler);
 app.use(conflictErrorHandler);
 app.use(genericErrorHandler);
 
+
 // 404 handler - must be last
 app.use('*', (req, res) => {
   res.status(404).json({
@@ -216,52 +236,67 @@ app.use('*', (req, res) => {
   });
 });
 
+
 // Initialize database and start server
-async function startServer () {
+async const startServer = () {
   try {
     console.log('🚀 Starting Trainer Platform Backend...');
     console.log('='.repeat(60));
 
-    // Initialize cache
+    
+// Initialize cache
     await cacheManager.connect();
 
-    // Initialize AI service
+    
+// Initialize AI service
     await aiService.initialize();
 
-    // Initialize database connections first
-    const mongoUri = environmentConfig.get('MONGODB_URI', 'mongodb://localhost:27017/luxgen_trainer_platform');
+    
+// Initialize database connections first
+    const mongoUri = environmentConfig.get('MONGODB_URI', 'mongodb:
+//localhost:27017/luxgen_trainer_platform');
     await connectToDatabase(mongoUri);
 
-    // Initialize database with step-by-step process (skip connection since already connected)
+    
+// Initialize database with step-by-step process (skip connection since already connected)
     const dbInitializer = createDatabaseInitializer();
     await dbInitializer.initialize();
 
-    // Start server
+    
+// Start server
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`\n${'='.repeat(60)}`);
       console.log('🎉 TRAINER PLATFORM BACKEND STARTED SUCCESSFULLY');
       console.log('='.repeat(60));
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/health`);
-      console.log(`🔍 Detailed health: http://localhost:${PORT}/health/detailed`);
-      console.log(`🗄️  Database status: http://localhost:${PORT}/api/database/status`);
-      console.log(`🔗 API base: http://localhost:${PORT}/api`);
-      console.log(`🌐 External access: http://192.168.1.9:${PORT}`);
+      console.log(`📊 Health check: http:
+//localhost:${PORT}/health`);
+      console.log(`🔍 Detailed health: http:
+//localhost:${PORT}/health/detailed`);
+      console.log(`🗄️  Database status: http:
+//localhost:${PORT}/api/database/status`);
+      console.log(`🔗 API base: http:
+//localhost:${PORT}/api`);
+      console.log(`🌐 External access: http:
+//192.168.1.9:${PORT}`);
       console.log(`🌍 Environment: ${environmentConfig.get('NODE_ENV', 'development')}`);
       console.log(`⏰ Started at: ${new Date().toISOString()}`);
       console.log('='.repeat(60));
     });
 
-    // Graceful shutdown handling
+    
+// Graceful shutdown handling
     const gracefulShutdown = async (signal) => {
       console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
 
       server.close(async () => {
         try {
-          // Stop cache
+          
+// Stop cache
           await cacheManager.disconnect();
 
-          // Close database connection
+          
+// Close database connection
           await mongoose.connection.close();
 
           console.log('✅ Server closed gracefully');
@@ -272,14 +307,16 @@ async function startServer () {
         }
       });
 
-      // Force shutdown after 30 seconds
+      
+// Force shutdown after 30 seconds
       setTimeout(() => {
         console.error('💥 Could not close connections in time, forcefully shutting down');
         process.exit(1);
       }, 30000);
     };
 
-    // Handle shutdown signals
+    
+// Handle shutdown signals
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   } catch (error) {
@@ -289,6 +326,7 @@ async function startServer () {
   }
 }
 
+
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   console.error('💥 Uncaught Exception:', error);
@@ -296,11 +334,13 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
+
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
   process.exit(1);
 });
+
 
 // Start the server
 startServer();

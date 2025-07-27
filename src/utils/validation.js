@@ -6,16 +6,19 @@
 const Joi = require('joi');
 const { ValidationError } = require('./errors');
 
+
 // Common validation patterns
 const PATTERNS = {
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  PHONE: /^[\+]?[1-9][\d]{0,15}$/,
+  PHONE: /^[+]?[1-9][\d]{0,15}$/,
   PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
   SLUG: /^[a-z0-9-]+$/,
-  URL: /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/,
+  URL: /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&
+//=]*)$/,
   UUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
   OBJECT_ID: /^[0-9a-fA-F]{24}$/
 };
+
 
 // Common validation messages
 const MESSAGES = {
@@ -37,53 +40,44 @@ const MESSAGES = {
   PAST_DATE: 'Date must be in the past'
 };
 
+
 // Base schemas
 const baseSchemas = {
-  id: Joi.string().pattern(PATTERNS.OBJECT_ID).messages({
-    'string.pattern.base': MESSAGES.INVALID_OBJECT_ID
-  }),
-  
+  id: Joi.string().pattern(PATTERNS.OBJECT_ID).messages({ 'string.pattern.base': MESSAGES.INVALID_OBJECT_ID }),
+
   email: Joi.string().email({ tlds: { allow: false } }).lowercase().trim().messages({
     'string.email': MESSAGES.INVALID_EMAIL,
     'string.empty': MESSAGES.REQUIRED
   }),
-  
+
   password: Joi.string().min(6).messages({
     'string.min': 'Password must be at least 6 characters long',
     'string.empty': MESSAGES.REQUIRED
   }),
-  
+
   strongPassword: Joi.string().pattern(PATTERNS.PASSWORD).messages({
     'string.pattern.base': MESSAGES.WEAK_PASSWORD,
     'string.empty': MESSAGES.REQUIRED
   }),
-  
-  phone: Joi.string().pattern(PATTERNS.PHONE).messages({
-    'string.pattern.base': MESSAGES.INVALID_PHONE
-  }),
-  
-  slug: Joi.string().pattern(PATTERNS.SLUG).lowercase().trim().messages({
-    'string.pattern.base': MESSAGES.INVALID_SLUG
-  }),
-  
-  url: Joi.string().uri().messages({
-    'string.uri': MESSAGES.INVALID_URL
-  }),
-  
-  date: Joi.date().iso().messages({
-    'date.base': MESSAGES.INVALID_DATE
-  }),
-  
+
+  phone: Joi.string().pattern(PATTERNS.PHONE).messages({ 'string.pattern.base': MESSAGES.INVALID_PHONE }),
+
+  slug: Joi.string().pattern(PATTERNS.SLUG).lowercase().trim().messages({ 'string.pattern.base': MESSAGES.INVALID_SLUG }),
+
+  url: Joi.string().uri().messages({ 'string.uri': MESSAGES.INVALID_URL }),
+
+  date: Joi.date().iso().messages({ 'date.base': MESSAGES.INVALID_DATE }),
+
   futureDate: Joi.date().iso().greater('now').messages({
     'date.base': MESSAGES.INVALID_DATE,
     'date.greater': MESSAGES.FUTURE_DATE
   }),
-  
+
   pastDate: Joi.date().iso().less('now').messages({
     'date.base': MESSAGES.INVALID_DATE,
     'date.less': MESSAGES.PAST_DATE
   }),
-  
+
   pagination: Joi.object({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(10),
@@ -91,6 +85,7 @@ const baseSchemas = {
     sortOrder: Joi.string().valid('asc', 'desc').default('desc')
   })
 };
+
 
 // User validation schemas
 const userSchemas = {
@@ -114,14 +109,12 @@ const userSchemas = {
     tenantSlug: baseSchemas.slug.optional(),
     tenantId: baseSchemas.id.optional()
   }),
-  
+
   login: Joi.object({
     email: baseSchemas.email.required(),
-    password: Joi.string().required().messages({
-      'string.empty': MESSAGES.REQUIRED
-    })
+    password: Joi.string().required().messages({ 'string.empty': MESSAGES.REQUIRED })
   }),
-  
+
   updateProfile: Joi.object({
     firstName: Joi.string().min(2).max(50).trim().optional(),
     lastName: Joi.string().min(2).max(50).trim().optional(),
@@ -155,22 +148,17 @@ const userSchemas = {
       timezone: Joi.string().default('UTC').optional()
     }).optional()
   }),
-  
+
   changePassword: Joi.object({
-    currentPassword: Joi.string().required().messages({
-      'string.empty': 'Current password is required'
-    }),
+    currentPassword: Joi.string().required().messages({ 'string.empty': 'Current password is required' }),
     newPassword: baseSchemas.strongPassword.required()
   }),
-  
-  forgotPassword: Joi.object({
-    email: baseSchemas.email.required()
-  }),
-  
-  resetPassword: Joi.object({
-    newPassword: baseSchemas.strongPassword.required()
-  })
+
+  forgotPassword: Joi.object({ email: baseSchemas.email.required() }),
+
+  resetPassword: Joi.object({ newPassword: baseSchemas.strongPassword.required() })
 };
+
 
 // Tenant validation schemas
 const tenantSchemas = {
@@ -202,7 +190,7 @@ const tenantSchemas = {
       amount: Joi.number().min(0).default(0)
     }).optional()
   }),
-  
+
   update: Joi.object({
     name: Joi.string().min(2).max(100).trim().optional(),
     description: Joi.string().max(500).trim().optional(),
@@ -241,7 +229,7 @@ const tenantSchemas = {
       }).optional()
     }).optional()
   }),
-  
+
   list: Joi.object({
     ...baseSchemas.pagination,
     status: Joi.string().valid('active', 'inactive', 'suspended', 'pending').optional(),
@@ -250,6 +238,7 @@ const tenantSchemas = {
     search: Joi.string().trim().optional()
   })
 };
+
 
 // Poll validation schemas
 const pollSchemas = {
@@ -282,7 +271,7 @@ const pollSchemas = {
     recipients: Joi.array().items(baseSchemas.email).optional(),
     tags: Joi.array().items(Joi.string().trim()).optional()
   }),
-  
+
   update: Joi.object({
     title: Joi.string().min(3).max(200).trim().optional(),
     description: Joi.string().max(1000).trim().optional(),
@@ -310,7 +299,7 @@ const pollSchemas = {
     tags: Joi.array().items(Joi.string().trim()).optional(),
     status: Joi.string().valid('draft', 'active', 'paused', 'closed').optional()
   }),
-  
+
   list: Joi.object({
     ...baseSchemas.pagination,
     status: Joi.string().valid('draft', 'active', 'paused', 'closed').optional(),
@@ -319,7 +308,7 @@ const pollSchemas = {
     startDate: baseSchemas.date.optional(),
     endDate: baseSchemas.date.optional()
   }),
-  
+
   submitResponse: Joi.object({
     responses: Joi.array().items(Joi.object({
       questionId: baseSchemas.id.required(),
@@ -339,6 +328,7 @@ const pollSchemas = {
   })
 };
 
+
 // Validation middleware
 const validate = (schema, options = {}) => {
   return (req, res, next) => {
@@ -347,9 +337,7 @@ const validate = (schema, options = {}) => {
         abortEarly: false,
         allowUnknown: options.allowUnknown || false,
         stripUnknown: options.stripUnknown || true,
-        context: {
-          requireEmail: req.body?.settings?.requireEmail || false
-        }
+        context: { requireEmail: req.body?.settings?.requireEmail || false }
       });
 
       if (error) {
@@ -362,7 +350,8 @@ const validate = (schema, options = {}) => {
         throw new ValidationError('Validation failed', details);
       }
 
-      // Replace request body with validated data
+      
+// Replace request body with validated data
       req.body = value;
       next();
     } catch (error) {
@@ -370,6 +359,7 @@ const validate = (schema, options = {}) => {
     }
   };
 };
+
 
 // Query validation middleware
 const validateQuery = (schema, options = {}) => {
@@ -391,7 +381,8 @@ const validateQuery = (schema, options = {}) => {
         throw new ValidationError('Query validation failed', details);
       }
 
-      // Replace request query with validated data
+      
+// Replace request query with validated data
       req.query = value;
       next();
     } catch (error) {
@@ -399,6 +390,7 @@ const validateQuery = (schema, options = {}) => {
     }
   };
 };
+
 
 // Params validation middleware
 const validateParams = (schema, options = {}) => {
@@ -420,7 +412,8 @@ const validateParams = (schema, options = {}) => {
         throw new ValidationError('Parameter validation failed', details);
       }
 
-      // Replace request params with validated data
+      
+// Replace request params with validated data
       req.params = value;
       next();
     } catch (error) {
@@ -439,4 +432,4 @@ module.exports = {
   validate,
   validateQuery,
   validateParams
-}; 
+};

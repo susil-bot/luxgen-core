@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const trainingSessionSchema = new mongoose.Schema({
+
   // Core session information
   tenantId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -19,7 +20,8 @@ const trainingSessionSchema = new mongoose.Schema({
     trim: true,
     maxlength: 1000
   },
-  
+
+
   // Session details
   sessionType: {
     type: String,
@@ -27,12 +29,15 @@ const trainingSessionSchema = new mongoose.Schema({
     default: 'workshop'
   },
   duration: {
-    type: Number, // in minutes
+    type: Number,
+    // in minutes
     required: true,
     min: 15,
-    max: 480 // 8 hours max
+    max: 480
+    // 8 hours max
   },
-  
+
+
   // Scheduling
   scheduledAt: {
     type: Date,
@@ -46,7 +51,8 @@ const trainingSessionSchema = new mongoose.Schema({
     type: String,
     default: 'UTC'
   },
-  
+
+
   // Location/Virtual settings
   location: {
     type: String,
@@ -65,7 +71,8 @@ const trainingSessionSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  
+
+
   // Capacity and enrollment
   maxParticipants: {
     type: Number,
@@ -76,7 +83,8 @@ const trainingSessionSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  
+
+
   // Trainers
   trainers: [{
     trainerId: {
@@ -94,7 +102,8 @@ const trainingSessionSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
-  
+
+
   // Participants
   participants: [{
     userId: {
@@ -111,12 +120,8 @@ const trainingSessionSchema = new mongoose.Schema({
       enum: ['enrolled', 'attended', 'completed', 'dropped'],
       default: 'enrolled'
     },
-    attendanceAt: {
-      type: Date
-    },
-    completionAt: {
-      type: Date
-    },
+    attendanceAt: { type: Date },
+    completionAt: { type: Date },
     score: {
       type: Number,
       min: 0,
@@ -128,13 +133,15 @@ const trainingSessionSchema = new mongoose.Schema({
       maxlength: 1000
     }
   }],
-  
+
+
   // Course association
   courseId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'TrainingCourse'
   },
-  
+
+
   // Materials and resources
   materials: [{
     title: {
@@ -165,14 +172,16 @@ const trainingSessionSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
-  
+
+
   // Session status
   status: {
     type: String,
     enum: ['scheduled', 'in-progress', 'completed', 'cancelled', 'postponed'],
     default: 'scheduled'
   },
-  
+
+
   // Session notes and feedback
   trainerNotes: {
     type: String,
@@ -199,7 +208,8 @@ const trainingSessionSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
-  
+
+
   // Tags and categories
   tags: [{
     type: String,
@@ -211,7 +221,8 @@ const trainingSessionSchema = new mongoose.Schema({
     trim: true,
     maxlength: 100
   },
-  
+
+
   // Reminders and notifications
   reminders: [{
     type: {
@@ -223,16 +234,15 @@ const trainingSessionSchema = new mongoose.Schema({
       type: Date,
       required: true
     },
-    sentAt: {
-      type: Date
-    },
+    sentAt: { type: Date },
     status: {
       type: String,
       enum: ['pending', 'sent', 'failed'],
       default: 'pending'
     }
   }],
-  
+
+
   // Audit fields
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -249,6 +259,7 @@ const trainingSessionSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+
 // Indexes
 trainingSessionSchema.index({ tenantId: 1, scheduledAt: 1 });
 trainingSessionSchema.index({ tenantId: 1, status: 1 });
@@ -256,87 +267,98 @@ trainingSessionSchema.index({ 'trainers.trainerId': 1 });
 trainingSessionSchema.index({ 'participants.userId': 1 });
 trainingSessionSchema.index({ courseId: 1 });
 
+
 // Virtual for session duration in hours
-trainingSessionSchema.virtual('durationHours').get(function() {
+trainingSessionSchema.virtual('durationHours').get(function () {
   return this.duration / 60;
 });
 
+
 // Virtual for attendance rate
-trainingSessionSchema.virtual('attendanceRate').get(function() {
-  if (this.currentParticipants === 0) return 0;
+trainingSessionSchema.virtual('attendanceRate').get(function () {
+  if (this.currentParticipants === 0) {
+    return 0;
+  }
   const attended = this.participants.filter(p => p.status === 'attended' || p.status === 'completed').length;
   return (attended / this.currentParticipants) * 100;
 });
 
+
 // Virtual for average feedback rating
-trainingSessionSchema.virtual('averageRating').get(function() {
-  if (this.participantFeedback.length === 0) return 0;
+trainingSessionSchema.virtual('averageRating').get(function () {
+  if (this.participantFeedback.length === 0) {
+    return 0;
+  }
   const totalRating = this.participantFeedback.reduce((sum, feedback) => sum + feedback.rating, 0);
   return totalRating / this.participantFeedback.length;
 });
 
+
 // Pre-save middleware
-trainingSessionSchema.pre('save', function(next) {
-  // Auto-calculate end time if not provided
+trainingSessionSchema.pre('save', function (next) {
+// Auto-calculate end time if not provided
   if (this.scheduledAt && this.duration && !this.endAt) {
     this.endAt = new Date(this.scheduledAt.getTime() + (this.duration * 60 * 1000));
   }
-  
+
+
   // Update current participants count
   this.currentParticipants = this.participants.length;
-  
+
   next();
 });
 
+
 // Static methods
-trainingSessionSchema.statics.findByTenant = function(tenantId, options = {}) {
+trainingSessionSchema.statics.findByTenant = function (tenantId, options = {}) {
   return this.find({ tenantId, ...options });
 };
 
-trainingSessionSchema.statics.findUpcoming = function(tenantId, limit = 10) {
+trainingSessionSchema.statics.findUpcoming = function (tenantId, limit = 10) {
   return this.find({
     tenantId,
     scheduledAt: { $gte: new Date() },
     status: { $in: ['scheduled', 'in-progress'] }
   })
-  .sort({ scheduledAt: 1 })
-  .limit(limit);
+    .sort({ scheduledAt: 1 })
+    .limit(limit);
 };
 
+
 // Instance methods
-trainingSessionSchema.methods.addParticipant = function(userId) {
+trainingSessionSchema.methods.addParticipant = function (userId) {
   if (this.currentParticipants >= this.maxParticipants) {
     throw new Error('Session is at maximum capacity');
   }
-  
+
   const existingParticipant = this.participants.find(p => p.userId.toString() === userId.toString());
   if (existingParticipant) {
     throw new Error('User is already enrolled in this session');
   }
-  
+
   this.participants.push({ userId });
   this.currentParticipants = this.participants.length;
   return this.save();
 };
 
-trainingSessionSchema.methods.removeParticipant = function(userId) {
+trainingSessionSchema.methods.removeParticipant = function (userId) {
   this.participants = this.participants.filter(p => p.userId.toString() !== userId.toString());
   this.currentParticipants = this.participants.length;
   return this.save();
 };
 
-trainingSessionSchema.methods.markAttendance = function(userId) {
+trainingSessionSchema.methods.markAttendance = function (userId) {
   const participant = this.participants.find(p => p.userId.toString() === userId.toString());
   if (!participant) {
     throw new Error('User is not enrolled in this session');
   }
-  
+
   participant.status = 'attended';
   participant.attendanceAt = new Date();
   return this.save();
 };
 
-trainingSessionSchema.methods.completeSession = function() {
+trainingSessionSchema.methods.completeSession = function () {
   this.status = 'completed';
   this.participants.forEach(participant => {
     if (participant.status === 'attended') {
@@ -347,4 +369,4 @@ trainingSessionSchema.methods.completeSession = function() {
   return this.save();
 };
 
-module.exports = mongoose.model('TrainingSession', trainingSessionSchema); 
+module.exports = mongoose.model('TrainingSession', trainingSessionSchema);

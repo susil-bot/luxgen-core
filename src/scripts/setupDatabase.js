@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
+
 // Import models
 const User = require('../models/User');
 const Tenant = require('../models/Tenant');
@@ -10,51 +11,57 @@ const Session = require('../models/Session');
 const AuditLog = require('../models/AuditLog');
 const Notification = require('../models/Notification');
 
+
 // Import database manager
-const databaseManager = require('../config/database');
+const _databaseManager = require('../config/database');
 
 class DatabaseSetup {
-  constructor() {
+  constructor () {
     this.connection = null;
   }
 
-  async initialize() {
+  async initialize () {
     try {
       console.log('🚀 Initializing comprehensive database setup...');
+
       
-      // Connect to MongoDB
+// Connect to MongoDB
       await this.connectToDatabase();
+
       
-      // Create indexes
+// Create indexes
       await this.createIndexes();
+
       
-      // Create seed data
+// Create seed data
       await this.createSeedData();
+
       
-      // Create system tenant and super admin
+// Create system tenant and super admin
       await this.createSystemTenant();
-      
+
       console.log('✅ Database setup completed successfully!');
-      
     } catch (error) {
       console.error('❌ Database setup failed:', error);
       throw error;
     }
   }
 
-  async connectToDatabase() {
+  async connectToDatabase () {
     try {
-      // Check if already connected
+      
+// Check if already connected
       if (mongoose.connection.readyState === 1) {
         console.log('ℹ️ MongoDB already connected, skipping connection');
         return;
       }
-      
+
       console.log('🔌 Connecting to MongoDB...');
-      
-      const mongoUri = process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017/luxgen_trainer_platform';
+
+      const mongoUri = process.env.MONGODB_URL || 'mongodb:
+//127.0.0.1:27017/luxgen_trainer_platform';
       console.log(`🔗 MongoDB URI: ${mongoUri}`);
-      
+
       this.connection = await mongoose.connect(mongoUri, {
         dbName: 'luxgen_trainer_platform',
         maxPoolSize: 10,
@@ -62,38 +69,40 @@ class DatabaseSetup {
         socketTimeoutMS: 45000,
         bufferCommands: false
       });
-      
+
       console.log('✅ MongoDB connected successfully');
-      
     } catch (error) {
       console.error('❌ Failed to connect to MongoDB:', error.message);
       throw error;
     }
   }
 
-  async createIndexes() {
+  async createIndexes () {
+    
+    // TODO: Add await statements
     try {
       console.log('📊 Creating database indexes...');
+
       
-      // Skip index creation for now to avoid conflicts
+// Skip index creation for now to avoid conflicts
       console.log('⏭️ Skipping index creation to avoid conflicts');
       console.log('ℹ️ Indexes will be created automatically by Mongoose schemas');
-      
+
       console.log('✅ Database indexes setup completed');
-      
     } catch (error) {
       console.error('❌ Failed to create indexes:', error.message);
       throw error;
     }
   }
 
-  async createSystemTenant() {
+  async createSystemTenant () {
     try {
       console.log('🏢 Creating system tenant...');
+
       
-      // Check if system tenant already exists
+// Check if system tenant already exists
       let systemTenant = await Tenant.findOne({ slug: 'system' });
-      
+
       if (!systemTenant) {
         systemTenant = new Tenant({
           name: 'System',
@@ -131,35 +140,36 @@ class DatabaseSetup {
             sessionTimeout: 24
           }
         });
-        
+
         await systemTenant.save();
         console.log('✅ System tenant created successfully');
       } else {
         console.log('ℹ️ System tenant already exists');
       }
-      
+
       return systemTenant;
-      
     } catch (error) {
       console.error('❌ Failed to create system tenant:', error.message);
       throw error;
     }
   }
 
-  async createSuperAdmin(systemTenant) {
+  async createSuperAdmin (systemTenant) {
     try {
       console.log('👑 Creating super admin user...');
+
       
-      // Check if super admin already exists
-      let superAdmin = await User.findOne({ 
+// Check if super admin already exists
+      let superAdmin = await User.findOne({
         email: 'superadmin@trainer.com',
-        tenantId: systemTenant._id 
+        tenantId: systemTenant._id
       });
-      
+
       if (!superAdmin) {
-        // Hash password
-        const hashedPassword = await bcrypt.hash('SuperAdmin123!', 12);
         
+// Hash password
+        const hashedPassword = await bcrypt.hash('SuperAdmin123!', 12);
+
         superAdmin = new User({
           tenantId: systemTenant._id,
           email: 'superadmin@trainer.com',
@@ -191,28 +201,28 @@ class DatabaseSetup {
             sms: false
           }
         });
-        
+
         await superAdmin.save();
         console.log('✅ Super admin user created successfully');
       } else {
         console.log('ℹ️ Super admin user already exists');
       }
-      
+
       return superAdmin;
-      
     } catch (error) {
       console.error('❌ Failed to create super admin:', error.message);
       throw error;
     }
   }
 
-  async createDemoTenant() {
+  async createDemoTenant () {
     try {
       console.log('🎭 Creating demo tenant...');
+
       
-      // Check if demo tenant already exists
+// Check if demo tenant already exists
       let demoTenant = await Tenant.findOne({ slug: 'demo-tenant' });
-      
+
       if (!demoTenant) {
         demoTenant = new Tenant({
           name: 'Demo Corporation',
@@ -222,7 +232,8 @@ class DatabaseSetup {
           contact: {
             email: 'demo@demo-corp.com',
             phone: '+1987654321',
-            website: 'https://demo-corp.com'
+            website: 'https:
+//demo-corp.com'
           },
           address: {
             street: '456 Demo Avenue',
@@ -240,7 +251,8 @@ class DatabaseSetup {
           subscription: {
             plan: 'professional',
             status: 'active',
-            trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days trial
+            trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) 
+// 30 days trial
           },
           limits: {
             maxUsers: 50,
@@ -261,7 +273,7 @@ class DatabaseSetup {
             primaryColor: '#3B82F6',
             secondaryColor: '#1E40AF',
             accentColor: '#10B981',
-            logo: '/uploads/demo-tenant/logo.png'
+            logo: '/uploads/(demo-tenant/logo).png'
           },
           settings: {
             timezone: 'America/New_York',
@@ -274,25 +286,26 @@ class DatabaseSetup {
             sessionTimeout: 8
           }
         });
-        
+
         await demoTenant.save();
         console.log('✅ Demo tenant created successfully');
       } else {
         console.log('ℹ️ Demo tenant already exists');
       }
-      
+
       return demoTenant;
-      
     } catch (error) {
       console.error('❌ Failed to create demo tenant:', error.message);
       throw error;
     }
   }
 
-  async createDemoUsers(demoTenant) {
+  async createDemoUsers (demoTenant) {
+    
+    // TODO: Add await statements
     try {
       console.log('👥 Creating demo users...');
-      
+
       const demoUsers = [
         {
           email: 'admin@demo-corp.com',
@@ -325,16 +338,16 @@ class DatabaseSetup {
           department: 'Operations'
         }
       ];
-      
+
       for (const userData of demoUsers) {
-        const existingUser = await User.findOne({ 
+        const existingUser = await User.findOne({
           email: userData.email,
-          tenantId: demoTenant._id 
+          tenantId: demoTenant._id
         });
-        
+
         if (!existingUser) {
           const hashedPassword = await bcrypt.hash(userData.password, 12);
-          
+
           const user = new User({
             tenantId: demoTenant._id,
             email: userData.email,
@@ -354,24 +367,25 @@ class DatabaseSetup {
               timezone: 'America/New_York'
             }
           });
-          
+
           await user.save();
           console.log(`✅ Created demo user: ${userData.email}`);
         } else {
           console.log(`ℹ️ Demo user already exists: ${userData.email}`);
         }
       }
-      
     } catch (error) {
       console.error('❌ Failed to create demo users:', error.message);
       throw error;
     }
   }
 
-  async createDemoPolls(demoTenant) {
+  async createDemoPolls (demoTenant) {
+    
+    // TODO: Add await statements
     try {
       console.log('📊 Creating demo polls...');
-      
+
       const demoPolls = [
         {
           title: 'Employee Satisfaction Survey',
@@ -379,11 +393,21 @@ class DatabaseSetup {
           question: 'How satisfied are you with your current work environment?',
           pollType: 'rating',
           options: [
-            { id: '1', text: 'Very Dissatisfied', value: 1 },
-            { id: '2', text: 'Dissatisfied', value: 2 },
-            { id: '3', text: 'Neutral', value: 3 },
-            { id: '4', text: 'Satisfied', value: 4 },
-            { id: '5', text: 'Very Satisfied', value: 5 }
+            {
+              id: '1', text: 'Very Dissatisfied', value: 1
+            },
+            {
+              id: '2', text: 'Dissatisfied', value: 2
+            },
+            {
+              id: '3', text: 'Neutral', value: 3
+            },
+            {
+              id: '4', text: 'Satisfied', value: 4
+            },
+            {
+              id: '5', text: 'Very Satisfied', value: 5
+            }
           ],
           status: 'active',
           isAnonymous: true,
@@ -401,11 +425,21 @@ class DatabaseSetup {
           question: 'Which training program would you like to see next?',
           pollType: 'multiple_choice',
           options: [
-            { id: '1', text: 'Leadership Development', value: 'leadership' },
-            { id: '2', text: 'Technical Skills', value: 'technical' },
-            { id: '3', text: 'Communication Skills', value: 'communication' },
-            { id: '4', text: 'Project Management', value: 'project_management' },
-            { id: '5', text: 'Customer Service', value: 'customer_service' }
+            {
+              id: '1', text: 'Leadership Development', value: 'leadership'
+            },
+            {
+              id: '2', text: 'Technical Skills', value: 'technical'
+            },
+            {
+              id: '3', text: 'Communication Skills', value: 'communication'
+            },
+            {
+              id: '4', text: 'Project Management', value: 'project_management'
+            },
+            {
+              id: '5', text: 'Customer Service', value: 'customer_service'
+            }
           ],
           status: 'active',
           allowMultipleResponses: true,
@@ -423,12 +457,24 @@ class DatabaseSetup {
           question: 'What would improve your productivity at work?',
           pollType: 'multiple_choice',
           options: [
-            { id: '1', text: 'Quiet zones', value: 'quiet_zones' },
-            { id: '2', text: 'Collaborative spaces', value: 'collaborative_spaces' },
-            { id: '3', text: 'Natural lighting', value: 'natural_lighting' },
-            { id: '4', text: 'Ergonomic furniture', value: 'ergonomic_furniture' },
-            { id: '5', text: 'Breakout areas', value: 'breakout_areas' },
-            { id: '6', text: 'Technology upgrades', value: 'technology_upgrades' }
+            {
+              id: '1', text: 'Quiet zones', value: 'quiet_zones'
+            },
+            {
+              id: '2', text: 'Collaborative spaces', value: 'collaborative_spaces'
+            },
+            {
+              id: '3', text: 'Natural lighting', value: 'natural_lighting'
+            },
+            {
+              id: '4', text: 'Ergonomic furniture', value: 'ergonomic_furniture'
+            },
+            {
+              id: '5', text: 'Breakout areas', value: 'breakout_areas'
+            },
+            {
+              id: '6', text: 'Technology upgrades', value: 'technology_upgrades'
+            }
           ],
           status: 'draft',
           settings: {
@@ -440,61 +486,62 @@ class DatabaseSetup {
           category: 'Facilities'
         }
       ];
-      
+
       for (const pollData of demoPolls) {
-        const existingPoll = await Poll.findOne({ 
+        const existingPoll = await Poll.findOne({
           title: pollData.title,
-          tenantId: demoTenant._id 
+          tenantId: demoTenant._id
         });
-        
+
         if (!existingPoll) {
-          // Get a demo user as creator
-          const demoUser = await User.findOne({ 
+          
+// Get a demo user as creator
+          const demoUser = await User.findOne({
             tenantId: demoTenant._id,
             role: 'admin'
           });
-          
+
           const poll = new Poll({
             tenantId: demoTenant._id,
             createdBy: demoUser._id,
             ...pollData
           });
-          
+
           await poll.save();
           console.log(`✅ Created demo poll: ${pollData.title}`);
         } else {
           console.log(`ℹ️ Demo poll already exists: ${pollData.title}`);
         }
       }
-      
     } catch (error) {
       console.error('❌ Failed to create demo polls:', error.message);
       throw error;
     }
   }
 
-  async createSeedData() {
+  async createSeedData () {
     try {
       console.log('🌱 Creating seed data...');
+
       
-      // Create system tenant and super admin
+// Create system tenant and super admin
       const systemTenant = await this.createSystemTenant();
       const superAdmin = await this.createSuperAdmin(systemTenant);
+
       
-      // Create demo tenant and users
+// Create demo tenant and users
       const demoTenant = await this.createDemoTenant();
       await this.createDemoUsers(demoTenant);
       await this.createDemoPolls(demoTenant);
-      
+
       console.log('✅ Seed data created successfully');
-      
     } catch (error) {
       console.error('❌ Failed to create seed data:', error.message);
       throw error;
     }
   }
 
-  async cleanup() {
+  async cleanup () {
     try {
       if (this.connection) {
         await mongoose.connection.close();
@@ -506,10 +553,11 @@ class DatabaseSetup {
   }
 }
 
+
 // Run setup if called directly
 if (require.main === module) {
   const setup = new DatabaseSetup();
-  
+
   setup.initialize()
     .then(() => {
       console.log('🎉 Database setup completed successfully!');
@@ -524,4 +572,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = DatabaseSetup; 
+module.exports = DatabaseSetup;

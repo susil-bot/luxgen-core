@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const databaseManager = require('../config/database');
+const { cacheManager } = require('../utils/cache');
+
 
 // Custom error classes
 class AuthenticationError extends Error {
@@ -27,6 +28,7 @@ class ValidationError extends Error {
   }
 }
 
+
 // JWT Configuration
 const JWT_CONFIG = {
   secret: process.env.JWT_SECRET || 'your_jwt_secret_key_here_2024',
@@ -36,10 +38,13 @@ const JWT_CONFIG = {
   audience: 'trainer-platform-users'
 };
 
+
 // Rate limiting for authentication attempts
 const authAttempts = new Map();
 const MAX_AUTH_ATTEMPTS = 5;
-const AUTH_ATTEMPT_WINDOW = 15 * 60 * 1000; // 15 minutes
+const AUTH_ATTEMPT_WINDOW = 15 * 60 * 1000; 
+// 15 minutes
+
 
 // Clean up old auth attempts
 setInterval(() => {
@@ -49,37 +54,44 @@ setInterval(() => {
       authAttempts.delete(key);
     }
   }
-}, 60000); // Clean up every minute
+}, 60000); 
+// Clean up every minute
+
 
 // Authentication middleware
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const token = authHeader && authHeader.split(' ')[1]; 
+// Bearer TOKEN
 
     if (!token) {
       throw new AuthenticationError('Access token is required');
     }
 
-    // Verify JWT token
+    
+// Verify JWT token
     const decoded = jwt.verify(token, JWT_CONFIG.secret, {
       issuer: JWT_CONFIG.issuer,
       audience: JWT_CONFIG.audience
     });
 
-    // Get user from database
+    
+// Get user from database
     const user = await getUserById(decoded.userId);
     if (!user || !user.isActive) {
       throw new AuthenticationError('User not found or inactive');
     }
 
-    // Check if token is blacklisted (for logout functionality)
+    
+// Check if token is blacklisted (for logout functionality)
     const isBlacklisted = await checkTokenBlacklist(token);
     if (isBlacklisted) {
       throw new AuthenticationError('Token has been revoked');
     }
 
-    // Add user to request object
+    
+// Add user to request object
     req.user = user;
     req.token = token;
     req.tokenPayload = decoded;
@@ -95,6 +107,7 @@ const authenticateToken = async (req, res, next) => {
     }
   }
 };
+
 
 // Optional authentication middleware (doesn't fail if no token)
 const optionalAuth = async (req, res, next) => {
@@ -118,10 +131,12 @@ const optionalAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
-    // Don't fail for optional auth, just continue without user
+    
+// Don't fail for optional auth, just continue without user
     next();
   }
 };
+
 
 // Role-based authorization middleware
 const authorizeRoles = (...allowedRoles) => {
@@ -138,8 +153,10 @@ const authorizeRoles = (...allowedRoles) => {
   };
 };
 
+
 // Admin authorization middleware (alias for authorizeRoles)
 const requireAdmin = authorizeRoles('admin', 'super_admin');
+
 
 // Tenant-based authorization middleware
 const authorizeTenant = (req, res, next) => {
@@ -153,13 +170,15 @@ const authorizeTenant = (req, res, next) => {
     return next(new ValidationError('Tenant ID is required'));
   }
 
-  // Super admin can access all tenants
+  
+// Super admin can access all tenants
   if (req.user.role === 'super_admin') {
     req.tenantId = requestedTenantId;
     return next();
   }
 
-  // Check if user belongs to the requested tenant
+  
+// Check if user belongs to the requested tenant
   if (req.user.tenant_id !== requestedTenantId) {
     return next(new AuthorizationError('Access denied to this tenant'));
   }
@@ -167,6 +186,7 @@ const authorizeTenant = (req, res, next) => {
   req.tenantId = requestedTenantId;
   next();
 };
+
 
 // Resource ownership middleware
 const authorizeResource = (resourceType, resourceIdField = 'id') => {
@@ -182,20 +202,23 @@ const authorizeResource = (resourceType, resourceIdField = 'id') => {
     }
 
     try {
-      // Get resource from database
+      
+// Get resource from database
       const resource = await getResourceById(resourceType, resourceId);
 
       if (!resource) {
         return next(new ValidationError('Resource not found'));
       }
 
-      // Super admin can access all resources
+      
+// Super admin can access all resources
       if (req.user.role === 'super_admin') {
         req.resource = resource;
         return next();
       }
 
-      // Check if user owns the resource or has access to it
+      
+// Check if user owns the resource or has access to it
       if (resource.user_id !== req.user.id && resource.tenant_id !== req.user.tenant_id) {
         return next(new AuthorizationError('Access denied to this resource'));
       }
@@ -208,6 +231,7 @@ const authorizeResource = (resourceType, resourceIdField = 'id') => {
   };
 };
 
+
 // Rate limiting for authentication attempts
 const rateLimitAuth = (req, res, next) => {
   const identifier = req.ip || req.connection.remoteAddress;
@@ -219,13 +243,15 @@ const rateLimitAuth = (req, res, next) => {
 
   const attempts = authAttempts.get(identifier);
 
-  // Reset if window has passed
+  
+// Reset if window has passed
   if (now - attempts.timestamp > AUTH_ATTEMPT_WINDOW) {
     attempts.count = 0;
     attempts.timestamp = now;
   }
 
-  // Check if limit exceeded
+  
+// Check if limit exceeded
   if (attempts.count >= MAX_AUTH_ATTEMPTS) {
     return res.status(429).json({
       error: 'Too many authentication attempts',
@@ -234,11 +260,13 @@ const rateLimitAuth = (req, res, next) => {
     });
   }
 
-  // Increment attempt count
-  attempts.count++;
+  
+// Increment attempt count
+  attempts.count += 1;
 
   next();
 };
+
 
 // Generate JWT tokens
 const generateTokens = (user) => {
@@ -269,6 +297,7 @@ const generateTokens = (user) => {
   return { accessToken, refreshToken };
 };
 
+
 // Refresh token middleware
 const refreshToken = async (req, res, next) => {
   try {
@@ -278,7 +307,8 @@ const refreshToken = async (req, res, next) => {
       throw new ValidationError('Refresh token is required');
     }
 
-    // Verify refresh token
+    
+// Verify refresh token
     const decoded = jwt.verify(refreshToken, JWT_CONFIG.secret, {
       issuer: JWT_CONFIG.issuer,
       audience: JWT_CONFIG.audience
@@ -288,13 +318,15 @@ const refreshToken = async (req, res, next) => {
       throw new AuthenticationError('Invalid refresh token');
     }
 
-    // Get user from database
+    
+// Get user from database
     const user = await getUserById(decoded.userId);
     if (!user || !user.isActive) {
       throw new AuthenticationError('User not found or inactive');
     }
 
-    // Generate new tokens
+    
+// Generate new tokens
     const tokens = generateTokens(user);
 
     res.json({
@@ -306,6 +338,7 @@ const refreshToken = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // Logout middleware (blacklist token)
 const logout = async (req, res, next) => {
@@ -325,8 +358,9 @@ const logout = async (req, res, next) => {
   }
 };
 
+
 // Database helper functions
-async function getUserById (userId) {
+async const getUserById = (userId) {
   try {
     const User = require('../models/User');
     const user = await User.findById(userId).select('-password');
@@ -337,10 +371,12 @@ async function getUserById (userId) {
   }
 }
 
-async function getResourceById (resourceType, resourceId) {
+async const getResourceById = (resourceType, resourceId) {
   try {
-    // For now, return null as we're using MongoDB, not PostgreSQL
-    // This function can be implemented later if needed for PostgreSQL
+    
+// For now, return null as we're using MongoDB, not PostgreSQL
+    
+// This function can be implemented later if needed for PostgreSQL
     return null;
   } catch (error) {
     console.error('Error getting resource by ID:', error);
@@ -348,7 +384,7 @@ async function getResourceById (resourceType, resourceId) {
   }
 }
 
-async function checkTokenBlacklist (token) {
+async const checkTokenBlacklist = (token) {
   try {
     const cacheManager = require('../utils/cache');
     const isBlacklisted = await cacheManager.get(`blacklist:${token}`);
@@ -359,10 +395,11 @@ async function checkTokenBlacklist (token) {
   }
 }
 
-async function blacklistToken (token) {
+async const blacklistToken = (token) {
   try {
     const cacheManager = require('../utils/cache');
-    // Decode token to get expiration
+    
+// Decode token to get expiration
     const decoded = jwt.decode(token);
     const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
 
@@ -374,6 +411,7 @@ async function blacklistToken (token) {
   }
 }
 
+
 // Password hashing and verification
 const hashPassword = async (password) => {
   const saltRounds = 12;
@@ -383,6 +421,7 @@ const hashPassword = async (password) => {
 const verifyPassword = async (password, hash) => {
   return bcrypt.compare(password, hash);
 };
+
 
 // Export middleware and utilities
 module.exports = {

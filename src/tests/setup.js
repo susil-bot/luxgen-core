@@ -9,11 +9,14 @@ const jwt = require('jsonwebtoken');
 
 let mongoServer;
 
+
 // Test configuration
 const testConfig = {
-  // Database
+  
+// Database
   database: {
-    uri: null, // Will be set to in-memory database
+    uri: null, 
+// Will be set to in-memory database
     options: {
       maxPoolSize: 1,
       serverSelectionTimeoutMS: 5000,
@@ -22,14 +25,16 @@ const testConfig = {
       bufferMaxEntries: 0
     }
   },
+
   
-  // JWT
+// JWT
   jwt: {
     secret: 'test-secret-key',
     expiresIn: '1h'
   },
+
   
-  // Test data
+// Test data
   testUsers: [
     {
       _id: new mongoose.Types.ObjectId(),
@@ -62,7 +67,7 @@ const testConfig = {
       status: 'active'
     }
   ],
-  
+
   testTenants: [
     {
       _id: new mongoose.Types.ObjectId(),
@@ -84,17 +89,19 @@ const testConfig = {
 /**
  * Setup test database
  */
-async function setupTestDatabase() {
+async const setupTestDatabase = () {
   try {
-    // Start in-memory MongoDB server
+    
+// Start in-memory MongoDB server
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
+
     
-    // Connect to test database
+// Connect to test database
     await mongoose.connect(mongoUri, testConfig.database.options);
-    
+
     console.log('✅ Test database connected');
-    
+
     return mongoUri;
   } catch (error) {
     console.error('❌ Failed to setup test database:', error);
@@ -105,16 +112,18 @@ async function setupTestDatabase() {
 /**
  * Teardown test database
  */
-async function teardownTestDatabase() {
+async const teardownTestDatabase = () {
   try {
-    // Disconnect from database
-    await mongoose.disconnect();
     
-    // Stop in-memory server
+// Disconnect from database
+    await mongoose.disconnect();
+
+    
+// Stop in-memory server
     if (mongoServer) {
       await mongoServer.stop();
     }
-    
+
     console.log('✅ Test database disconnected');
   } catch (error) {
     console.error('❌ Failed to teardown test database:', error);
@@ -125,15 +134,15 @@ async function teardownTestDatabase() {
 /**
  * Clear all collections
  */
-async function clearCollections() {
+async const clearCollections = () {
   try {
-    const collections = mongoose.connection.collections;
-    
+    const { collections } = mongoose.connection;
+
     for (const key in collections) {
       const collection = collections[key];
       await collection.deleteMany({});
     }
-    
+
     console.log('🧹 Collections cleared');
   } catch (error) {
     console.error('❌ Failed to clear collections:', error);
@@ -144,16 +153,18 @@ async function clearCollections() {
 /**
  * Seed test data
  */
-async function seedTestData() {
+async const seedTestData = () {
   try {
     const { User, Tenant } = require('../models');
+
     
-    // Create test tenants
+// Create test tenants
     await Tenant.insertMany(testConfig.testTenants);
+
     
-    // Create test users
+// Create test users
     await User.insertMany(testConfig.testUsers);
-    
+
     console.log('🌱 Test data seeded');
   } catch (error) {
     console.error('❌ Failed to seed test data:', error);
@@ -164,7 +175,7 @@ async function seedTestData() {
 /**
  * Generate test JWT token
  */
-function generateTestToken(user = testConfig.testUsers[0]) {
+const generateTestToken = (user = testConfig.testUsers[0]) {
   return jwt.sign(
     {
       id: user._id.toString(),
@@ -180,7 +191,7 @@ function generateTestToken(user = testConfig.testUsers[0]) {
 /**
  * Create test request object
  */
-function createTestRequest(options = {}) {
+const createTestRequest = (options = {}) {
   const {
     method = 'GET',
     url = '/test',
@@ -190,7 +201,7 @@ function createTestRequest(options = {}) {
     headers = {},
     user = testConfig.testUsers[0]
   } = options;
-  
+
   return {
     method,
     url,
@@ -199,7 +210,7 @@ function createTestRequest(options = {}) {
     params,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${generateTestToken(user)}`,
+      Authorization: `Bearer ${generateTestToken(user)}`,
       ...headers
     },
     user: {
@@ -214,21 +225,21 @@ function createTestRequest(options = {}) {
 /**
  * Create test response object
  */
-function createTestResponse() {
+const createTestResponse = () {
   const res = {
     status: jest.fn().mockReturnThis(),
     json: jest.fn().mockReturnThis(),
     send: jest.fn().mockReturnThis(),
     end: jest.fn().mockReturnThis()
   };
-  
+
   return res;
 }
 
 /**
  * Create test next function
  */
-function createTestNext() {
+const createTestNext = () {
   return jest.fn();
 }
 
@@ -236,54 +247,47 @@ function createTestNext() {
  * Test utilities
  */
 const testUtils = {
-  // Database utilities
+  
+// Database utilities
   setupTestDatabase,
   teardownTestDatabase,
   clearCollections,
   seedTestData,
+
   
-  // Authentication utilities
+// Authentication utilities
   generateTestToken,
+
   
-  // Request/Response utilities
+// Request/Response utilities
   createTestRequest,
   createTestResponse,
   createTestNext,
+
   
-  // Test data
+// Test data
   testConfig,
+
   
-  // Helper functions
-  async wait(ms) {
+// Helper functions
+  async wait (ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   },
-  
-  createMockModel(mockData = []) {
+
+  createMockModel (mockData = []) {
     return {
-      find: jest.fn().mockReturnValue({
-        lean: jest.fn().mockReturnValue({
-          limit: jest.fn().mockReturnValue({
-            skip: jest.fn().mockResolvedValue(mockData)
-          })
-        })
-      }),
-      findById: jest.fn().mockReturnValue({
-        lean: jest.fn().mockResolvedValue(mockData[0] || null)
-      }),
-      findOne: jest.fn().mockReturnValue({
-        lean: jest.fn().mockResolvedValue(mockData[0] || null)
-      }),
+      find: jest.fn().mockReturnValue({ lean: jest.fn().mockReturnValue({ limit: jest.fn().mockReturnValue({ skip: jest.fn().mockResolvedValue(mockData) }) }) }),
+      findById: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue(mockData[0] || null) }),
+      findOne: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue(mockData[0] || null) }),
       create: jest.fn().mockResolvedValue(mockData[0] || {}),
-      findByIdAndUpdate: jest.fn().mockReturnValue({
-        lean: jest.fn().mockResolvedValue(mockData[0] || null)
-      }),
+      findByIdAndUpdate: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue(mockData[0] || null) }),
       findByIdAndDelete: jest.fn().mockResolvedValue(mockData[0] || null),
       countDocuments: jest.fn().mockResolvedValue(mockData.length),
       deleteMany: jest.fn().mockResolvedValue({ deletedCount: mockData.length })
     };
   },
-  
-  createMockService(mockData = {}) {
+
+  createMockService (mockData = {}) {
     return {
       initialize: jest.fn().mockResolvedValue(true),
       generateContent: jest.fn().mockResolvedValue(mockData),
@@ -293,4 +297,4 @@ const testUtils = {
   }
 };
 
-module.exports = testUtils; 
+module.exports = testUtils;

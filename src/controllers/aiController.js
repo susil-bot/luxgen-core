@@ -9,17 +9,18 @@ const logger = require('../utils/logger');
 const cacheManager = require('../utils/cache');
 
 class AIController {
-  // ==================== CONTENT GENERATION ====================
+// ==================== CONTENT GENERATION ====================
 
   /**
    * Generate general content based on type and prompt
    */
-  async generateContent(req, res) {
+  async generateContent (req, res) {
+    // TODO: Add await statements
     const { type, prompt, context, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Content Generation Request`, {
+    logger.info('AI Content Generation Request', {
       userId,
       tenantId,
       type,
@@ -37,9 +38,11 @@ class AIController {
         tenantId
       });
 
+
       // Cache the generated content
       const cacheKey = `ai:content:${userId}:${Date.now()}`;
-      await cacheManager.set(cacheKey, result, 86400); // 24 hours
+      await cacheManager.set(cacheKey, result, 86400);
+      // 24 hours
 
       res.json({
         success: true,
@@ -48,7 +51,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Content Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Content Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -56,12 +61,13 @@ class AIController {
   /**
    * Generate training materials for specific topics
    */
-  async generateTrainingMaterial(req, res) {
+  async generateTrainingMaterial (req, res) {
+    // TODO: Add await statements
     const { topic, context, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Training Material Generation Request`, {
+    logger.info('AI Training Material Generation Request', {
       userId,
       tenantId,
       topic,
@@ -84,7 +90,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Training Material Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Training Material Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -92,12 +100,13 @@ class AIController {
   /**
    * Generate assessment questions for training topics
    */
-  async generateAssessmentQuestions(req, res) {
+  async generateAssessmentQuestions (req, res) {
+    // TODO: Add await statements
     const { topic, questionCount, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Assessment Questions Generation Request`, {
+    logger.info('AI Assessment Questions Generation Request', {
       userId,
       tenantId,
       topic,
@@ -121,7 +130,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Assessment Questions Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Assessment Questions Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -129,12 +140,13 @@ class AIController {
   /**
    * Generate presentation outlines and slides
    */
-  async generatePresentationOutline(req, res) {
+  async generatePresentationOutline (req, res) {
+    // TODO: Add await statements
     const { topic, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Presentation Outline Generation Request`, {
+    logger.info('AI Presentation Outline Generation Request', {
       userId,
       tenantId,
       topic,
@@ -156,22 +168,26 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Presentation Outline Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Presentation Outline Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
+
 
   // ==================== CONTENT IMPROVEMENT ====================
 
   /**
    * Improve existing content based on specified criteria
    */
-  async improveContent(req, res) {
+  async improveContent (req, res) {
+    // TODO: Add await statements
     const { content, improvement, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Content Improvement Request`, {
+    logger.info('AI Content Improvement Request', {
       userId,
       tenantId,
       improvement,
@@ -195,7 +211,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Content Improvement Error', { error: error.message, userId, tenantId });
+      logger.error('AI Content Improvement Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -203,12 +221,13 @@ class AIController {
   /**
    * Translate content to different languages
    */
-  async translateContent(req, res) {
+  async translateContent (req, res) {
+    // TODO: Add await statements
     const { content, targetLanguage, preserveTone, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Content Translation Request`, {
+    logger.info('AI Content Translation Request', {
       userId,
       tenantId,
       targetLanguage,
@@ -233,22 +252,26 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Content Translation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Content Translation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
+
 
   // ==================== SPECIALIZED CONTENT GENERATION ====================
 
   /**
    * Generate blog posts and articles
    */
-  async generateBlogPost(req, res) {
+  async generateBlogPost (req, res) {
+    // TODO: Add await statements
     const { topic, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Blog Post Generation Request`, {
+    logger.info('AI Blog Post Generation Request', {
       userId,
       tenantId,
       topic,
@@ -270,7 +293,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Blog Post Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Blog Post Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -278,12 +303,13 @@ class AIController {
   /**
    * Generate social media content for different platforms
    */
-  async generateSocialMedia(req, res) {
+  async generateSocialMedia (req, res) {
+    // TODO: Add await statements
     const { platform, topic, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Social Media Generation Request`, {
+    logger.info('AI Social Media Generation Request', {
       userId,
       tenantId,
       platform,
@@ -307,7 +333,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Social Media Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Social Media Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -315,12 +343,13 @@ class AIController {
   /**
    * Generate email content for different purposes
    */
-  async generateEmail(req, res) {
+  async generateEmail (req, res) {
+    // TODO: Add await statements
     const { type, topic, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Email Generation Request`, {
+    logger.info('AI Email Generation Request', {
       userId,
       tenantId,
       type,
@@ -344,7 +373,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Email Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Email Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -352,12 +383,13 @@ class AIController {
   /**
    * Generate product descriptions and marketing copy
    */
-  async generateProductDescription(req, res) {
+  async generateProductDescription (req, res) {
+    // TODO: Add await statements
     const { productName, features, targetAudience, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Product Description Generation Request`, {
+    logger.info('AI Product Description Generation Request', {
       userId,
       tenantId,
       productName,
@@ -383,22 +415,26 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Product Description Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Product Description Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
+
 
   // ==================== MEDIA CONTENT GENERATION ====================
 
   /**
    * Generate prompts for image generation
    */
-  async generateImagePrompt(req, res) {
+  async generateImagePrompt (req, res) {
+    // TODO: Add await statements
     const { description, style, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Image Prompt Generation Request`, {
+    logger.info('AI Image Prompt Generation Request', {
       userId,
       tenantId,
       description,
@@ -422,7 +458,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Image Prompt Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Image Prompt Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -430,12 +468,13 @@ class AIController {
   /**
    * Generate video scripts and storyboards
    */
-  async generateVideoScript(req, res) {
+  async generateVideoScript (req, res) {
+    // TODO: Add await statements
     const { topic, duration, style, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Video Script Generation Request`, {
+    logger.info('AI Video Script Generation Request', {
       userId,
       tenantId,
       topic,
@@ -461,7 +500,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Video Script Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Video Script Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -469,12 +510,13 @@ class AIController {
   /**
    * Generate audio content scripts
    */
-  async generateAudioScript(req, res) {
+  async generateAudioScript (req, res) {
+    // TODO: Add await statements
     const { topic, type, duration, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Audio Script Generation Request`, {
+    logger.info('AI Audio Script Generation Request', {
       userId,
       tenantId,
       topic,
@@ -500,22 +542,26 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Audio Script Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Audio Script Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
+
 
   // ==================== AI CHATBOT ENDPOINTS ====================
 
   /**
    * Create a new conversation
    */
-  async createConversation(req, res) {
+  async createConversation (req, res) {
+    // TODO: Add await statements
     const { niche, title, initialMessage } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Conversation Creation Request`, {
+    logger.info('AI Conversation Creation Request', {
       userId,
       tenantId,
       niche,
@@ -539,7 +585,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Conversation Creation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Conversation Creation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -547,12 +595,13 @@ class AIController {
   /**
    * Get user's conversations
    */
-  async getConversations(req, res) {
+  async getConversations (req, res) {
+    // TODO: Add await statements
     const { page = 1, limit = 10, niche } = req.query;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Conversations Fetch Request`, {
+    logger.info('AI Conversations Fetch Request', {
       userId,
       tenantId,
       page,
@@ -576,7 +625,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Conversations Fetch Error', { error: error.message, userId, tenantId });
+      logger.error('AI Conversations Fetch Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -584,12 +635,13 @@ class AIController {
   /**
    * Get specific conversation with messages
    */
-  async getConversation(req, res) {
+  async getConversation (req, res) {
+    // TODO: Add await statements
     const { conversationId } = req.params;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Conversation Fetch Request`, {
+    logger.info('AI Conversation Fetch Request', {
       userId,
       tenantId,
       conversationId
@@ -609,7 +661,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Conversation Fetch Error', { error: error.message, userId, tenantId, conversationId });
+      logger.error('AI Conversation Fetch Error', {
+        error: error.message, userId, tenantId, conversationId
+      });
       throw error;
     }
   }
@@ -617,12 +671,13 @@ class AIController {
   /**
    * Delete a conversation
    */
-  async deleteConversation(req, res) {
+  async deleteConversation (req, res) {
+    // TODO: Add await statements
     const { conversationId } = req.params;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Conversation Deletion Request`, {
+    logger.info('AI Conversation Deletion Request', {
       userId,
       tenantId,
       conversationId
@@ -641,7 +696,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Conversation Deletion Error', { error: error.message, userId, tenantId, conversationId });
+      logger.error('AI Conversation Deletion Error', {
+        error: error.message, userId, tenantId, conversationId
+      });
       throw error;
     }
   }
@@ -649,13 +706,14 @@ class AIController {
   /**
    * Send a message in a conversation
    */
-  async sendMessage(req, res) {
+  async sendMessage (req, res) {
+    // TODO: Add await statements
     const { conversationId } = req.params;
     const { content, type, metadata } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Message Send Request`, {
+    logger.info('AI Message Send Request', {
       userId,
       tenantId,
       conversationId,
@@ -680,7 +738,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Message Send Error', { error: error.message, userId, tenantId, conversationId });
+      logger.error('AI Message Send Error', {
+        error: error.message, userId, tenantId, conversationId
+      });
       throw error;
     }
   }
@@ -688,12 +748,13 @@ class AIController {
   /**
    * Generate AI response for chat messages
    */
-  async generateResponse(req, res) {
+  async generateResponse (req, res) {
+    // TODO: Add await statements
     const { message, conversationId, context } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Response Generation Request`, {
+    logger.info('AI Response Generation Request', {
       userId,
       tenantId,
       conversationId,
@@ -716,22 +777,26 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Response Generation Error', { error: error.message, userId, tenantId, conversationId });
+      logger.error('AI Response Generation Error', {
+        error: error.message, userId, tenantId, conversationId
+      });
       throw error;
     }
   }
+
 
   // ==================== ANALYTICS & INSIGHTS ====================
 
   /**
    * Get analytics for generated content
    */
-  async getContentPerformance(req, res) {
+  async getContentPerformance (req, res) {
+    // TODO: Add await statements
     const { contentId, dateRange, metrics } = req.query;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Content Performance Request`, {
+    logger.info('AI Content Performance Request', {
       userId,
       tenantId,
       contentId,
@@ -755,7 +820,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Content Performance Error', { error: error.message, userId, tenantId, contentId });
+      logger.error('AI Content Performance Error', {
+        error: error.message, userId, tenantId, contentId
+      });
       throw error;
     }
   }
@@ -763,12 +830,13 @@ class AIController {
   /**
    * Get insights from AI conversations
    */
-  async getConversationInsights(req, res) {
+  async getConversationInsights (req, res) {
+    // TODO: Add await statements
     const { conversationId, dateRange } = req.query;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Conversation Insights Request`, {
+    logger.info('AI Conversation Insights Request', {
       userId,
       tenantId,
       conversationId,
@@ -790,7 +858,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Conversation Insights Error', { error: error.message, userId, tenantId, conversationId });
+      logger.error('AI Conversation Insights Error', {
+        error: error.message, userId, tenantId, conversationId
+      });
       throw error;
     }
   }
@@ -798,12 +868,13 @@ class AIController {
   /**
    * Get AI usage statistics
    */
-  async getUsageAnalytics(req, res) {
+  async getUsageAnalytics (req, res) {
+    // TODO: Add await statements
     const { userId: targetUserId, dateRange, type } = req.query;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Usage Analytics Request`, {
+    logger.info('AI Usage Analytics Request', {
       userId,
       tenantId,
       targetUserId,
@@ -826,22 +897,26 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Usage Analytics Error', { error: error.message, userId, tenantId });
+      logger.error('AI Usage Analytics Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
+
 
   // ==================== TRAINING-SPECIFIC AI ENDPOINTS ====================
 
   /**
    * Generate complete training modules
    */
-  async generateTrainingModule(req, res) {
+  async generateTrainingModule (req, res) {
+    // TODO: Add await statements
     const { topic, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Training Module Generation Request`, {
+    logger.info('AI Training Module Generation Request', {
       userId,
       tenantId,
       topic,
@@ -863,7 +938,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Training Module Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Training Module Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -871,12 +948,13 @@ class AIController {
   /**
    * Generate practical exercises and activities
    */
-  async generateExercises(req, res) {
+  async generateExercises (req, res) {
+    // TODO: Add await statements
     const { topic, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Exercises Generation Request`, {
+    logger.info('AI Exercises Generation Request', {
       userId,
       tenantId,
       topic,
@@ -898,7 +976,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Exercises Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Exercises Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -906,12 +986,13 @@ class AIController {
   /**
    * Generate case studies and scenarios
    */
-  async generateCaseStudies(req, res) {
+  async generateCaseStudies (req, res) {
+    // TODO: Add await statements
     const { topic, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Case Studies Generation Request`, {
+    logger.info('AI Case Studies Generation Request', {
       userId,
       tenantId,
       topic,
@@ -933,7 +1014,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Case Studies Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Case Studies Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -941,12 +1024,13 @@ class AIController {
   /**
    * Generate quizzes and assessments
    */
-  async generateQuiz(req, res) {
+  async generateQuiz (req, res) {
+    // TODO: Add await statements
     const { topic, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Quiz Generation Request`, {
+    logger.info('AI Quiz Generation Request', {
       userId,
       tenantId,
       topic,
@@ -968,7 +1052,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Quiz Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Quiz Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -976,12 +1062,13 @@ class AIController {
   /**
    * Generate scenario-based assessments
    */
-  async generateScenarios(req, res) {
+  async generateScenarios (req, res) {
+    // TODO: Add await statements
     const { topic, options } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Scenarios Generation Request`, {
+    logger.info('AI Scenarios Generation Request', {
       userId,
       tenantId,
       topic,
@@ -1003,22 +1090,26 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Scenarios Generation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Scenarios Generation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
+
 
   // ==================== CONTENT MANAGEMENT ====================
 
   /**
    * Save generated content to library
    */
-  async saveContent(req, res) {
+  async saveContent (req, res) {
+    // TODO: Add await statements
     const { title, content, type, category, tags, metadata } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Content Save Request`, {
+    logger.info('AI Content Save Request', {
       userId,
       tenantId,
       title,
@@ -1046,7 +1137,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Content Save Error', { error: error.message, userId, tenantId });
+      logger.error('AI Content Save Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -1054,12 +1147,13 @@ class AIController {
   /**
    * Get saved content from library
    */
-  async getContentLibrary(req, res) {
+  async getContentLibrary (req, res) {
+    // TODO: Add await statements
     const { type, category, status, search, page = 1, limit = 10 } = req.query;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Content Library Request`, {
+    logger.info('AI Content Library Request', {
       userId,
       tenantId,
       type,
@@ -1089,7 +1183,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Content Library Error', { error: error.message, userId, tenantId });
+      logger.error('AI Content Library Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -1097,13 +1193,14 @@ class AIController {
   /**
    * Update saved content
    */
-  async updateContent(req, res) {
+  async updateContent (req, res) {
+    // TODO: Add await statements
     const { contentId } = req.params;
     const updateData = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Content Update Request`, {
+    logger.info('AI Content Update Request', {
       userId,
       tenantId,
       contentId,
@@ -1125,7 +1222,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Content Update Error', { error: error.message, userId, tenantId, contentId });
+      logger.error('AI Content Update Error', {
+        error: error.message, userId, tenantId, contentId
+      });
       throw error;
     }
   }
@@ -1133,12 +1232,13 @@ class AIController {
   /**
    * Delete content from library
    */
-  async deleteContent(req, res) {
+  async deleteContent (req, res) {
+    // TODO: Add await statements
     const { contentId } = req.params;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Content Deletion Request`, {
+    logger.info('AI Content Deletion Request', {
       userId,
       tenantId,
       contentId
@@ -1157,7 +1257,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Content Deletion Error', { error: error.message, userId, tenantId, contentId });
+      logger.error('AI Content Deletion Error', {
+        error: error.message, userId, tenantId, contentId
+      });
       throw error;
     }
   }
@@ -1165,11 +1267,12 @@ class AIController {
   /**
    * Get available content templates
    */
-  async getTemplates(req, res) {
+  async getTemplates (req, res) {
+    // TODO: Add await statements
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Templates Request`, {
+    logger.info('AI Templates Request', {
       userId,
       tenantId
     });
@@ -1187,7 +1290,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Templates Error', { error: error.message, userId, tenantId });
+      logger.error('AI Templates Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -1195,12 +1300,13 @@ class AIController {
   /**
    * Create custom content template
    */
-  async createTemplate(req, res) {
+  async createTemplate (req, res) {
+    // TODO: Add await statements
     const { name, description, type, platform, prompt, variables } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Template Creation Request`, {
+    logger.info('AI Template Creation Request', {
       userId,
       tenantId,
       name,
@@ -1227,21 +1333,25 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Template Creation Error', { error: error.message, userId, tenantId });
+      logger.error('AI Template Creation Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
+
 
   // ==================== PERSONALIZATION & PREFERENCES ====================
 
   /**
    * Get user's AI preferences
    */
-  async getPreferences(req, res) {
+  async getPreferences (req, res) {
+    // TODO: Add await statements
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Preferences Request`, {
+    logger.info('AI Preferences Request', {
       userId,
       tenantId
     });
@@ -1259,7 +1369,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Preferences Error', { error: error.message, userId, tenantId });
+      logger.error('AI Preferences Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -1267,12 +1379,13 @@ class AIController {
   /**
    * Update AI preferences
    */
-  async updatePreferences(req, res) {
+  async updatePreferences (req, res) {
+    // TODO: Add await statements
     const preferences = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Preferences Update Request`, {
+    logger.info('AI Preferences Update Request', {
       userId,
       tenantId,
       preferenceFields: Object.keys(preferences)
@@ -1292,7 +1405,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Preferences Update Error', { error: error.message, userId, tenantId });
+      logger.error('AI Preferences Update Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -1300,11 +1415,12 @@ class AIController {
   /**
    * Get available niches and suggestions
    */
-  async getNiches(req, res) {
+  async getNiches (req, res) {
+    // TODO: Add await statements
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Niches Request`, {
+    logger.info('AI Niches Request', {
       userId,
       tenantId
     });
@@ -1322,7 +1438,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Niches Error', { error: error.message, userId, tenantId });
+      logger.error('AI Niches Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -1330,12 +1448,13 @@ class AIController {
   /**
    * Set user's primary niche
    */
-  async setNiche(req, res) {
+  async setNiche (req, res) {
+    // TODO: Add await statements
     const { niche, description, keywords } = req.body;
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Niche Setting Request`, {
+    logger.info('AI Niche Setting Request', {
       userId,
       tenantId,
       niche,
@@ -1358,21 +1477,25 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Niche Setting Error', { error: error.message, userId, tenantId });
+      logger.error('AI Niche Setting Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
+
 
   // ==================== PERFORMANCE & MONITORING ====================
 
   /**
    * Check AI service health
    */
-  async getHealth(req, res) {
+  async getHealth (req, res) {
+    // TODO: Add await statements
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Health Check Request`, {
+    logger.info('AI Health Check Request', {
       userId,
       tenantId
     });
@@ -1390,7 +1513,9 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Health Check Error', { error: error.message, userId, tenantId });
+      logger.error('AI Health Check Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
@@ -1398,11 +1523,12 @@ class AIController {
   /**
    * Get current rate limit status
    */
-  async getRateLimits(req, res) {
+  async getRateLimits (req, res) {
+    // TODO: Add await statements
     const userId = req.user.id;
-    const tenantId = req.tenantId;
+    const { tenantId } = req;
 
-    logger.info(`AI Rate Limits Request`, {
+    logger.info('AI Rate Limits Request', {
       userId,
       tenantId
     });
@@ -1420,26 +1546,33 @@ class AIController {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('AI Rate Limits Error', { error: error.message, userId, tenantId });
+      logger.error('AI Rate Limits Error', {
+        error: error.message, userId, tenantId
+      });
       throw error;
     }
   }
 }
 
+
 // Create controller instance
 const aiController = new AIController();
 
+
 // Export wrapped methods with error handling
 module.exports = {
+
   // Content Generation
   generateContent: asyncHandler(aiController.generateContent.bind(aiController)),
   generateTrainingMaterial: asyncHandler(aiController.generateTrainingMaterial.bind(aiController)),
   generateAssessmentQuestions: asyncHandler(aiController.generateAssessmentQuestions.bind(aiController)),
   generatePresentationOutline: asyncHandler(aiController.generatePresentationOutline.bind(aiController)),
 
+
   // Content Improvement
   improveContent: asyncHandler(aiController.improveContent.bind(aiController)),
   translateContent: asyncHandler(aiController.translateContent.bind(aiController)),
+
 
   // Specialized Content Generation
   generateBlogPost: asyncHandler(aiController.generateBlogPost.bind(aiController)),
@@ -1447,10 +1580,12 @@ module.exports = {
   generateEmail: asyncHandler(aiController.generateEmail.bind(aiController)),
   generateProductDescription: asyncHandler(aiController.generateProductDescription.bind(aiController)),
 
+
   // Media Content Generation
   generateImagePrompt: asyncHandler(aiController.generateImagePrompt.bind(aiController)),
   generateVideoScript: asyncHandler(aiController.generateVideoScript.bind(aiController)),
   generateAudioScript: asyncHandler(aiController.generateAudioScript.bind(aiController)),
+
 
   // AI Chatbot
   createConversation: asyncHandler(aiController.createConversation.bind(aiController)),
@@ -1460,10 +1595,12 @@ module.exports = {
   sendMessage: asyncHandler(aiController.sendMessage.bind(aiController)),
   generateResponse: asyncHandler(aiController.generateResponse.bind(aiController)),
 
+
   // Analytics & Insights
   getContentPerformance: asyncHandler(aiController.getContentPerformance.bind(aiController)),
   getConversationInsights: asyncHandler(aiController.getConversationInsights.bind(aiController)),
   getUsageAnalytics: asyncHandler(aiController.getUsageAnalytics.bind(aiController)),
+
 
   // Training-Specific AI
   generateTrainingModule: asyncHandler(aiController.generateTrainingModule.bind(aiController)),
@@ -1471,6 +1608,7 @@ module.exports = {
   generateCaseStudies: asyncHandler(aiController.generateCaseStudies.bind(aiController)),
   generateQuiz: asyncHandler(aiController.generateQuiz.bind(aiController)),
   generateScenarios: asyncHandler(aiController.generateScenarios.bind(aiController)),
+
 
   // Content Management
   saveContent: asyncHandler(aiController.saveContent.bind(aiController)),
@@ -1480,13 +1618,15 @@ module.exports = {
   getTemplates: asyncHandler(aiController.getTemplates.bind(aiController)),
   createTemplate: asyncHandler(aiController.createTemplate.bind(aiController)),
 
+
   // Personalization & Preferences
   getPreferences: asyncHandler(aiController.getPreferences.bind(aiController)),
   updatePreferences: asyncHandler(aiController.updatePreferences.bind(aiController)),
   getNiches: asyncHandler(aiController.getNiches.bind(aiController)),
   setNiche: asyncHandler(aiController.setNiche.bind(aiController)),
 
+
   // Performance & Monitoring
   getHealth: asyncHandler(aiController.getHealth.bind(aiController)),
   getRateLimits: asyncHandler(aiController.getRateLimits.bind(aiController))
-}; 
+};

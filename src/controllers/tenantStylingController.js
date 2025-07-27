@@ -6,6 +6,7 @@ const tenantStylingService = require('../services/TenantStylingService');
 exports.getTenantStyling = async (req, res) => {
   try {
     const { tenantId } = req.params;
+
     // Check if user has access to this tenant
     if (req.user.role !== 'super_admin' && req.user.tenant_id !== tenantId) {
       return res.status(403).json({
@@ -39,7 +40,9 @@ exports.updateTenantStyling = async (req, res) => {
       });
     }
     const updatedStyling = await tenantStylingService.updateTenantStyling(tenantId, stylingUpdates);
-    res.json({ success: true, message: 'Tenant styling updated successfully', data: updatedStyling });
+    res.json({
+      success: true, message: 'Tenant styling updated successfully', data: updatedStyling
+    });
   } catch (error) {
     console.error('Error updating tenant styling:', error);
     res.status(500).json({
@@ -133,7 +136,9 @@ exports.resetTenantStyling = async (req, res) => {
     }
     const defaultStyling = tenantStylingService.getDefaultStyling();
     const updatedStyling = await tenantStylingService.updateTenantStyling(tenantId, defaultStyling);
-    res.json({ success: true, message: 'Tenant styling reset to defaults', data: updatedStyling });
+    res.json({
+      success: true, message: 'Tenant styling reset to defaults', data: updatedStyling
+    });
   } catch (error) {
     console.error('Error resetting tenant styling:', error);
     res.status(500).json({
@@ -217,7 +222,9 @@ exports.importTenantStyling = async (req, res) => {
       });
     }
     const updatedStyling = await tenantStylingService.updateTenantStyling(tenantId, importedStyling);
-    res.json({ success: true, message: 'Tenant styling imported successfully', data: updatedStyling });
+    res.json({
+      success: true, message: 'Tenant styling imported successfully', data: updatedStyling
+    });
   } catch (error) {
     console.error('Error importing tenant styling:', error);
     res.status(500).json({
@@ -226,4 +233,4 @@ exports.importTenantStyling = async (req, res) => {
       error: error.message
     });
   }
-}; 
+};

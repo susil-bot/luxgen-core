@@ -4,28 +4,35 @@ const User = require('../models/User');
 const logger = require('../utils/logger');
 
 class PresentationController {
-  // ==================== PRESENTATIONS ====================
-  
+// ==================== PRESENTATIONS ====================
+
   /**
    * Get all presentations for a tenant
    */
-  async getPresentations(req, res) {
+  async getPresentations (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
-      const { 
-        page = 1, 
-        limit = 10, 
-        category, 
+      const {
+        page = 1,
+        limit = 10,
+        category,
         isActive,
         isPublished,
-        search 
+        search
       } = req.query;
 
       const query = { tenantId };
-      
-      if (category) query.category = category;
-      if (isActive !== undefined) query.isActive = isActive === 'true';
-      if (isPublished !== undefined) query.isPublished = isPublished === 'true';
+
+      if (category) {
+        query.category = category;
+      }
+      if (isActive !== undefined) {
+        query.isActive = isActive === 'true';
+      }
+      if (isPublished !== undefined) {
+        query.isPublished = isPublished === 'true';
+      }
       if (search) {
         query.$or = [
           { title: { $regex: search, $options: 'i' } },
@@ -35,7 +42,7 @@ class PresentationController {
       }
 
       const skip = (page - 1) * limit;
-      
+
       const presentations = await Presentation.find(query)
         .populate('createdBy', 'firstName lastName email')
         .sort({ createdAt: -1 })
@@ -75,7 +82,8 @@ class PresentationController {
   /**
    * Get a specific presentation by ID
    */
-  async getPresentation(req, res) {
+  async getPresentation (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId } = req.params;
@@ -110,7 +118,8 @@ class PresentationController {
   /**
    * Create a new presentation
    */
-  async createPresentation(req, res) {
+  async createPresentation (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const presentationData = {
@@ -122,10 +131,10 @@ class PresentationController {
       const presentation = new Presentation(presentationData);
       await presentation.save();
 
-      logger.info('Presentation created', { 
-        presentationId: presentation._id, 
+      logger.info('Presentation created', {
+        presentationId: presentation._id,
         tenantId,
-        title: presentation.title 
+        title: presentation.title
       });
 
       res.status(201).json({
@@ -146,7 +155,8 @@ class PresentationController {
   /**
    * Update a presentation
    */
-  async updatePresentation(req, res) {
+  async updatePresentation (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId } = req.params;
@@ -188,7 +198,8 @@ class PresentationController {
   /**
    * Delete a presentation
    */
-  async deletePresentation(req, res) {
+  async deletePresentation (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId } = req.params;
@@ -218,12 +229,14 @@ class PresentationController {
     }
   }
 
+
   // ==================== PRESENTATION SESSIONS ====================
 
   /**
    * Start a presentation session
    */
-  async startPresentation(req, res) {
+  async startPresentation (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId } = req.params;
@@ -239,10 +252,10 @@ class PresentationController {
 
       const session = await presentation.createSession(sessionData);
 
-      logger.info('Presentation session started', { 
-        presentationId, 
+      logger.info('Presentation session started', {
+        presentationId,
         sessionId: session.sessionId,
-        tenantId 
+        tenantId
       });
 
       res.json({
@@ -263,7 +276,8 @@ class PresentationController {
   /**
    * End a presentation session
    */
-  async endPresentation(req, res) {
+  async endPresentation (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId, sessionId } = req.params;
@@ -278,10 +292,10 @@ class PresentationController {
 
       await presentation.endSession(sessionId);
 
-      logger.info('Presentation session ended', { 
-        presentationId, 
+      logger.info('Presentation session ended', {
+        presentationId,
         sessionId,
-        tenantId 
+        tenantId
       });
 
       res.json({
@@ -300,7 +314,8 @@ class PresentationController {
   /**
    * Add participant to presentation session
    */
-  async addSessionParticipant(req, res) {
+  async addSessionParticipant (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId, sessionId } = req.params;
@@ -316,12 +331,12 @@ class PresentationController {
 
       await presentation.addParticipant(sessionId, userId, role);
 
-      logger.info('Participant added to presentation session', { 
-        presentationId, 
+      logger.info('Participant added to presentation session', {
+        presentationId,
         sessionId,
         userId,
         role,
-        tenantId 
+        tenantId
       });
 
       res.json({
@@ -340,7 +355,8 @@ class PresentationController {
   /**
    * Remove participant from presentation session
    */
-  async removeSessionParticipant(req, res) {
+  async removeSessionParticipant (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId, sessionId, userId } = req.params;
@@ -355,11 +371,11 @@ class PresentationController {
 
       await presentation.removeParticipant(sessionId, userId);
 
-      logger.info('Participant removed from presentation session', { 
-        presentationId, 
+      logger.info('Participant removed from presentation session', {
+        presentationId,
         sessionId,
         userId,
-        tenantId 
+        tenantId
       });
 
       res.json({
@@ -378,7 +394,8 @@ class PresentationController {
   /**
    * Advance to next slide
    */
-  async advanceSlide(req, res) {
+  async advanceSlide (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId, sessionId } = req.params;
@@ -394,11 +411,11 @@ class PresentationController {
 
       await presentation.advanceSlide(sessionId, slideIndex);
 
-      logger.info('Slide advanced', { 
-        presentationId, 
+      logger.info('Slide advanced', {
+        presentationId,
         sessionId,
         slideIndex,
-        tenantId 
+        tenantId
       });
 
       res.json({
@@ -414,12 +431,14 @@ class PresentationController {
     }
   }
 
+
   // ==================== PRESENTATION POLLS ====================
 
   /**
    * Add poll to presentation
    */
-  async addPollToPresentation(req, res) {
+  async addPollToPresentation (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId } = req.params;
@@ -433,6 +452,7 @@ class PresentationController {
         });
       }
 
+
       // Verify poll exists
       const poll = await Poll.findOne({ _id: pollId, tenantId });
       if (!poll) {
@@ -441,6 +461,7 @@ class PresentationController {
           message: 'Poll not found'
         });
       }
+
 
       // Add poll to slide
       const slide = presentation.slides.find(s => s.slideId === slideId);
@@ -454,11 +475,11 @@ class PresentationController {
       slide.pollId = pollId;
       await presentation.save();
 
-      logger.info('Poll added to presentation', { 
-        presentationId, 
+      logger.info('Poll added to presentation', {
+        presentationId,
         pollId,
         slideId,
-        tenantId 
+        tenantId
       });
 
       res.json({
@@ -478,7 +499,8 @@ class PresentationController {
   /**
    * Activate poll in presentation session
    */
-  async activatePoll(req, res) {
+  async activatePoll (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId, sessionId, pollId } = req.params;
@@ -494,12 +516,12 @@ class PresentationController {
 
       await presentation.activatePoll(sessionId, pollId, slideId);
 
-      logger.info('Poll activated in presentation session', { 
-        presentationId, 
+      logger.info('Poll activated in presentation session', {
+        presentationId,
         sessionId,
         pollId,
         slideId,
-        tenantId 
+        tenantId
       });
 
       res.json({
@@ -518,7 +540,8 @@ class PresentationController {
   /**
    * Deactivate poll in presentation session
    */
-  async deactivatePoll(req, res) {
+  async deactivatePoll (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId, sessionId, pollId } = req.params;
@@ -533,11 +556,11 @@ class PresentationController {
 
       await presentation.deactivatePoll(sessionId, pollId);
 
-      logger.info('Poll deactivated in presentation session', { 
-        presentationId, 
+      logger.info('Poll deactivated in presentation session', {
+        presentationId,
         sessionId,
         pollId,
-        tenantId 
+        tenantId
       });
 
       res.json({
@@ -556,7 +579,8 @@ class PresentationController {
   /**
    * Submit poll response in presentation session
    */
-  async submitPollResponse(req, res) {
+  async submitPollResponse (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId, sessionId, pollId } = req.params;
@@ -572,12 +596,12 @@ class PresentationController {
 
       await presentation.submitPollResponse(sessionId, pollId, userId, response);
 
-      logger.info('Poll response submitted in presentation session', { 
-        presentationId, 
+      logger.info('Poll response submitted in presentation session', {
+        presentationId,
         sessionId,
         pollId,
         userId,
-        tenantId 
+        tenantId
       });
 
       res.json({
@@ -596,7 +620,8 @@ class PresentationController {
   /**
    * Get poll results from presentation session
    */
-  async getPollResults(req, res) {
+  async getPollResults (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId, sessionId, pollId } = req.params;
@@ -625,6 +650,7 @@ class PresentationController {
         });
       }
 
+
       // Get the actual poll to calculate results
       const poll = await Poll.findOne({ _id: pollId, tenantId });
       if (!poll) {
@@ -633,6 +659,7 @@ class PresentationController {
           message: 'Poll not found'
         });
       }
+
 
       // Calculate results
       const results = {
@@ -645,11 +672,11 @@ class PresentationController {
         }
       };
 
-      logger.info('Poll results retrieved from presentation session', { 
-        presentationId, 
+      logger.info('Poll results retrieved from presentation session', {
+        presentationId,
         sessionId,
         pollId,
-        tenantId 
+        tenantId
       });
 
       res.json({
@@ -666,12 +693,14 @@ class PresentationController {
     }
   }
 
+
   // ==================== PRESENTATION SLIDES ====================
 
   /**
    * Add slide to presentation
    */
-  async addSlide(req, res) {
+  async addSlide (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId } = req.params;
@@ -687,9 +716,9 @@ class PresentationController {
 
       await presentation.addSlide(slideData);
 
-      logger.info('Slide added to presentation', { 
-        presentationId, 
-        tenantId 
+      logger.info('Slide added to presentation', {
+        presentationId,
+        tenantId
       });
 
       res.json({
@@ -709,7 +738,8 @@ class PresentationController {
   /**
    * Update slide in presentation
    */
-  async updateSlide(req, res) {
+  async updateSlide (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId, slideIndex } = req.params;
@@ -725,10 +755,10 @@ class PresentationController {
 
       await presentation.updateSlide(parseInt(slideIndex), updateData);
 
-      logger.info('Slide updated in presentation', { 
-        presentationId, 
+      logger.info('Slide updated in presentation', {
+        presentationId,
         slideIndex,
-        tenantId 
+        tenantId
       });
 
       res.json({
@@ -747,7 +777,8 @@ class PresentationController {
   /**
    * Remove slide from presentation
    */
-  async removeSlide(req, res) {
+  async removeSlide (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId, slideIndex } = req.params;
@@ -762,10 +793,10 @@ class PresentationController {
 
       await presentation.removeSlide(parseInt(slideIndex));
 
-      logger.info('Slide removed from presentation', { 
-        presentationId, 
+      logger.info('Slide removed from presentation', {
+        presentationId,
         slideIndex,
-        tenantId 
+        tenantId
       });
 
       res.json({
@@ -781,12 +812,14 @@ class PresentationController {
     }
   }
 
+
   // ==================== PRESENTATION STATISTICS ====================
 
   /**
    * Get presentation statistics
    */
-  async getPresentationStats(req, res) {
+  async getPresentationStats (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId } = req.params;
@@ -828,7 +861,8 @@ class PresentationController {
   /**
    * Get session statistics
    */
-  async getSessionStats(req, res) {
+  async getSessionStats (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { presentationId, sessionId } = req.params;
@@ -864,7 +898,9 @@ class PresentationController {
         totalPollResponses: session.activePolls.reduce((total, poll) => total + poll.responses.length, 0)
       };
 
-      logger.info('Session statistics retrieved', { presentationId, sessionId, tenantId });
+      logger.info('Session statistics retrieved', {
+        presentationId, sessionId, tenantId
+      });
 
       res.json({
         success: true,
@@ -881,4 +917,4 @@ class PresentationController {
   }
 }
 
-module.exports = new PresentationController(); 
+module.exports = new PresentationController();

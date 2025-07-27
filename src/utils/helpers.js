@@ -6,14 +6,19 @@ const crypto = require('crypto');
  * @returns {string} - The generated slug
  */
 const generateSlug = (text) => {
-  if (!text) return '';
-  
+  if (!text) {
+    return '';
+  }
+
   return text
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, '') // Remove special characters except spaces and hyphens
-    .replace(/[\s_-]+/g, '-') // Replace spaces and underscores with hyphens
-    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+    .replace(/[^\w\s-]/g, '') 
+// Remove special characters except spaces and hyphens
+    .replace(/[\s_-]+/g, '-') 
+// Replace spaces and underscores with hyphens
+    .replace(/^-+|-+$/g, ''); 
+// Remove leading/trailing hyphens
 };
 
 /**
@@ -25,12 +30,12 @@ const generateSlug = (text) => {
 const generateUniqueSlug = async (baseSlug, checkExists) => {
   let slug = baseSlug;
   let counter = 1;
-  
+
   while (await checkExists(slug)) {
     slug = `${baseSlug}-${counter}`;
-    counter++;
+    counter += 1;
   }
-  
+
   return slug;
 };
 
@@ -76,7 +81,7 @@ const isValidEmail = (email) => {
  * @returns {boolean} - Whether phone number is valid
  */
 const isValidPhone = (phone) => {
-  const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+  const phoneRegex = /^[+]?[1-9][\d]{0,15}$/;
   return phoneRegex.test(phone);
 };
 
@@ -102,7 +107,7 @@ const isValidUrl = (url) => {
  */
 const formatDate = (date, format = 'short') => {
   const d = new Date(date);
-  
+
   switch (format) {
     case 'short':
       return d.toLocaleDateString();
@@ -128,36 +133,36 @@ const formatDate = (date, format = 'short') => {
 const getRelativeTimeString = (date) => {
   const now = new Date();
   const diffInSeconds = Math.floor((now - date) / 1000);
-  
+
   if (diffInSeconds < 60) {
     return 'just now';
   }
-  
+
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) {
     return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
   }
-  
+
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) {
     return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
   }
-  
+
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) {
     return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
   }
-  
+
   const diffInWeeks = Math.floor(diffInDays / 7);
   if (diffInWeeks < 4) {
     return `${diffInWeeks} week${diffInWeeks > 1 ? 's' : ''} ago`;
   }
-  
+
   const diffInMonths = Math.floor(diffInDays / 30);
   if (diffInMonths < 12) {
     return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
   }
-  
+
   const diffInYears = Math.floor(diffInDays / 365);
   return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
 };
@@ -170,7 +175,9 @@ const getRelativeTimeString = (date) => {
  * @returns {number} - Percentage
  */
 const calculatePercentage = (value, total, decimals = 2) => {
-  if (total === 0) return 0;
+  if (total === 0) {
+    return 0;
+  }
   return Math.round((value / total) * 100 * Math.pow(10, decimals)) / Math.pow(10, decimals);
 };
 
@@ -180,13 +187,15 @@ const calculatePercentage = (value, total, decimals = 2) => {
  * @returns {string} - Formatted size string
  */
 const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes';
-  
+  if (bytes === 0) {
+    return '0 Bytes';
+  }
+
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 };
 
 /**
@@ -195,8 +204,10 @@ const formatFileSize = (bytes) => {
  * @returns {string} - Sanitized HTML
  */
 const sanitizeHtml = (html) => {
-  if (!html) return '';
-  
+  if (!html) {
+    return '';
+  }
+
   return html
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
@@ -214,7 +225,9 @@ const sanitizeHtml = (html) => {
  * @returns {string} - Truncated text
  */
 const truncateText = (text, length = 100, suffix = '...') => {
-  if (!text || text.length <= length) return text;
+  if (!text || text.length <= length) {
+    return text;
+  }
   return text.substring(0, length) + suffix;
 };
 
@@ -236,9 +249,15 @@ const generateInitials = (firstName, lastName) => {
  * @returns {any} - Cloned object
  */
 const deepClone = (obj) => {
-  if (obj === null || typeof obj !== 'object') return obj;
-  if (obj instanceof Date) return new Date(obj.getTime());
-  if (obj instanceof Array) return obj.map(item => deepClone(item));
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (obj instanceof Date) {
+    return new Date(obj.getTime());
+  }
+  if (obj instanceof Array) {
+    return obj.map(item => deepClone(item));
+  }
   if (typeof obj === 'object') {
     const clonedObj = {};
     for (const key in obj) {
@@ -258,7 +277,7 @@ const deepClone = (obj) => {
  */
 const debounce = (func, wait) => {
   let timeout;
-  return function executedFunction(...args) {
+  return const executedFunction = (...args) {
     const later = () => {
       clearTimeout(timeout);
       func(...args);
@@ -276,7 +295,7 @@ const debounce = (func, wait) => {
  */
 const throttle = (func, limit) => {
   let inThrottle;
-  return function() {
+  return function () {
     const args = arguments;
     const context = this;
     if (!inThrottle) {
@@ -292,7 +311,7 @@ const throttle = (func, limit) => {
  * @returns {string} - UUID string
  */
 const generateUUID = () => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = Math.random() * 16 | 0;
     const v = c == 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
@@ -315,8 +334,10 @@ const isValidUUID = (uuid) => {
  * @returns {string} - Query string
  */
 const objectToQueryString = (obj) => {
-  if (!obj || typeof obj !== 'object') return '';
-  
+  if (!obj || typeof obj !== 'object') {
+    return '';
+  }
+
   return Object.keys(obj)
     .filter(key => obj[key] !== undefined && obj[key] !== null)
     .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(obj[key])}`)
@@ -329,8 +350,10 @@ const objectToQueryString = (obj) => {
  * @returns {Object} - Parsed object
  */
 const queryStringToObject = (queryString) => {
-  if (!queryString) return {};
-  
+  if (!queryString) {
+    return {};
+  }
+
   return queryString
     .substring(1)
     .split('&')
@@ -348,7 +371,7 @@ const queryStringToObject = (queryString) => {
  * @returns {string} - Color hex string
  */
 const generateRandomColor = () => {
-  return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+  return `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
 };
 
 /**
@@ -357,17 +380,20 @@ const generateRandomColor = () => {
  * @returns {string} - 'light' or 'dark'
  */
 const getColorContrast = (color) => {
-  // Remove # if present
-  const hex = color.replace('#', '');
   
-  // Convert to RGB
+// Remove # if present
+  const hex = color.replace('#', '');
+
+  
+// Convert to RGB
   const r = parseInt(hex.substr(0, 2), 16);
   const g = parseInt(hex.substr(2, 2), 16);
   const b = parseInt(hex.substr(4, 2), 16);
+
   
-  // Calculate luminance
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  
+// Calculate luminance
+  const luminance = (0.(299 * r + 0).(587 * g + 0).114 * b) / 255;
+
   return luminance > 0.5 ? 'dark' : 'light';
 };
 
@@ -396,4 +422,4 @@ module.exports = {
   queryStringToObject,
   generateRandomColor,
   getColorContrast
-}; 
+};

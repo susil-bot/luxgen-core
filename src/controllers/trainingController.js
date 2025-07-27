@@ -11,21 +11,25 @@ class TrainingController {
   /**
    * Get all training sessions with pagination and optimization
    */
-  async getTrainingSessions(req, res) {
+  async getTrainingSessions (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req.user;
       const pagination = createPaginationOptions(req);
-      
+
+
       // Try to get from cache first
       const cacheKey = `training:sessions:${tenantId}:${pagination.page}:${pagination.limit}`;
       const cachedResult = await cacheManager.get(cacheKey);
       if (cachedResult) {
         return res.json(cachedResult);
       }
-      
+
+
       // Build optimized query
       const query = TrainingSession.find({ tenantId });
-      
+
+
       // Apply filters
       if (req.query.status) {
         query.where('status', req.query.status);
@@ -36,7 +40,8 @@ class TrainingController {
       if (req.query.sessionType) {
         query.where('sessionType', req.query.sessionType);
       }
-      
+
+
       // Optimize query with pagination
       const optimizedQuery = optimizeQuery(query, {
         lean: true,
@@ -44,10 +49,10 @@ class TrainingController {
         select: 'title sessionType scheduledAt duration status trainerId participants capacity',
         sort: pagination.sort
       });
-      
+
       const sessions = await optimizedQuery.skip(pagination.skip);
       const total = await TrainingSession.countDocuments({ tenantId });
-      
+
       const result = {
         success: true,
         data: {
@@ -61,10 +66,11 @@ class TrainingController {
         },
         message: 'Training sessions retrieved successfully'
       };
-      
+
+
       // Cache the result for 5 minutes
       await cacheManager.set(cacheKey, result, 300);
-      
+
       res.json(result);
     } catch (error) {
       logger.error('❌ Error getting training sessions:', error);
@@ -79,7 +85,8 @@ class TrainingController {
   /**
    * Get a specific training session by ID
    */
-  async getTrainingSession(req, res) {
+  async getTrainingSession (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { sessionId } = req.params;
@@ -116,7 +123,8 @@ class TrainingController {
   /**
    * Create a new training session
    */
-  async createTrainingSession(req, res) {
+  async createTrainingSession (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const sessionData = {
@@ -132,10 +140,10 @@ class TrainingController {
         .populate('trainers.trainerId', 'firstName lastName email')
         .populate('courseId', 'title courseCode');
 
-      logger.info('Training session created', { 
-        sessionId: session._id, 
+      logger.info('Training session created', {
+        sessionId: session._id,
         tenantId,
-        title: session.title 
+        title: session.title
       });
 
       res.status(201).json({
@@ -156,7 +164,8 @@ class TrainingController {
   /**
    * Update a training session
    */
-  async updateTrainingSession(req, res) {
+  async updateTrainingSession (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { sessionId } = req.params;
@@ -170,8 +179,8 @@ class TrainingController {
         updateData,
         { new: true, runValidators: true }
       ).populate('trainers.trainerId', 'firstName lastName email')
-       .populate('participants.userId', 'firstName lastName email')
-       .populate('courseId', 'title courseCode');
+        .populate('participants.userId', 'firstName lastName email')
+        .populate('courseId', 'title courseCode');
 
       if (!session) {
         return res.status(404).json({
@@ -200,7 +209,8 @@ class TrainingController {
   /**
    * Delete a training session
    */
-  async deleteTrainingSession(req, res) {
+  async deleteTrainingSession (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { sessionId } = req.params;
@@ -233,7 +243,8 @@ class TrainingController {
   /**
    * Add participant to training session
    */
-  async addSessionParticipant(req, res) {
+  async addSessionParticipant (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { sessionId } = req.params;
@@ -249,7 +260,9 @@ class TrainingController {
 
       await session.addParticipant(userId);
 
-      logger.info('Participant added to training session', { sessionId, userId, tenantId });
+      logger.info('Participant added to training session', {
+        sessionId, userId, tenantId
+      });
 
       res.json({
         success: true,
@@ -267,7 +280,8 @@ class TrainingController {
   /**
    * Remove participant from training session
    */
-  async removeSessionParticipant(req, res) {
+  async removeSessionParticipant (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { sessionId, userId } = req.params;
@@ -282,7 +296,9 @@ class TrainingController {
 
       await session.removeParticipant(userId);
 
-      logger.info('Participant removed from training session', { sessionId, userId, tenantId });
+      logger.info('Participant removed from training session', {
+        sessionId, userId, tenantId
+      });
 
       res.json({
         success: true,
@@ -300,7 +316,8 @@ class TrainingController {
   /**
    * Mark attendance for a participant
    */
-  async markAttendance(req, res) {
+  async markAttendance (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { sessionId, userId } = req.params;
@@ -315,7 +332,9 @@ class TrainingController {
 
       await session.markAttendance(userId);
 
-      logger.info('Attendance marked for participant', { sessionId, userId, tenantId });
+      logger.info('Attendance marked for participant', {
+        sessionId, userId, tenantId
+      });
 
       res.json({
         success: true,
@@ -333,7 +352,8 @@ class TrainingController {
   /**
    * Complete a training session
    */
-  async completeSession(req, res) {
+  async completeSession (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { sessionId } = req.params;
@@ -366,21 +386,25 @@ class TrainingController {
   /**
    * Get all training courses with pagination and optimization
    */
-  async getTrainingCourses(req, res) {
+  async getTrainingCourses (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req.user;
       const pagination = createPaginationOptions(req);
-      
+
+
       // Try to get from cache first
       const cacheKey = `training:courses:${tenantId}:${pagination.page}:${pagination.limit}`;
       const cachedResult = await cacheManager.get(cacheKey);
       if (cachedResult) {
         return res.json(cachedResult);
       }
-      
+
+
       // Build optimized query
       const query = TrainingCourse.find({ tenantId });
-      
+
+
       // Apply filters
       if (req.query.status) {
         query.where('status', req.query.status);
@@ -391,7 +415,8 @@ class TrainingController {
       if (req.query.instructorId) {
         query.where('instructorId', req.query.instructorId);
       }
-      
+
+
       // Optimize query with pagination
       const optimizedQuery = optimizeQuery(query, {
         lean: true,
@@ -399,10 +424,10 @@ class TrainingController {
         select: 'title code category level duration instructorId enrollmentCount status',
         sort: pagination.sort
       });
-      
+
       const courses = await optimizedQuery.skip(pagination.skip);
       const total = await TrainingCourse.countDocuments({ tenantId });
-      
+
       const result = {
         success: true,
         data: {
@@ -416,10 +441,11 @@ class TrainingController {
         },
         message: 'Training courses retrieved successfully'
       };
-      
+
+
       // Cache the result for 5 minutes
       await cacheManager.set(cacheKey, result, 300);
-      
+
       res.json(result);
     } catch (error) {
       logger.error('❌ Error getting training courses:', error);
@@ -434,7 +460,8 @@ class TrainingController {
   /**
    * Get a specific training course by ID
    */
-  async getTrainingCourse(req, res) {
+  async getTrainingCourse (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { courseId } = req.params;
@@ -472,7 +499,8 @@ class TrainingController {
   /**
    * Create a new training course
    */
-  async createTrainingCourse(req, res) {
+  async createTrainingCourse (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const courseData = {
@@ -488,10 +516,10 @@ class TrainingController {
         .populate('instructors.instructorId', 'firstName lastName email')
         .populate('modules.moduleId', 'title moduleCode');
 
-      logger.info('Training course created', { 
-        courseId: course._id, 
+      logger.info('Training course created', {
+        courseId: course._id,
         tenantId,
-        title: course.title 
+        title: course.title
       });
 
       res.status(201).json({
@@ -512,7 +540,8 @@ class TrainingController {
   /**
    * Update a training course
    */
-  async updateTrainingCourse(req, res) {
+  async updateTrainingCourse (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { courseId } = req.params;
@@ -526,8 +555,8 @@ class TrainingController {
         updateData,
         { new: true, runValidators: true }
       ).populate('instructors.instructorId', 'firstName lastName email')
-       .populate('modules.moduleId', 'title moduleCode')
-       .populate('assessments.assessmentId', 'title type');
+        .populate('modules.moduleId', 'title moduleCode')
+        .populate('assessments.assessmentId', 'title type');
 
       if (!course) {
         return res.status(404).json({
@@ -556,7 +585,8 @@ class TrainingController {
   /**
    * Delete a training course
    */
-  async deleteTrainingCourse(req, res) {
+  async deleteTrainingCourse (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { courseId } = req.params;
@@ -589,7 +619,8 @@ class TrainingController {
   /**
    * Enroll user in a course
    */
-  async enrollInCourse(req, res) {
+  async enrollInCourse (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { courseId } = req.params;
@@ -605,7 +636,9 @@ class TrainingController {
 
       await course.enrollUser(userId);
 
-      logger.info('User enrolled in course', { courseId, userId, tenantId });
+      logger.info('User enrolled in course', {
+        courseId, userId, tenantId
+      });
 
       res.json({
         success: true,
@@ -623,7 +656,8 @@ class TrainingController {
   /**
    * Get participant progress
    */
-  async getParticipantProgress(req, res) {
+  async getParticipantProgress (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { courseId, participantId } = req.params;
@@ -644,7 +678,9 @@ class TrainingController {
         });
       }
 
-      logger.info('Participant progress retrieved', { courseId, participantId, tenantId });
+      logger.info('Participant progress retrieved', {
+        courseId, participantId, tenantId
+      });
 
       res.json({
         success: true,
@@ -663,7 +699,8 @@ class TrainingController {
   /**
    * Complete a module
    */
-  async completeModule(req, res) {
+  async completeModule (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { courseId, moduleId } = req.params;
@@ -679,7 +716,9 @@ class TrainingController {
 
       await course.updateUserProgress(userId, moduleId, score);
 
-      logger.info('Module completed', { courseId, moduleId, userId, tenantId });
+      logger.info('Module completed', {
+        courseId, moduleId, userId, tenantId
+      });
 
       res.json({
         success: true,
@@ -694,32 +733,44 @@ class TrainingController {
     }
   }
 
+
   // ==================== TRAINING MODULES ====================
 
   /**
    * Get all training modules for a tenant
    */
-  async getTrainingModules(req, res) {
+  async getTrainingModules (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
-      const { 
-        page = 1, 
-        limit = 10, 
-        category, 
-        type, 
+      const {
+        page = 1,
+        limit = 10,
+        category,
+        type,
         difficulty,
         isActive,
         isPublished,
-        search 
+        search
       } = req.query;
 
       const query = { tenantId };
-      
-      if (category) query.category = category;
-      if (type) query.type = type;
-      if (difficulty) query.difficulty = difficulty;
-      if (isActive !== undefined) query.isActive = isActive === 'true';
-      if (isPublished !== undefined) query.isPublished = isPublished === 'true';
+
+      if (category) {
+        query.category = category;
+      }
+      if (type) {
+        query.type = type;
+      }
+      if (difficulty) {
+        query.difficulty = difficulty;
+      }
+      if (isActive !== undefined) {
+        query.isActive = isActive === 'true';
+      }
+      if (isPublished !== undefined) {
+        query.isPublished = isPublished === 'true';
+      }
       if (search) {
         query.$or = [
           { title: { $regex: search, $options: 'i' } },
@@ -729,7 +780,7 @@ class TrainingController {
       }
 
       const skip = (page - 1) * limit;
-      
+
       const modules = await TrainingModule.find(query)
         .populate('assessments.assessmentId', 'title type')
         .sort({ createdAt: -1 })
@@ -769,7 +820,8 @@ class TrainingController {
   /**
    * Get a specific training module by ID
    */
-  async getTrainingModule(req, res) {
+  async getTrainingModule (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { moduleId } = req.params;
@@ -804,7 +856,8 @@ class TrainingController {
   /**
    * Create a new training module
    */
-  async createTrainingModule(req, res) {
+  async createTrainingModule (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const moduleData = {
@@ -816,10 +869,10 @@ class TrainingController {
       const module = new TrainingModule(moduleData);
       await module.save();
 
-      logger.info('Training module created', { 
-        moduleId: module._id, 
+      logger.info('Training module created', {
+        moduleId: module._id,
         tenantId,
-        title: module.title 
+        title: module.title
       });
 
       res.status(201).json({
@@ -840,7 +893,8 @@ class TrainingController {
   /**
    * Update a training module
    */
-  async updateTrainingModule(req, res) {
+  async updateTrainingModule (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { moduleId } = req.params;
@@ -882,7 +936,8 @@ class TrainingController {
   /**
    * Delete a training module
    */
-  async deleteTrainingModule(req, res) {
+  async deleteTrainingModule (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { moduleId } = req.params;
@@ -912,30 +967,40 @@ class TrainingController {
     }
   }
 
+
   // ==================== TRAINING ASSESSMENTS ====================
 
   /**
    * Get all training assessments for a tenant
    */
-  async getTrainingAssessments(req, res) {
+  async getTrainingAssessments (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
-      const { 
-        page = 1, 
-        limit = 10, 
-        type, 
+      const {
+        page = 1,
+        limit = 10,
+        type,
         category,
         isActive,
         isPublished,
-        search 
+        search
       } = req.query;
 
       const query = { tenantId };
-      
-      if (type) query.type = type;
-      if (category) query.category = category;
-      if (isActive !== undefined) query.isActive = isActive === 'true';
-      if (isPublished !== undefined) query.isPublished = isPublished === 'true';
+
+      if (type) {
+        query.type = type;
+      }
+      if (category) {
+        query.category = category;
+      }
+      if (isActive !== undefined) {
+        query.isActive = isActive === 'true';
+      }
+      if (isPublished !== undefined) {
+        query.isPublished = isPublished === 'true';
+      }
       if (search) {
         query.$or = [
           { title: { $regex: search, $options: 'i' } },
@@ -945,7 +1010,7 @@ class TrainingController {
       }
 
       const skip = (page - 1) * limit;
-      
+
       const assessments = await TrainingAssessment.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -984,7 +1049,8 @@ class TrainingController {
   /**
    * Get a specific training assessment by ID
    */
-  async getTrainingAssessment(req, res) {
+  async getTrainingAssessment (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { assessmentId } = req.params;
@@ -1018,7 +1084,8 @@ class TrainingController {
   /**
    * Create a new training assessment
    */
-  async createTrainingAssessment(req, res) {
+  async createTrainingAssessment (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const assessmentData = {
@@ -1030,10 +1097,10 @@ class TrainingController {
       const assessment = new TrainingAssessment(assessmentData);
       await assessment.save();
 
-      logger.info('Training assessment created', { 
-        assessmentId: assessment._id, 
+      logger.info('Training assessment created', {
+        assessmentId: assessment._id,
         tenantId,
-        title: assessment.title 
+        title: assessment.title
       });
 
       res.status(201).json({
@@ -1054,7 +1121,8 @@ class TrainingController {
   /**
    * Update a training assessment
    */
-  async updateTrainingAssessment(req, res) {
+  async updateTrainingAssessment (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { assessmentId } = req.params;
@@ -1096,7 +1164,8 @@ class TrainingController {
   /**
    * Delete a training assessment
    */
-  async deleteTrainingAssessment(req, res) {
+  async deleteTrainingAssessment (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { assessmentId } = req.params;
@@ -1129,7 +1198,8 @@ class TrainingController {
   /**
    * Submit assessment answers
    */
-  async submitAssessment(req, res) {
+  async submitAssessment (req, res) {
+    // TODO: Add await statements
     try {
       const { tenantId } = req;
       const { assessmentId } = req.params;
@@ -1144,7 +1214,8 @@ class TrainingController {
       }
 
       const result = assessment.calculateScore(answers);
-      
+
+
       // Update assessment statistics
       await assessment.updateStatistics({
         completed: true,
@@ -1152,9 +1223,9 @@ class TrainingController {
         passed: result.passed
       });
 
-      logger.info('Assessment submitted', { 
-        assessmentId, 
-        userId, 
+      logger.info('Assessment submitted', {
+        assessmentId,
+        userId,
         tenantId,
         score: result.percentage,
         passed: result.passed
@@ -1183,53 +1254,59 @@ class TrainingController {
   /**
    * Get trainer statistics with optimization
    */
-  async getTrainerStats(req, res) {
+  async getTrainerStats (req, res) {
+    // TODO: Add await statements
     try {
       const { trainerId } = req.params;
       const { tenantId } = req.user;
-      
+
+
       // Try to get from cache first
       const cacheKey = `trainer:stats:${trainerId}:${tenantId}`;
       const cachedResult = await cacheManager.get(cacheKey);
       if (cachedResult) {
         return res.json(cachedResult);
       }
-      
+
+
       // Get trainer sessions with optimization
-      const sessionsQuery = TrainingSession.find({ 
-        trainerId, 
-        tenantId 
+      const sessionsQuery = TrainingSession.find({
+        trainerId,
+        tenantId
       });
-      
+
       const sessions = await optimizeQuery(sessionsQuery, {
         lean: true,
         select: 'title scheduledAt duration status participants attendance'
       });
-      
+
+
       // Calculate statistics
       const stats = {
         totalSessions: sessions.length,
         completedSessions: sessions.filter(s => s.status === 'completed').length,
         upcomingSessions: sessions.filter(s => s.status === 'scheduled').length,
         totalDuration: sessions.reduce((sum, s) => sum + (s.duration || 0), 0),
-        averageAttendance: sessions.length > 0 ? 
-          sessions.reduce((sum, s) => sum + (s.attendance?.length || 0), 0) / sessions.length : 0,
+        averageAttendance: sessions.length > 0
+          ? sessions.reduce((sum, s) => sum + (s.attendance?.length || 0), 0) / sessions.length : 0,
         totalParticipants: sessions.reduce((sum, s) => sum + (s.participants?.length || 0), 0)
       };
-      
+
       const result = {
         success: true,
         data: {
           trainerId,
           stats,
-          recentSessions: sessions.slice(0, 5) // Last 5 sessions
+          recentSessions: sessions.slice(0, 5)
+          // Last 5 sessions
         },
         message: 'Trainer statistics retrieved successfully'
       };
-      
+
+
       // Cache the result for 10 minutes
       await cacheManager.set(cacheKey, result, 600);
-      
+
       res.json(result);
     } catch (error) {
       logger.error('❌ Error getting trainer stats:', error);
@@ -1244,71 +1321,79 @@ class TrainingController {
   /**
    * Get participant statistics with optimization
    */
-  async getParticipantStats(req, res) {
+  async getParticipantStats (req, res) {
+    // TODO: Add await statements
     try {
       const { participantId } = req.params;
       const { tenantId } = req.user;
-      
+
+
       // Try to get from cache first
       const cacheKey = `participant:stats:${participantId}:${tenantId}`;
       const cachedResult = await cacheManager.get(cacheKey);
       if (cachedResult) {
         return res.json(cachedResult);
       }
-      
+
+
       // Get participant sessions with optimization
-      const sessionsQuery = TrainingSession.find({ 
+      const sessionsQuery = TrainingSession.find({
         participants: participantId,
-        tenantId 
+        tenantId
       });
-      
+
       const sessions = await optimizeQuery(sessionsQuery, {
         lean: true,
         select: 'title scheduledAt duration status attendance'
       });
-      
+
+
       // Get participant courses with optimization
-      const coursesQuery = TrainingCourse.find({ 
+      const coursesQuery = TrainingCourse.find({
         'enrollments.participantId': participantId,
-        tenantId 
+        tenantId
       });
-      
+
       const courses = await optimizeQuery(coursesQuery, {
         lean: true,
         select: 'title code category level progress'
       });
-      
+
+
       // Calculate statistics
       const stats = {
         totalSessions: sessions.length,
-        attendedSessions: sessions.filter(s => 
+        attendedSessions: sessions.filter(s =>
           s.attendance?.some(a => a.participantId === participantId && a.attended)
         ).length,
         totalCourses: courses.length,
-        completedCourses: courses.filter(c => 
+        completedCourses: courses.filter(c =>
           c.progress?.find(p => p.participantId === participantId)?.completed
         ).length,
         totalDuration: sessions.reduce((sum, s) => sum + (s.duration || 0), 0),
-        attendanceRate: sessions.length > 0 ? 
-          sessions.filter(s => 
+        attendanceRate: sessions.length > 0
+          ? sessions.filter(s =>
             s.attendance?.some(a => a.participantId === participantId && a.attended)
           ).length / sessions.length * 100 : 0
       };
-      
+
       const result = {
         success: true,
         data: {
           participantId,
           stats,
-          recentSessions: sessions.slice(0, 5), // Last 5 sessions
-          enrolledCourses: courses.slice(0, 5) // Last 5 courses
+          recentSessions: sessions.slice(0, 5),
+          // Last 5 sessions
+          enrolledCourses: courses.slice(0, 5)
+          // Last 5 courses
         },
         message: 'Participant statistics retrieved successfully'
       };
-      
+
+
       // Cache the result for 10 minutes
       await cacheManager.set(cacheKey, result, 600);
-      
+
       res.json(result);
     } catch (error) {
       logger.error('❌ Error getting participant stats:', error);
@@ -1321,4 +1406,4 @@ class TrainingController {
   }
 }
 
-module.exports = new TrainingController(); 
+module.exports = new TrainingController();

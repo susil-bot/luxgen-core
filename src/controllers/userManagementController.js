@@ -11,22 +11,29 @@ const { ValidationError, AuthorizationError, NotFoundError } = require('../utils
 exports.getAllUsers = async (req, res) => {
   try {
     const { tenantId } = req.user;
-    const { 
-      page = 1, 
-      limit = 10, 
-      role, 
-      isActive, 
+    const {
+      page = 1,
+      limit = 10,
+      role,
+      isActive,
       isVerified,
-      search 
+      search
     } = req.query;
 
     const options = {};
-    if (role) options.role = role;
-    if (isActive !== undefined) options.isActive = isActive === 'true';
-    if (isVerified !== undefined) options.isVerified = isVerified === 'true';
+    if (role) {
+      options.role = role;
+    }
+    if (isActive !== undefined) {
+      options.isActive = isActive === 'true';
+    }
+    if (isVerified !== undefined) {
+      options.isVerified = isVerified === 'true';
+    }
 
-    let query = { tenantId };
-    
+    const query = { tenantId };
+
+
     // Add search functionality
     if (search) {
       query.$or = [
@@ -35,6 +42,7 @@ exports.getAllUsers = async (req, res) => {
         { email: { $regex: search, $options: 'i' } }
       ];
     }
+
 
     // Add filter options
     Object.assign(query, options);
@@ -88,12 +96,12 @@ exports.getUserById = async (req, res) => {
     const { userId } = req.params;
     const { tenantId } = req.user;
 
-    const user = await User.findOne({ 
-      _id: userId, 
-      tenantId 
+    const user = await User.findOne({
+      _id: userId,
+      tenantId
     })
-    .select('-password')
-    .populate('tenantId', 'name slug');
+      .select('-password')
+      .populate('tenantId', 'name slug');
 
     if (!user) {
       throw new NotFoundError('User not found');
@@ -140,10 +148,12 @@ exports.createUser = async (req, res) => {
       isActive = true
     } = req.body;
 
+
     // Validate required fields
     if (!firstName || !lastName || !email || !password) {
       throw new ValidationError('First name, last name, email, and password are required');
     }
+
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -151,10 +161,12 @@ exports.createUser = async (req, res) => {
       throw new ValidationError('Invalid email format');
     }
 
+
     // Validate password strength
     if (password.length < 6) {
       throw new ValidationError('Password must be at least 6 characters long');
     }
+
 
     // Check if user already exists
     const existingUser = await User.findOne({ email, tenantId });
@@ -162,8 +174,10 @@ exports.createUser = async (req, res) => {
       throw new ValidationError('User with this email already exists');
     }
 
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
+
 
     // Generate verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -179,11 +193,13 @@ exports.createUser = async (req, res) => {
       isActive,
       tenantId,
       emailVerificationToken: verificationToken,
-      emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      // 24 hours
       createdBy
     });
 
     await user.save();
+
 
     // Populate references
     await user.populate('tenantId', 'name slug');
@@ -228,35 +244,38 @@ exports.updateUser = async (req, res) => {
     const { tenantId, userId: updatedBy } = req.user;
     const updateData = req.body;
 
-    const user = await User.findOne({ 
-      _id: userId, 
-      tenantId 
+    const user = await User.findOne({
+      _id: userId,
+      tenantId
     });
 
     if (!user) {
       throw new NotFoundError('User not found');
     }
 
+
     // Check if user has permission to update this user
     const isAdmin = req.user.role === 'admin';
     const isSelf = userId === req.user.userId;
-    
+
     if (!isAdmin && !isSelf) {
       throw new AuthorizationError('You do not have permission to update this user');
     }
 
+
     // If email is being changed, check for duplicates
     if (updateData.email && updateData.email !== user.email) {
-      const existingUser = await User.findOne({ 
-        email: updateData.email, 
+      const existingUser = await User.findOne({
+        email: updateData.email,
         tenantId,
         _id: { $ne: userId }
       });
-      
+
       if (existingUser) {
         throw new ValidationError('Email is already in use');
       }
     }
+
 
     // If password is being changed, hash it
     if (updateData.password) {
@@ -267,9 +286,11 @@ exports.updateUser = async (req, res) => {
       updateData.passwordChangedAt = new Date();
     }
 
+
     // Update user
     Object.assign(user, updateData, { updatedBy });
     await user.save();
+
 
     // Populate references
     await user.populate('tenantId', 'name slug');
@@ -313,19 +334,20 @@ exports.deleteUser = async (req, res) => {
     const { userId } = req.params;
     const { tenantId, userId: deletedBy } = req.user;
 
-    const user = await User.findOne({ 
-      _id: userId, 
-      tenantId 
+    const user = await User.findOne({
+      _id: userId,
+      tenantId
     });
 
     if (!user) {
       throw new NotFoundError('User not found');
     }
 
+
     // Check if user has permission to delete this user
     const isAdmin = req.user.role === 'admin';
     const isSelf = userId === req.user.userId;
-    
+
     if (!isAdmin) {
       throw new AuthorizationError('You do not have permission to delete users');
     }
@@ -333,6 +355,7 @@ exports.deleteUser = async (req, res) => {
     if (isSelf) {
       throw new ValidationError('You cannot delete your own account');
     }
+
 
     // Soft delete
     user.isDeleted = true;
@@ -375,6 +398,7 @@ exports.bulkUserAction = async (req, res) => {
     const { tenantId, userId: actionBy } = req.user;
     const { userIds, action, data = {} } = req.body;
 
+
     // Validate required fields
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       throw new ValidationError('User IDs array is required');
@@ -384,14 +408,15 @@ exports.bulkUserAction = async (req, res) => {
       throw new ValidationError('Action is required');
     }
 
+
     // Check if user has permission for bulk operations
     if (req.user.role !== 'admin') {
       throw new AuthorizationError('Only admins can perform bulk operations');
     }
 
-    const users = await User.find({ 
-      _id: { $in: userIds }, 
-      tenantId 
+    const users = await User.find({
+      _id: { $in: userIds },
+      tenantId
     });
 
     if (users.length !== userIds.length) {
@@ -411,10 +436,10 @@ exports.bulkUserAction = async (req, res) => {
         message = 'Users deactivated successfully';
         break;
       case 'delete':
-        updateData = { 
-          isDeleted: true, 
-          deletedAt: new Date(), 
-          deletedBy: actionBy 
+        updateData = {
+          isDeleted: true,
+          deletedAt: new Date(),
+          deletedBy: actionBy
         };
         message = 'Users deleted successfully';
         break;
@@ -428,6 +453,7 @@ exports.bulkUserAction = async (req, res) => {
       default:
         throw new ValidationError('Invalid action');
     }
+
 
     // Perform bulk update
     const result = await User.updateMany(
@@ -477,28 +503,30 @@ exports.getUserHealth = async (req, res) => {
     const { userId } = req.params;
     const { tenantId } = req.user;
 
-    const user = await User.findOne({ 
-      _id: userId, 
-      tenantId 
+    const user = await User.findOne({
+      _id: userId,
+      tenantId
     }).select('-password');
 
     if (!user) {
       throw new NotFoundError('User not found');
     }
 
+
     // Calculate user health metrics
     const healthMetrics = {
       isActive: user.isActive,
       isVerified: user.isVerified,
       lastLogin: user.lastLogin,
-      daysSinceLastLogin: user.lastLogin ? 
-        Math.floor((Date.now() - user.lastLogin.getTime()) / (1000 * 60 * 60 * 24)) : null,
+      daysSinceLastLogin: user.lastLogin
+        ? Math.floor((Date.now() - user.lastLogin.getTime()) / (1000 * 60 * 60 * 24)) : null,
       accountAge: Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)),
-      passwordAge: user.passwordChangedAt ? 
-        Math.floor((Date.now() - user.passwordChangedAt.getTime()) / (1000 * 60 * 60 * 24)) : null,
+      passwordAge: user.passwordChangedAt
+        ? Math.floor((Date.now() - user.passwordChangedAt.getTime()) / (1000 * 60 * 60 * 24)) : null,
       loginCount: user.loginCount || 0,
       status: 'healthy'
     };
+
 
     // Determine health status
     if (!user.isActive) {
@@ -551,6 +579,7 @@ exports.resetUserPassword = async (req, res) => {
     const { tenantId, userId: resetBy } = req.user;
     const { password } = req.body;
 
+
     // Check if user has permission
     if (req.user.role !== 'admin') {
       throw new AuthorizationError('Only admins can reset user passwords');
@@ -560,14 +589,15 @@ exports.resetUserPassword = async (req, res) => {
       throw new ValidationError('Password must be at least 6 characters long');
     }
 
-    const user = await User.findOne({ 
-      _id: userId, 
-      tenantId 
+    const user = await User.findOne({
+      _id: userId,
+      tenantId
     });
 
     if (!user) {
       throw new NotFoundError('User not found');
     }
+
 
     // Hash new password
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -614,14 +644,15 @@ exports.suspendUser = async (req, res) => {
     const { tenantId, userId: suspendedBy } = req.user;
     const { reason } = req.body;
 
+
     // Check if user has permission
     if (req.user.role !== 'admin') {
       throw new AuthorizationError('Only admins can suspend users');
     }
 
-    const user = await User.findOne({ 
-      _id: userId, 
-      tenantId 
+    const user = await User.findOne({
+      _id: userId,
+      tenantId
     });
 
     if (!user) {
@@ -631,6 +662,7 @@ exports.suspendUser = async (req, res) => {
     if (userId === req.user.userId) {
       throw new ValidationError('You cannot suspend your own account');
     }
+
 
     // Suspend user
     user.isActive = false;
@@ -676,19 +708,21 @@ exports.activateUser = async (req, res) => {
     const { userId } = req.params;
     const { tenantId, userId: activatedBy } = req.user;
 
+
     // Check if user has permission
     if (req.user.role !== 'admin') {
       throw new AuthorizationError('Only admins can activate users');
     }
 
-    const user = await User.findOne({ 
-      _id: userId, 
-      tenantId 
+    const user = await User.findOne({
+      _id: userId,
+      tenantId
     });
 
     if (!user) {
       throw new NotFoundError('User not found');
     }
+
 
     // Activate user
     user.isActive = true;
@@ -723,4 +757,4 @@ exports.activateUser = async (req, res) => {
       });
     }
   }
-}; 
+};

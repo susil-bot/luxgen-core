@@ -87,17 +87,7 @@ module.exports = {
   testResultsProcessor: undefined,
   
   // Reporters
-  reporters: [
-    'default',
-    ['jest-junit', {
-      outputDirectory: 'coverage',
-      outputName: 'junit.xml',
-      classNameTemplate: '{classname}',
-      titleTemplate: '{title}',
-      ancestorSeparator: ' › ',
-      usePathForSuiteName: true
-    }]
-  ],
+  reporters: ['default'],
   
   // Environment variables for tests
   testEnvironmentOptions: {

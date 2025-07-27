@@ -3,34 +3,44 @@ const router = express.Router();
 const Poll = require('../models/Poll');
 const User = require('../models/User');
 
+
 // Middleware to extract tenant ID
 const extractTenant = (req, res, next) => {
   req.tenantId = req.params.tenantId;
   next();
 };
 
+
 // Apply tenant middleware to all routes
 router.use('/:tenantId', extractTenant);
+
 
 // GET /api/polls/:tenantId - Get all polls for tenant
 router.get('/:tenantId', async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 10, 
-      status, 
-      niche, 
-      priority, 
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      niche,
+      priority,
       search,
       sortBy = 'createdAt',
       sortOrder = 'desc'
     } = req.query;
 
+
     // Build filter object
     const filters = { tenantId: req.tenantId };
-    if (status && status !== 'all') filters.status = status;
-    if (niche && niche !== 'all') filters.niche = niche;
-    if (priority && priority !== 'all') filters.priority = priority;
+    if (status && status !== 'all') {
+      filters.status = status;
+    }
+    if (niche && niche !== 'all') {
+      filters.niche = niche;
+    }
+    if (priority && priority !== 'all') {
+      filters.priority = priority;
+    }
     if (search) {
       filters.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -39,12 +49,15 @@ router.get('/:tenantId', async (req, res) => {
       ];
     }
 
+
     // Build sort object
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
+
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
+
 
     // Execute query
     const polls = await Poll.find(filters)
@@ -54,13 +67,15 @@ router.get('/:tenantId', async (req, res) => {
       .limit(parseInt(limit))
       .lean();
 
+
     // Get total count for pagination
     const total = await Poll.countDocuments(filters);
+
 
     // Calculate analytics for each poll
     const pollsWithAnalytics = polls.map(poll => ({
       ...poll,
-      responseRatePercentage: poll.analytics.totalRecipients > 0 
+      responseRatePercentage: poll.analytics.totalRecipients > 0
         ? Math.round((poll.analytics.totalResponses / poll.analytics.totalRecipients) * 100)
         : 0
     }));
@@ -85,7 +100,8 @@ router.get('/:tenantId', async (req, res) => {
   }
 });
 
-// GET /api/polls/:tenantId/stats - Get poll statistics
+
+// GET /api/polls/:(tenantId/stats - Get) poll statistics
 router.get('/:tenantId/stats', async (req, res) => {
   try {
     const stats = await Poll.aggregate([
@@ -146,11 +162,13 @@ router.get('/:tenantId/stats', async (req, res) => {
   }
 });
 
-// GET /api/polls/:tenantId/notifications - Get notifications
+
+// GET /api/polls/:(tenantId/notifications - Get) notifications
 router.get('/:tenantId/notifications', async (req, res) => {
   try {
     const { page = 1, limit = 20, unreadOnly = false } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
+
 
     // Get all polls for tenant and extract notifications
     const polls = await Poll.find({ tenantId: req.tenantId })
@@ -168,10 +186,12 @@ router.get('/:tenantId/notifications', async (req, res) => {
       allNotifications = allNotifications.concat(pollNotifications);
     });
 
+
     // Filter by read status if requested
     if (unreadOnly === 'true') {
       allNotifications = allNotifications.filter(n => !n.read);
     }
+
 
     // Sort by creation date (newest first)
     allNotifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -195,11 +215,13 @@ router.get('/:tenantId/notifications', async (req, res) => {
   }
 });
 
-// PUT /api/polls/:tenantId/notifications/:notificationId/read - Mark notification as read
+
+// PUT /api/polls/:tenantId/notifications/:(notificationId/read - Mark) notification as read
 router.put('/:tenantId/notifications/:notificationId/read', async (req, res) => {
   try {
     const { notificationId } = req.params;
-    
+
+
     // Find poll with this notification
     const poll = await Poll.findOne({
       'notifications._id': notificationId,
@@ -212,6 +234,7 @@ router.put('/:tenantId/notifications/:notificationId/read', async (req, res) => 
         message: 'Notification not found'
       });
     }
+
 
     // Mark notification as read
     const notification = poll.notifications.id(notificationId);
@@ -231,6 +254,7 @@ router.put('/:tenantId/notifications/:notificationId/read', async (req, res) => 
     });
   }
 });
+
 
 // GET /api/polls/:tenantId/:id - Get single poll
 router.get('/:tenantId/:id', async (req, res) => {
@@ -261,6 +285,7 @@ router.get('/:tenantId/:id', async (req, res) => {
   }
 });
 
+
 // POST /api/polls/:tenantId - Create new poll
 router.post('/:tenantId', async (req, res) => {
   try {
@@ -278,6 +303,7 @@ router.post('/:tenantId', async (req, res) => {
       recipients
     } = req.body;
 
+
     // Create poll
     const poll = new Poll({
       tenantId: req.tenantId,
@@ -291,11 +317,13 @@ router.post('/:tenantId', async (req, res) => {
       tags,
       scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
       settings,
-      createdBy: req.user?.id || 'system', // TODO: Get from auth middleware
+      createdBy: req.user?.id || 'system',
+      // TODO: Get from auth middleware
       recipients: recipients || []
     });
 
     await poll.save();
+
 
     // Add notification for poll creation
     await poll.addNotification(
@@ -320,6 +348,7 @@ router.post('/:tenantId', async (req, res) => {
   }
 });
 
+
 // PUT /api/polls/:tenantId/:id - Update poll
 router.put('/:tenantId/:id', async (req, res) => {
   try {
@@ -334,6 +363,7 @@ router.put('/:tenantId/:id', async (req, res) => {
         message: 'Poll not found'
       });
     }
+
 
     // Update poll fields
     Object.keys(req.body).forEach(key => {
@@ -359,6 +389,7 @@ router.put('/:tenantId/:id', async (req, res) => {
     });
   }
 });
+
 
 // DELETE /api/polls/:tenantId/:id - Delete poll
 router.delete('/:tenantId/:id', async (req, res) => {
@@ -389,7 +420,8 @@ router.delete('/:tenantId/:id', async (req, res) => {
   }
 });
 
-// POST /api/polls/:tenantId/:id/recipients - Add recipients
+
+// POST /api/polls/:tenantId/:(id/recipients - Add) recipients
 router.post('/:tenantId/:id/recipients', async (req, res) => {
   try {
     const { recipients } = req.body;
@@ -404,6 +436,7 @@ router.post('/:tenantId/:id/recipients', async (req, res) => {
         message: 'Poll not found'
       });
     }
+
 
     // Add recipients
     for (const recipient of recipients) {
@@ -429,7 +462,8 @@ router.post('/:tenantId/:id/recipients', async (req, res) => {
   }
 });
 
-// POST /api/polls/:tenantId/:id/responses - Submit poll response
+
+// POST /api/polls/:tenantId/:(id/responses - Submit) poll response
 router.post('/:tenantId/:id/responses', async (req, res) => {
   try {
     const { userId, userName, userEmail, answers } = req.body;
@@ -445,6 +479,7 @@ router.post('/:tenantId/:id/responses', async (req, res) => {
       });
     }
 
+
     // Check if poll is active
     if (poll.status !== 'sent' && poll.status !== 'scheduled') {
       return res.status(400).json({
@@ -452,6 +487,7 @@ router.post('/:tenantId/:id/responses', async (req, res) => {
         message: 'Poll is not accepting responses'
       });
     }
+
 
     // Check if user already responded
     const existingResponse = poll.responses.find(r => r.userEmail === userEmail);
@@ -462,8 +498,10 @@ router.post('/:tenantId/:id/responses', async (req, res) => {
       });
     }
 
+
     // Add response
     await poll.addResponse(userId, userName, userEmail, answers);
+
 
     // Add notification
     await poll.addNotification(
@@ -488,7 +526,8 @@ router.post('/:tenantId/:id/responses', async (req, res) => {
   }
 });
 
-// POST /api/polls/:tenantId/:id/feedback - Submit feedback
+
+// POST /api/polls/:tenantId/:(id/feedback - Submit) feedback
 router.post('/:tenantId/:id/feedback', async (req, res) => {
   try {
     const { userId, userName, userEmail, rating, comment } = req.body;
@@ -504,8 +543,10 @@ router.post('/:tenantId/:id/feedback', async (req, res) => {
       });
     }
 
+
     // Add feedback
     await poll.addFeedback(userId, userName, userEmail, rating, comment);
+
 
     // Add notification
     await poll.addNotification(
@@ -531,8 +572,7 @@ router.post('/:tenantId/:id/feedback', async (req, res) => {
 });
 
 
-
-// GET /api/polls/:tenantId/:id/responses - Get poll responses
+// GET /api/polls/:tenantId/:(id/responses - Get) poll responses
 router.get('/:tenantId/:id/responses', async (req, res) => {
   try {
     const poll = await Poll.findOne({
@@ -561,7 +601,8 @@ router.get('/:tenantId/:id/responses', async (req, res) => {
   }
 });
 
-// GET /api/polls/:tenantId/:id/feedback - Get poll feedback
+
+// GET /api/polls/:tenantId/:(id/feedback - Get) poll feedback
 router.get('/:tenantId/:id/feedback', async (req, res) => {
   try {
     const poll = await Poll.findOne({
@@ -590,7 +631,8 @@ router.get('/:tenantId/:id/feedback', async (req, res) => {
   }
 });
 
-// POST /api/polls/:tenantId/:id/send - Send poll to recipients
+
+// POST /api/polls/:tenantId/:(id/send - Send) poll to recipients
 router.post('/:tenantId/:id/send', async (req, res) => {
   try {
     const poll = await Poll.findOne({
@@ -612,12 +654,15 @@ router.post('/:tenantId/:id/send', async (req, res) => {
       });
     }
 
+
     // Update poll status
     poll.status = 'sent';
     poll.sentDate = new Date();
     await poll.save();
 
+
     // TODO: Implement actual sending logic (email, SMS, etc.)
+
     // For now, just mark all recipients as sent
     poll.recipients.forEach(recipient => {
       recipient.sentAt = new Date();
@@ -642,4 +687,4 @@ router.post('/:tenantId/:id/send', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

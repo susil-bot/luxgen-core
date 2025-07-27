@@ -4,6 +4,7 @@ const presentationController = require('../controllers/presentationController');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { validateRequest } = require('../middleware/validation');
 
+
 // ==================== PRESENTATIONS ====================
 
 /**
@@ -11,8 +12,8 @@ const { validateRequest } = require('../middleware/validation');
  * @desc Get all presentations
  * @access Private
  */
-router.get('/', 
-  authenticateToken, 
+router.get('/',
+  authenticateToken,
   presentationController.getPresentations
 );
 
@@ -21,8 +22,8 @@ router.get('/',
  * @desc Get presentation by ID
  * @access Private
  */
-router.get('/:presentationId', 
-  authenticateToken, 
+router.get('/:presentationId',
+  authenticateToken,
   presentationController.getPresentation
 );
 
@@ -31,8 +32,8 @@ router.get('/:presentationId',
  * @desc Create new presentation
  * @access Private (Admin/Trainer)
  */
-router.post('/', 
-  authenticateToken, 
+router.post('/',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.createPresentation
@@ -43,8 +44,8 @@ router.post('/',
  * @desc Update presentation
  * @access Private (Admin/Trainer)
  */
-router.put('/:presentationId', 
-  authenticateToken, 
+router.put('/:presentationId',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.updatePresentation
@@ -55,11 +56,12 @@ router.put('/:presentationId',
  * @desc Delete presentation
  * @access Private (Admin)
  */
-router.delete('/:presentationId', 
-  authenticateToken, 
+router.delete('/:presentationId',
+  authenticateToken,
   authorizeRoles('admin'),
   presentationController.deletePresentation
 );
+
 
 // ==================== PRESENTATION SESSIONS ====================
 
@@ -68,8 +70,8 @@ router.delete('/:presentationId',
  * @desc Start presentation session
  * @access Private (Admin/Trainer)
  */
-router.post('/:presentationId/start', 
-  authenticateToken, 
+router.post('/:presentationId/start',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.startPresentation
@@ -80,8 +82,8 @@ router.post('/:presentationId/start',
  * @desc End presentation session
  * @access Private (Admin/Trainer)
  */
-router.post('/:presentationId/end/:sessionId', 
-  authenticateToken, 
+router.post('/:presentationId/end/:sessionId',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   presentationController.endPresentation
 );
@@ -91,8 +93,8 @@ router.post('/:presentationId/end/:sessionId',
  * @desc Add participant to presentation session
  * @access Private (Admin/Trainer)
  */
-router.post('/:presentationId/sessions/:sessionId/participants', 
-  authenticateToken, 
+router.post('/:presentationId/sessions/:sessionId/participants',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.addSessionParticipant
@@ -103,8 +105,8 @@ router.post('/:presentationId/sessions/:sessionId/participants',
  * @desc Remove participant from presentation session
  * @access Private (Admin/Trainer)
  */
-router.delete('/:presentationId/sessions/:sessionId/participants/:userId', 
-  authenticateToken, 
+router.delete('/:presentationId/sessions/:sessionId/participants/:userId',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   presentationController.removeSessionParticipant
 );
@@ -114,12 +116,13 @@ router.delete('/:presentationId/sessions/:sessionId/participants/:userId',
  * @desc Advance to next slide
  * @access Private (Admin/Trainer)
  */
-router.post('/:presentationId/sessions/:sessionId/advance', 
-  authenticateToken, 
+router.post('/:presentationId/sessions/:sessionId/advance',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.advanceSlide
 );
+
 
 // ==================== PRESENTATION POLLS ====================
 
@@ -128,8 +131,8 @@ router.post('/:presentationId/sessions/:sessionId/advance',
  * @desc Add poll to presentation
  * @access Private (Admin/Trainer)
  */
-router.post('/:presentationId/polls', 
-  authenticateToken, 
+router.post('/:presentationId/polls',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.addPollToPresentation
@@ -140,8 +143,8 @@ router.post('/:presentationId/polls',
  * @desc Activate poll in presentation session
  * @access Private (Admin/Trainer)
  */
-router.post('/:presentationId/sessions/:sessionId/polls/:pollId/activate', 
-  authenticateToken, 
+router.post('/:presentationId/sessions/:sessionId/polls/:pollId/activate',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.activatePoll
@@ -152,8 +155,8 @@ router.post('/:presentationId/sessions/:sessionId/polls/:pollId/activate',
  * @desc Deactivate poll in presentation session
  * @access Private (Admin/Trainer)
  */
-router.post('/:presentationId/sessions/:sessionId/polls/:pollId/deactivate', 
-  authenticateToken, 
+router.post('/:presentationId/sessions/:sessionId/polls/:pollId/deactivate',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   presentationController.deactivatePoll
 );
@@ -163,8 +166,8 @@ router.post('/:presentationId/sessions/:sessionId/polls/:pollId/deactivate',
  * @desc Submit poll response in presentation session
  * @access Private
  */
-router.post('/:presentationId/sessions/:sessionId/polls/:pollId/responses', 
-  authenticateToken, 
+router.post('/:presentationId/sessions/:sessionId/polls/:pollId/responses',
+  authenticateToken,
   validateRequest,
   presentationController.submitPollResponse
 );
@@ -174,10 +177,11 @@ router.post('/:presentationId/sessions/:sessionId/polls/:pollId/responses',
  * @desc Get poll results from presentation session
  * @access Private
  */
-router.get('/:presentationId/sessions/:sessionId/polls/:pollId/results', 
-  authenticateToken, 
+router.get('/:presentationId/sessions/:sessionId/polls/:pollId/results',
+  authenticateToken,
   presentationController.getPollResults
 );
+
 
 // ==================== PRESENTATION SLIDES ====================
 
@@ -186,8 +190,8 @@ router.get('/:presentationId/sessions/:sessionId/polls/:pollId/results',
  * @desc Add slide to presentation
  * @access Private (Admin/Trainer)
  */
-router.post('/:presentationId/slides', 
-  authenticateToken, 
+router.post('/:presentationId/slides',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.addSlide
@@ -198,8 +202,8 @@ router.post('/:presentationId/slides',
  * @desc Update slide in presentation
  * @access Private (Admin/Trainer)
  */
-router.put('/:presentationId/slides/:slideIndex', 
-  authenticateToken, 
+router.put('/:presentationId/slides/:slideIndex',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   presentationController.updateSlide
@@ -210,11 +214,12 @@ router.put('/:presentationId/slides/:slideIndex',
  * @desc Remove slide from presentation
  * @access Private (Admin/Trainer)
  */
-router.delete('/:presentationId/slides/:slideIndex', 
-  authenticateToken, 
+router.delete('/:presentationId/slides/:slideIndex',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   presentationController.removeSlide
 );
+
 
 // ==================== PRESENTATION STATISTICS ====================
 
@@ -223,8 +228,8 @@ router.delete('/:presentationId/slides/:slideIndex',
  * @desc Get presentation statistics
  * @access Private (Admin/Trainer)
  */
-router.get('/:presentationId/stats', 
-  authenticateToken, 
+router.get('/:presentationId/stats',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   presentationController.getPresentationStats
 );
@@ -234,10 +239,10 @@ router.get('/:presentationId/stats',
  * @desc Get session statistics
  * @access Private (Admin/Trainer)
  */
-router.get('/:presentationId/sessions/:sessionId/stats', 
-  authenticateToken, 
+router.get('/:presentationId/sessions/:sessionId/stats',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   presentationController.getSessionStats
 );
 
-module.exports = router; 
+module.exports = router;

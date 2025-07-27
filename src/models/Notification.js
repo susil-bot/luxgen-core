@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
+
   // Core notification information
   tenantId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -14,7 +15,8 @@ const notificationSchema = new mongoose.Schema({
     required: true,
     index: true
   },
-  
+
+
   // Notification content
   type: {
     type: String,
@@ -30,7 +32,7 @@ const notificationSchema = new mongoose.Schema({
     required: true,
     index: true
   },
-  
+
   title: {
     type: String,
     required: true,
@@ -42,7 +44,8 @@ const notificationSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  
+
+
   // Priority and importance
   priority: {
     type: String,
@@ -56,25 +59,23 @@ const notificationSchema = new mongoose.Schema({
     default: 'info',
     index: true
   },
-  
+
+
   // Status tracking
   isRead: {
     type: Boolean,
     default: false,
     index: true
   },
-  readAt: {
-    type: Date
-  },
+  readAt: { type: Date },
   isArchived: {
     type: Boolean,
     default: false,
     index: true
   },
-  archivedAt: {
-    type: Date
-  },
-  
+  archivedAt: { type: Date },
+
+
   // Delivery settings
   delivery: {
     channels: [{
@@ -97,7 +98,8 @@ const notificationSchema = new mongoose.Schema({
       min: 0
     }
   },
-  
+
+
   // Action and navigation
   action: {
     type: {
@@ -114,7 +116,8 @@ const notificationSchema = new mongoose.Schema({
       default: 'GET'
     }
   },
-  
+
+
   // Related resources
   relatedResource: {
     type: {
@@ -128,13 +131,15 @@ const notificationSchema = new mongoose.Schema({
     },
     name: String
   },
-  
+
+
   // Data payload
   data: {
     type: mongoose.Schema.Types.Mixed,
     default: {}
   },
-  
+
+
   // Expiration and cleanup
   expiresAt: {
     type: Date,
@@ -149,7 +154,8 @@ const notificationSchema = new mongoose.Schema({
     default: 30,
     min: 1
   },
-  
+
+
   // Grouping and threading
   groupId: {
     type: String,
@@ -161,7 +167,8 @@ const notificationSchema = new mongoose.Schema({
     sparse: true,
     index: true
   },
-  
+
+
   // Metadata
   metadata: {
     type: mongoose.Schema.Types.Mixed,
@@ -173,86 +180,110 @@ const notificationSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+
 // Virtual for is expired
-notificationSchema.virtual('isExpired').get(function() {
+notificationSchema.virtual('isExpired').get(function () {
   return this.expiresAt && this.expiresAt < new Date();
 });
 
+
 // Virtual for can retry
-notificationSchema.virtual('canRetry').get(function() {
+notificationSchema.virtual('canRetry').get(function () {
   return this.delivery.retryCount < this.delivery.maxRetries;
 });
 
+
 // Virtual for delivery status
-notificationSchema.virtual('deliveryStatus').get(function() {
-  if (this.delivery.failedAt) return 'failed';
-  if (this.delivery.deliveredAt) return 'delivered';
-  if (this.delivery.sentAt) return 'sent';
-  if (this.delivery.scheduledAt) return 'scheduled';
+notificationSchema.virtual('deliveryStatus').get(function () {
+  if (this.delivery.failedAt) {
+    return 'failed';
+  }
+  if (this.delivery.deliveredAt) {
+    return 'delivered';
+  }
+  if (this.delivery.sentAt) {
+    return 'sent';
+  }
+  if (this.delivery.scheduledAt) {
+    return 'scheduled';
+  }
   return 'pending';
 });
 
+
 // Indexes for performance
-notificationSchema.index({ tenantId: 1, userId: 1, isRead: 1 });
-notificationSchema.index({ tenantId: 1, type: 1, createdAt: -1 });
-notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
+notificationSchema.index({
+  tenantId: 1, userId: 1, isRead: 1
+});
+notificationSchema.index({
+  tenantId: 1, type: 1, createdAt: -1
+});
+notificationSchema.index({
+  userId: 1, isRead: 1, createdAt: -1
+});
 notificationSchema.index({ priority: 1, createdAt: -1 });
 notificationSchema.index({ expiresAt: 1 });
 notificationSchema.index({ 'delivery.scheduledAt': 1 });
 notificationSchema.index({ groupId: 1, createdAt: -1 });
 
+
 // TTL index for automatic cleanup
-notificationSchema.index({ createdAt: 1 }, { 
-  expireAfterSeconds: 30 * 24 * 60 * 60, // 30 days default
+notificationSchema.index({ createdAt: 1 }, {
+  expireAfterSeconds: 30 * 24 * 60 * 60,
+  // 30 days default
   partialFilterExpression: { autoDelete: true }
 });
 
+
 // Pre-save middleware
-notificationSchema.pre('save', function(next) {
-  // Auto-set readAt when marked as read
+notificationSchema.pre('save', function (next) {
+// Auto-set readAt when marked as read
   if (this.isModified('isRead') && this.isRead && !this.readAt) {
     this.readAt = new Date();
   }
-  
+
+
   // Auto-set archivedAt when marked as archived
   if (this.isModified('isArchived') && this.isArchived && !this.archivedAt) {
     this.archivedAt = new Date();
   }
-  
+
+
   // Auto-set expiresAt if not provided
   if (!this.expiresAt && this.autoDelete) {
     this.expiresAt = new Date(Date.now() + this.deleteAfterDays * 24 * 60 * 60 * 1000);
   }
-  
+
   next();
 });
 
+
 // Instance methods
-notificationSchema.methods.markAsRead = async function() {
+notificationSchema.methods.markAsRead = async function () {
   this.isRead = true;
   this.readAt = new Date();
   return this.save();
 };
 
-notificationSchema.methods.markAsUnread = async function() {
+notificationSchema.methods.markAsUnread = async function () {
   this.isRead = false;
   this.readAt = null;
   return this.save();
 };
 
-notificationSchema.methods.archive = async function() {
+notificationSchema.methods.archive = async function () {
   this.isArchived = true;
   this.archivedAt = new Date();
   return this.save();
 };
 
-notificationSchema.methods.unarchive = async function() {
+notificationSchema.methods.unarchive = async function () {
   this.isArchived = false;
   this.archivedAt = null;
   return this.save();
 };
 
-notificationSchema.methods.retryDelivery = async function() {
+notificationSchema.methods.retryDelivery = async function () {
   if (this.canRetry) {
     this.delivery.retryCount += 1;
     this.delivery.failedAt = null;
@@ -263,64 +294,67 @@ notificationSchema.methods.retryDelivery = async function() {
   throw new Error('Max retries exceeded');
 };
 
-notificationSchema.methods.markAsDelivered = async function() {
+notificationSchema.methods.markAsDelivered = async function () {
   this.delivery.deliveredAt = new Date();
   return this.save();
 };
 
-notificationSchema.methods.markAsFailed = async function() {
+notificationSchema.methods.markAsFailed = async function () {
   this.delivery.failedAt = new Date();
   return this.save();
 };
 
+
 // Static methods
-notificationSchema.statics.createNotification = async function(data) {
+notificationSchema.statics.createNotification = async function (data) {
   const Notification = mongoose.model('Notification');
   const notification = new Notification(data);
   return notification.save();
 };
 
-notificationSchema.statics.findByUser = function(userId, options = {}) {
+notificationSchema.statics.findByUser = function (userId, options = {}) {
   const query = { userId, isArchived: false };
-  
+
   if (options.isRead !== undefined) {
     query.isRead = options.isRead;
   }
-  
+
   if (options.type) {
     query.type = options.type;
   }
-  
+
   if (options.priority) {
     query.priority = options.priority;
   }
-  
+
   return this.find(query).sort({ createdAt: -1 });
 };
 
-notificationSchema.statics.findUnreadByUser = function(userId) {
-  return this.find({ userId, isRead: false, isArchived: false }).sort({ createdAt: -1 });
+notificationSchema.statics.findUnreadByUser = function (userId) {
+  return this.find({
+    userId, isRead: false, isArchived: false
+  }).sort({ createdAt: -1 });
 };
 
-notificationSchema.statics.findByTenant = function(tenantId, options = {}) {
+notificationSchema.statics.findByTenant = function (tenantId, options = {}) {
   const query = { tenantId };
-  
+
   if (options.type) {
     query.type = options.type;
   }
-  
+
   if (options.priority) {
     query.priority = options.priority;
   }
-  
+
   if (options.isRead !== undefined) {
     query.isRead = options.isRead;
   }
-  
+
   return this.find(query).sort({ createdAt: -1 });
 };
 
-notificationSchema.statics.findPendingDelivery = function() {
+notificationSchema.statics.findPendingDelivery = function () {
   return this.find({
     'delivery.scheduledAt': { $lte: new Date() },
     'delivery.sentAt': { $exists: false },
@@ -328,38 +362,32 @@ notificationSchema.statics.findPendingDelivery = function() {
   });
 };
 
-notificationSchema.statics.markAllAsRead = async function(userId) {
+notificationSchema.statics.markAllAsRead = async function (userId) {
   return this.updateMany(
     { userId, isRead: false },
     { isRead: true, readAt: new Date() }
   );
 };
 
-notificationSchema.statics.getNotificationStatistics = function(tenantId, options = {}) {
+notificationSchema.statics.getNotificationStatistics = function (tenantId, options = {}) {
   const matchStage = { tenantId: new mongoose.Types.ObjectId(tenantId) };
-  
+
   if (options.startDate && options.endDate) {
     matchStage.createdAt = {
       $gte: new Date(options.startDate),
       $lte: new Date(options.endDate)
     };
   }
-  
+
   return this.aggregate([
     { $match: matchStage },
     {
       $group: {
         _id: null,
         totalNotifications: { $sum: 1 },
-        unreadNotifications: {
-          $sum: { $cond: ['$isRead', 0, 1] }
-        },
-        notificationsByType: {
-          $push: '$type'
-        },
-        notificationsByPriority: {
-          $push: '$priority'
-        },
+        unreadNotifications: { $sum: { $cond: ['$isRead', 0, 1] } },
+        notificationsByType: { $push: '$type' },
+        notificationsByPriority: { $push: '$priority' },
         averageReadTime: {
           $avg: {
             $cond: [
@@ -383,7 +411,7 @@ notificationSchema.statics.getNotificationStatistics = function(tenantId, option
             in: {
               $mergeObjects: [
                 '$$value',
-                { $literal: { '$$this': { $add: [{ $ifNull: ['$$value.$$this', 0] }, 1] } } }
+                { $literal: { $$this: { $add: [{ $ifNull: ['$$value.$$this', 0] }, 1] } } }
               ]
             }
           }
@@ -395,7 +423,7 @@ notificationSchema.statics.getNotificationStatistics = function(tenantId, option
             in: {
               $mergeObjects: [
                 '$$value',
-                { $literal: { '$$this': { $add: [{ $ifNull: ['$$value.$$this', 0] }, 1] } } }
+                { $literal: { $$this: { $add: [{ $ifNull: ['$$value.$$this', 0] }, 1] } } }
               ]
             }
           }
@@ -405,11 +433,11 @@ notificationSchema.statics.getNotificationStatistics = function(tenantId, option
   ]);
 };
 
-notificationSchema.statics.cleanupExpired = async function() {
+notificationSchema.statics.cleanupExpired = async function () {
   return this.deleteMany({
     expiresAt: { $lt: new Date() },
     autoDelete: true
   });
 };
 
-module.exports = mongoose.model('Notification', notificationSchema); 
+module.exports = mongoose.model('Notification', notificationSchema);

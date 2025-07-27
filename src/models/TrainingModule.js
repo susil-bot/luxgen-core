@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const trainingModuleSchema = new mongoose.Schema({
+
   // Core module information
   tenantId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -19,7 +20,8 @@ const trainingModuleSchema = new mongoose.Schema({
     trim: true,
     maxlength: 1000
   },
-  
+
+
   // Module details
   moduleCode: {
     type: String,
@@ -37,13 +39,16 @@ const trainingModuleSchema = new mongoose.Schema({
     enum: ['beginner', 'intermediate', 'advanced'],
     default: 'beginner'
   },
-  
+
+
   // Duration and scheduling
   estimatedDuration: {
-    type: Number, // in minutes
+    type: Number,
+    // in minutes
     required: true,
     min: 5,
-    max: 480 // 8 hours max
+    max: 480
+    // 8 hours max
   },
   isRequired: {
     type: Boolean,
@@ -53,7 +58,8 @@ const trainingModuleSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  
+
+
   // Content structure
   content: [{
     title: {
@@ -79,7 +85,8 @@ const trainingModuleSchema = new mongoose.Schema({
       trim: true
     },
     duration: {
-      type: Number, // in minutes
+      type: Number,
+      // in minutes
       default: 0
     },
     isRequired: {
@@ -95,14 +102,16 @@ const trainingModuleSchema = new mongoose.Schema({
       default: {}
     }
   }],
-  
+
+
   // Learning objectives
   learningObjectives: [{
     type: String,
     trim: true,
     maxlength: 200
   }],
-  
+
+
   // Prerequisites
   prerequisites: [{
     moduleId: {
@@ -120,7 +129,8 @@ const trainingModuleSchema = new mongoose.Schema({
       maxlength: 200
     }
   }],
-  
+
+
   // Assessments within module
   assessments: [{
     assessmentId: {
@@ -158,11 +168,14 @@ const trainingModuleSchema = new mongoose.Schema({
       default: 0
     },
     timeLimit: {
-      type: Number, // in minutes
-      default: 0 // 0 means no time limit
+      type: Number,
+      // in minutes
+      default: 0
+      // 0 means no time limit
     }
   }],
-  
+
+
   // Module settings
   settings: {
     allowRetakes: {
@@ -194,7 +207,8 @@ const trainingModuleSchema = new mongoose.Schema({
       default: false
     }
   },
-  
+
+
   // Module statistics
   statistics: {
     totalCompletions: {
@@ -202,7 +216,8 @@ const trainingModuleSchema = new mongoose.Schema({
       default: 0
     },
     averageCompletionTime: {
-      type: Number, // in minutes
+      type: Number,
+      // in minutes
       default: 0
     },
     averageScore: {
@@ -224,7 +239,8 @@ const trainingModuleSchema = new mongoose.Schema({
       default: 3
     }
   },
-  
+
+
   // Module metadata
   tags: [{
     type: String,
@@ -236,7 +252,8 @@ const trainingModuleSchema = new mongoose.Schema({
     trim: true,
     maxlength: 100
   },
-  
+
+
   // Module status
   isActive: {
     type: Boolean,
@@ -246,10 +263,9 @@ const trainingModuleSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  publishedAt: {
-    type: Date
-  },
-  
+  publishedAt: { type: Date },
+
+
   // Version control
   version: {
     type: String,
@@ -273,7 +289,8 @@ const trainingModuleSchema = new mongoose.Schema({
       ref: 'User'
     }
   }],
-  
+
+
   // Audit fields
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -290,46 +307,52 @@ const trainingModuleSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+
 // Indexes
 trainingModuleSchema.index({ tenantId: 1, isActive: 1 });
 trainingModuleSchema.index({ tenantId: 1, category: 1 });
 trainingModuleSchema.index({ moduleCode: 1 });
 trainingModuleSchema.index({ 'assessments.assessmentId': 1 });
 
+
 // Virtual for total content duration
-trainingModuleSchema.virtual('totalContentDuration').get(function() {
+trainingModuleSchema.virtual('totalContentDuration').get(function () {
   return this.content.reduce((total, item) => total + (item.duration || 0), 0);
 });
 
+
 // Virtual for completion rate
-trainingModuleSchema.virtual('completionRate').get(function() {
-  // This would be calculated based on enrollments in courses that include this module
+trainingModuleSchema.virtual('completionRate').get(function () {
+// This would be calculated based on enrollments in courses that include this module
   return this.statistics.passRate;
 });
 
+
 // Pre-save middleware
-trainingModuleSchema.pre('save', function(next) {
-  // Update estimated duration if not set
+trainingModuleSchema.pre('save', function (next) {
+// Update estimated duration if not set
   if (!this.estimatedDuration || this.estimatedDuration === 0) {
     this.estimatedDuration = this.totalContentDuration;
   }
-  
+
+
   // Update version if this is a new version
   if (this.isModified('content') || this.isModified('assessments')) {
     const currentVersion = this.version.split('.');
     const newPatch = parseInt(currentVersion[2]) + 1;
     this.version = `${currentVersion[0]}.${currentVersion[1]}.${newPatch}`;
   }
-  
+
   next();
 });
 
+
 // Static methods
-trainingModuleSchema.statics.findByTenant = function(tenantId, options = {}) {
+trainingModuleSchema.statics.findByTenant = function (tenantId, options = {}) {
   return this.find({ tenantId, ...options });
 };
 
-trainingModuleSchema.statics.findActive = function(tenantId) {
+trainingModuleSchema.statics.findActive = function (tenantId) {
   return this.find({
     tenantId,
     isActive: true,
@@ -337,7 +360,7 @@ trainingModuleSchema.statics.findActive = function(tenantId) {
   });
 };
 
-trainingModuleSchema.statics.findByCategory = function(tenantId, category) {
+trainingModuleSchema.statics.findByCategory = function (tenantId, category) {
   return this.find({
     tenantId,
     category,
@@ -346,20 +369,21 @@ trainingModuleSchema.statics.findByCategory = function(tenantId, category) {
   });
 };
 
+
 // Instance methods
-trainingModuleSchema.methods.publish = function() {
+trainingModuleSchema.methods.publish = function () {
   this.isPublished = true;
   this.publishedAt = new Date();
   return this.save();
 };
 
-trainingModuleSchema.methods.unpublish = function() {
+trainingModuleSchema.methods.unpublish = function () {
   this.isPublished = false;
   this.publishedAt = null;
   return this.save();
 };
 
-trainingModuleSchema.methods.addContent = function(contentItem) {
+trainingModuleSchema.methods.addContent = function (contentItem) {
   if (!contentItem.order) {
     contentItem.order = this.content.length;
   }
@@ -367,7 +391,7 @@ trainingModuleSchema.methods.addContent = function(contentItem) {
   return this.save();
 };
 
-trainingModuleSchema.methods.updateContent = function(contentIndex, updates) {
+trainingModuleSchema.methods.updateContent = function (contentIndex, updates) {
   if (contentIndex >= 0 && contentIndex < this.content.length) {
     this.content[contentIndex] = { ...this.content[contentIndex], ...updates };
     return this.save();
@@ -375,9 +399,10 @@ trainingModuleSchema.methods.updateContent = function(contentIndex, updates) {
   throw new Error('Invalid content index');
 };
 
-trainingModuleSchema.methods.removeContent = function(contentIndex) {
+trainingModuleSchema.methods.removeContent = function (contentIndex) {
   if (contentIndex >= 0 && contentIndex < this.content.length) {
     this.content.splice(contentIndex, 1);
+
     // Reorder remaining content
     this.content.forEach((item, index) => {
       item.order = index;
@@ -387,7 +412,7 @@ trainingModuleSchema.methods.removeContent = function(contentIndex) {
   throw new Error('Invalid content index');
 };
 
-trainingModuleSchema.methods.addAssessment = function(assessment) {
+trainingModuleSchema.methods.addAssessment = function (assessment) {
   if (!assessment.order) {
     assessment.order = this.assessments.length;
   }
@@ -395,7 +420,7 @@ trainingModuleSchema.methods.addAssessment = function(assessment) {
   return this.save();
 };
 
-trainingModuleSchema.methods.updateAssessment = function(assessmentIndex, updates) {
+trainingModuleSchema.methods.updateAssessment = function (assessmentIndex, updates) {
   if (assessmentIndex >= 0 && assessmentIndex < this.assessments.length) {
     this.assessments[assessmentIndex] = { ...this.assessments[assessmentIndex], ...updates };
     return this.save();
@@ -403,9 +428,10 @@ trainingModuleSchema.methods.updateAssessment = function(assessmentIndex, update
   throw new Error('Invalid assessment index');
 };
 
-trainingModuleSchema.methods.removeAssessment = function(assessmentIndex) {
+trainingModuleSchema.methods.removeAssessment = function (assessmentIndex) {
   if (assessmentIndex >= 0 && assessmentIndex < this.assessments.length) {
     this.assessments.splice(assessmentIndex, 1);
+
     // Reorder remaining assessments
     this.assessments.forEach((assessment, index) => {
       assessment.order = index;
@@ -415,26 +441,26 @@ trainingModuleSchema.methods.removeAssessment = function(assessmentIndex) {
   throw new Error('Invalid assessment index');
 };
 
-trainingModuleSchema.methods.updateStatistics = function(completionData) {
-  // Update completion statistics
+trainingModuleSchema.methods.updateStatistics = function (completionData) {
+// Update completion statistics
   this.statistics.totalCompletions += 1;
-  
+
   if (completionData.completionTime) {
     const currentTotal = this.statistics.averageCompletionTime * (this.statistics.totalCompletions - 1);
     this.statistics.averageCompletionTime = (currentTotal + completionData.completionTime) / this.statistics.totalCompletions;
   }
-  
+
   if (completionData.score !== undefined) {
     const currentTotal = this.statistics.averageScore * (this.statistics.totalCompletions - 1);
     this.statistics.averageScore = (currentTotal + completionData.score) / this.statistics.totalCompletions;
   }
-  
+
   if (completionData.passed) {
     const passedCount = Math.round((this.statistics.passRate / 100) * (this.statistics.totalCompletions - 1)) + 1;
     this.statistics.passRate = (passedCount / this.statistics.totalCompletions) * 100;
   }
-  
+
   return this.save();
 };
 
-module.exports = mongoose.model('TrainingModule', trainingModuleSchema); 
+module.exports = mongoose.model('TrainingModule', trainingModuleSchema);

@@ -60,6 +60,7 @@ describe('User Model', () => {
 
     it('should validate required fields', async () => {
       const userData = {
+
         // Missing required fields
         tenantId: testTenant._id
       };
@@ -100,7 +101,8 @@ describe('User Model', () => {
         firstName: 'Test',
         lastName: 'User',
         email: 'test@example.com',
-        password: '123' // Too short
+        password: '123'
+        // Too short
       };
 
       try {
@@ -154,6 +156,7 @@ describe('User Model', () => {
         lastName: 'Smith',
         email: 'jane.smith@example.com',
         password: 'password123'
+
         // Missing phone
       });
 
@@ -313,4 +316,4 @@ describe('User Model', () => {
       }
     });
   });
-}); 
+});

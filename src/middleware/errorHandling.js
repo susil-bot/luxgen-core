@@ -4,9 +4,9 @@
  */
 
 const logger = require('../utils/logger');
-const { 
-  ValidationError, 
-  AuthenticationError, 
+const {
+  ValidationError,
+  AuthenticationError,
   AuthorizationError,
   NotFoundError,
   ConflictError,
@@ -18,15 +18,18 @@ const {
   TenantError
 } = require('../utils/errors');
 
+
 // Request logging middleware
 const requestLogger = (req, res, next) => {
   const startTime = Date.now();
   const requestId = req.headers['x-request-id'] || generateRequestId();
+
   
-  // Add request ID to request object
+// Add request ID to request object
   req.requestId = requestId;
+
   
-  // Log incoming request
+// Log incoming request
   logger.info('📥 Incoming Request', {
     requestId,
     method: req.method,
@@ -38,12 +41,14 @@ const requestLogger = (req, res, next) => {
     timestamp: new Date().toISOString()
   });
 
-  // Override res.json to log response
+  
+// Override res.json to log response
   const originalJson = res.json;
-  res.json = function(data) {
+  res.json = function (data) {
     const duration = Date.now() - startTime;
+
     
-    // Log response
+// Log response
     logger.info('📤 Response Sent', {
       requestId,
       method: req.method,
@@ -54,7 +59,8 @@ const requestLogger = (req, res, next) => {
       timestamp: new Date().toISOString()
     });
 
-    // Add request ID to response headers
+    
+// Add request ID to response headers
     res.setHeader('X-Request-ID', requestId);
     res.setHeader('X-Response-Time', `${duration}ms`);
 
@@ -64,16 +70,20 @@ const requestLogger = (req, res, next) => {
   next();
 };
 
+
 // Performance monitoring middleware
 const performanceMonitor = (req, res, next) => {
   const startTime = process.hrtime();
-  
+
   res.on('finish', () => {
     const [seconds, nanoseconds] = process.hrtime(startTime);
-    const duration = seconds * 1000 + nanoseconds / 1000000; // Convert to milliseconds
+    const duration = seconds * (1000 + nanoseconds / 1000000); 
+// Convert to milliseconds
+
     
-    // Log slow requests
-    if (duration > 1000) { // Log requests taking more than 1 second
+// Log slow requests
+    if (duration > 1000) { 
+// Log requests taking more than 1 second
       logger.warn('🐌 Slow Request Detected', {
         requestId: req.requestId,
         method: req.method,
@@ -84,7 +94,8 @@ const performanceMonitor = (req, res, next) => {
       });
     }
 
-    // Log performance metrics
+    
+// Log performance metrics
     logger.info('📊 Performance Metric', {
       requestId: req.requestId,
       method: req.method,
@@ -98,12 +109,15 @@ const performanceMonitor = (req, res, next) => {
   next();
 };
 
+
 // Error tracking middleware
 const errorTracker = (err, req, res, next) => {
-  // Generate error ID
-  const errorId = generateErrorId();
   
-  // Enhanced error logging with context
+// Generate error ID
+  const errorId = generateErrorId();
+
+  
+// Enhanced error logging with context
   const errorContext = {
     errorId,
     requestId: req.requestId,
@@ -122,7 +136,8 @@ const errorTracker = (err, req, res, next) => {
     timestamp: new Date().toISOString()
   };
 
-  // Log error with appropriate level
+  
+// Log error with appropriate level
   if (err.statusCode >= 500) {
     logger.error('🚨 Server Error', errorContext);
   } else if (err.statusCode >= 400) {
@@ -131,11 +146,13 @@ const errorTracker = (err, req, res, next) => {
     logger.info('ℹ️ Info Error', errorContext);
   }
 
-  // Add error ID to response
-  res.setHeader('X-Error-ID', errorId);
   
+// Add error ID to response
+  res.setHeader('X-Error-ID', errorId);
+
   next(err);
 };
+
 
 // Rate limiting error handler
 const rateLimitErrorHandler = (err, req, res, next) => {
@@ -161,13 +178,13 @@ const rateLimitErrorHandler = (err, req, res, next) => {
   next(err);
 };
 
+
 // Database error handler
 const databaseErrorHandler = (err, req, res, next) => {
-  if (err.name === 'MongoNetworkError' || 
-      err.name === 'MongoTimeoutError' || 
+  if (err.name === 'MongoNetworkError' ||
+      err.name === 'MongoTimeoutError' ||
       err.code === 'ECONNREFUSED' ||
       err.code === 'ENOTFOUND') {
-    
     logger.error('🗄️ Database Connection Error', {
       requestId: req.requestId,
       error: err.message,
@@ -187,6 +204,7 @@ const databaseErrorHandler = (err, req, res, next) => {
   }
   next(err);
 };
+
 
 // AI service error handler
 const aiServiceErrorHandler = (err, req, res, next) => {
@@ -211,13 +229,13 @@ const aiServiceErrorHandler = (err, req, res, next) => {
   next(err);
 };
 
+
 // Training service error handler
 const trainingErrorHandler = (err, req, res, next) => {
-  if (err.name === 'TrainingError' || 
-      err.name === 'SessionError' || 
-      err.name === 'EnrollmentError' || 
+  if (err.name === 'TrainingError' ||
+      err.name === 'SessionError' ||
+      err.name === 'EnrollmentError' ||
       err.name === 'AssessmentError') {
-    
     logger.error('🎓 Training Service Error', {
       requestId: req.requestId,
       error: err.message,
@@ -237,6 +255,7 @@ const trainingErrorHandler = (err, req, res, next) => {
   }
   next(err);
 };
+
 
 // Presentation service error handler
 const presentationErrorHandler = (err, req, res, next) => {
@@ -261,6 +280,7 @@ const presentationErrorHandler = (err, req, res, next) => {
   next(err);
 };
 
+
 // Tenant service error handler
 const tenantErrorHandler = (err, req, res, next) => {
   if (err.name === 'TenantError' || err.name === 'TenantAccessError') {
@@ -284,6 +304,7 @@ const tenantErrorHandler = (err, req, res, next) => {
   }
   next(err);
 };
+
 
 // Validation error handler
 const validationErrorHandler = (err, req, res, next) => {
@@ -310,12 +331,12 @@ const validationErrorHandler = (err, req, res, next) => {
   next(err);
 };
 
+
 // Authentication error handler
 const authenticationErrorHandler = (err, req, res, next) => {
-  if (err.name === 'AuthenticationError' || 
-      err.name === 'JsonWebTokenError' || 
+  if (err.name === 'AuthenticationError' ||
+      err.name === 'JsonWebTokenError' ||
       err.name === 'TokenExpiredError') {
-    
     logger.warn('🔐 Authentication Error', {
       requestId: req.requestId,
       error: err.message,
@@ -336,6 +357,7 @@ const authenticationErrorHandler = (err, req, res, next) => {
   }
   next(err);
 };
+
 
 // Authorization error handler
 const authorizationErrorHandler = (err, req, res, next) => {
@@ -362,6 +384,7 @@ const authorizationErrorHandler = (err, req, res, next) => {
   next(err);
 };
 
+
 // Not found error handler
 const notFoundErrorHandler = (err, req, res, next) => {
   if (err.name === 'NotFoundError') {
@@ -384,6 +407,7 @@ const notFoundErrorHandler = (err, req, res, next) => {
   }
   next(err);
 };
+
 
 // Conflict error handler
 const conflictErrorHandler = (err, req, res, next) => {
@@ -408,12 +432,14 @@ const conflictErrorHandler = (err, req, res, next) => {
   next(err);
 };
 
+
 // Generic error handler (catch-all)
 const genericErrorHandler = (err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal server error';
 
-  // Log unexpected errors
+  
+// Log unexpected errors
   logger.error('💥 Unexpected Error', {
     requestId: req.requestId,
     error: err.message,
@@ -424,7 +450,8 @@ const genericErrorHandler = (err, req, res, next) => {
     timestamp: new Date().toISOString()
   });
 
-  // Development error response
+  
+// Development error response
   if (process.env.NODE_ENV === 'development') {
     return res.status(statusCode).json({
       success: false,
@@ -439,7 +466,8 @@ const genericErrorHandler = (err, req, res, next) => {
     });
   }
 
-  // Production error response
+  
+// Production error response
   return res.status(statusCode).json({
     success: false,
     error: {
@@ -451,30 +479,35 @@ const genericErrorHandler = (err, req, res, next) => {
   });
 };
 
+
 // Utility functions
-function generateRequestId() {
+const generateRequestId = () {
   return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-function generateErrorId() {
+const generateErrorId = () {
   return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-function sanitizeRequestBody(body) {
-  if (!body) return body;
-  
+const sanitizeRequestBody = (body) {
+  if (!body) {
+    return body;
+  }
+
   const sanitized = { ...body };
+
   
-  // Remove sensitive fields
+// Remove sensitive fields
   const sensitiveFields = ['password', 'token', 'secret', 'key', 'authorization'];
   sensitiveFields.forEach(field => {
     if (sanitized[field]) {
       sanitized[field] = '[REDACTED]';
     }
   });
-  
+
   return sanitized;
 }
+
 
 // Export middleware chain
 module.exports = {
@@ -493,4 +526,4 @@ module.exports = {
   notFoundErrorHandler,
   conflictErrorHandler,
   genericErrorHandler
-}; 
+};

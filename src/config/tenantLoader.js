@@ -10,31 +10,35 @@ const path = require('path');
  * Load all tenant configurations from the tenants directory
  * @returns {Object} Object containing all tenant configurations
  */
-function loadAllTenants() {
+const loadAllTenants = () {
   const tenantsDir = path.join(__dirname, '..', 'tenants');
   const tenants = {};
 
   try {
-    // Check if tenants directory exists
+    
+// Check if tenants directory exists
     if (!fs.existsSync(tenantsDir)) {
       console.warn('Tenants directory not found:', tenantsDir);
       return tenants;
     }
 
-    // Read all tenant directories
+    
+// Read all tenant directories
     const tenantDirs = fs.readdirSync(tenantsDir, { withFileTypes: true })
       .filter(dirent => dirent.isDirectory())
       .map(dirent => dirent.name);
 
-    // Load each tenant configuration
+    
+// Load each tenant configuration
     tenantDirs.forEach(tenantDir => {
       try {
         const configPath = path.join(tenantsDir, tenantDir, 'config.js');
-        
+
         if (fs.existsSync(configPath)) {
           const tenantConfig = require(configPath);
+
           
-          // Validate the configuration
+// Validate the configuration
           if (validateTenantConfig(tenantConfig)) {
             tenants[tenantConfig.slug] = tenantConfig;
             console.log(`✅ Loaded tenant: ${tenantConfig.name} (${tenantConfig.slug})`);
@@ -51,7 +55,6 @@ function loadAllTenants() {
 
     console.log(`📊 Loaded ${Object.keys(tenants).length} tenant(s)`);
     return tenants;
-
   } catch (error) {
     console.error('❌ Error loading tenants:', error.message);
     return tenants;
@@ -63,7 +66,7 @@ function loadAllTenants() {
  * @param {string} tenantSlug - The tenant slug to load
  * @returns {Object|null} Tenant configuration or null if not found
  */
-function loadTenant(tenantSlug) {
+const loadTenant = (tenantSlug) {
   const tenantsDir = path.join(__dirname, '..', 'tenants');
   const tenantDir = path.join(tenantsDir, tenantSlug);
   const configPath = path.join(tenantDir, 'config.js');
@@ -71,17 +74,15 @@ function loadTenant(tenantSlug) {
   try {
     if (fs.existsSync(configPath)) {
       const tenantConfig = require(configPath);
-      
+
       if (validateTenantConfig(tenantConfig)) {
         return tenantConfig;
-      } else {
-        console.error(`❌ Invalid configuration for tenant: ${tenantSlug}`);
-        return null;
       }
-    } else {
-      console.warn(`⚠️  Tenant not found: ${tenantSlug}`);
+      console.error(`❌ Invalid configuration for tenant: ${tenantSlug}`);
       return null;
     }
+    console.warn(`⚠️  Tenant not found: ${tenantSlug}`);
+    return null;
   } catch (error) {
     console.error(`❌ Error loading tenant ${tenantSlug}:`, error.message);
     return null;
@@ -94,10 +95,10 @@ function loadTenant(tenantSlug) {
  * @param {string} assetType - Type of asset (logo, css, favicon)
  * @returns {string|null} Path to the asset or null if not found
  */
-function getTenantAsset(tenantSlug, assetType) {
+const getTenantAsset = (tenantSlug, assetType) {
   const tenantsDir = path.join(__dirname, '..', 'tenants');
   const brandingDir = path.join(tenantsDir, tenantSlug, 'branding');
-  
+
   const assetMap = {
     logo: 'logo.png',
     favicon: 'favicon.ico',
@@ -111,22 +112,21 @@ function getTenantAsset(tenantSlug, assetType) {
   }
 
   const assetPath = path.join(brandingDir, assetFile);
-  
+
   if (fs.existsSync(assetPath)) {
     return assetPath;
-  } else {
-    console.warn(`⚠️  Asset not found: ${assetPath}`);
-    return null;
   }
+  console.warn(`⚠️  Asset not found: ${assetPath}`);
+  return null;
 }
 
 /**
  * Get all available tenant slugs
  * @returns {Array} Array of tenant slugs
  */
-function getAvailableTenants() {
+const getAvailableTenants = () {
   const tenantsDir = path.join(__dirname, '..', 'tenants');
-  
+
   try {
     if (!fs.existsSync(tenantsDir)) {
       return [];
@@ -146,9 +146,9 @@ function getAvailableTenants() {
  * @param {Object} config - Tenant configuration to validate
  * @returns {boolean} True if valid, false otherwise
  */
-function validateTenantConfig(config) {
+const validateTenantConfig = (config) {
   const requiredFields = ['name', 'slug', 'status'];
-  
+
   for (const field of requiredFields) {
     if (!config[field]) {
       console.error(`❌ Missing required field: ${field}`);
@@ -156,13 +156,15 @@ function validateTenantConfig(config) {
     }
   }
 
-  // Validate slug format
-  if (!/^[a-z0-9-]+$/.test(config.slug)) {
+  
+// Validate slug format
+  if (!(/^[a-z0-9-]+$/).test(config.slug)) {
     console.error(`❌ Invalid slug format: ${config.slug}`);
     return false;
   }
 
-  // Validate status
+  
+// Validate status
   const validStatuses = ['active', 'inactive', 'pending', 'suspended'];
   if (!validStatuses.includes(config.status)) {
     console.error(`❌ Invalid status: ${config.status}`);
@@ -176,16 +178,16 @@ function validateTenantConfig(config) {
  * Watch for tenant configuration changes
  * @param {Function} callback - Callback function to execute when changes detected
  */
-function watchTenants(callback) {
+const watchTenants = (callback) {
   const tenantsDir = path.join(__dirname, '..', 'tenants');
-  
+
   if (!fs.existsSync(tenantsDir)) {
     console.warn('Tenants directory not found for watching');
     return;
   }
 
   console.log('👀 Watching for tenant configuration changes...');
-  
+
   fs.watch(tenantsDir, { recursive: true }, (eventType, filename) => {
     if (filename && filename.endsWith('config.js')) {
       console.log(`🔄 Tenant configuration changed: ${filename}`);
@@ -201,10 +203,10 @@ function watchTenants(callback) {
  * @param {string} tenantSlug - The tenant slug
  * @returns {Object} Directory structure information
  */
-function getTenantStructure(tenantSlug) {
+const getTenantStructure = (tenantSlug) {
   const tenantsDir = path.join(__dirname, '..', 'tenants');
   const tenantDir = path.join(tenantsDir, tenantSlug);
-  
+
   if (!fs.existsSync(tenantDir)) {
     return null;
   }
@@ -219,14 +221,14 @@ function getTenantStructure(tenantSlug) {
 
   try {
     const items = fs.readdirSync(tenantDir, { withFileTypes: true });
-    
+
     items.forEach(item => {
       const itemPath = path.join(tenantDir, item.name);
-      
+
       if (item.isDirectory()) {
         structure.directories[item.name] = {
           path: itemPath,
-          files: fs.readdirSync(itemPath).filter(file => 
+          files: fs.readdirSync(itemPath).filter(file =>
             fs.statSync(path.join(itemPath, file)).isFile()
           )
         };
@@ -253,4 +255,4 @@ module.exports = {
   validateTenantConfig,
   watchTenants,
   getTenantStructure
-}; 
+};

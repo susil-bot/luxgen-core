@@ -4,35 +4,44 @@
  */
 
 class EnvironmentConfig {
-  constructor() {
+  constructor () {
     this.config = this.loadConfiguration();
   }
 
-  loadConfiguration() {
+  loadConfiguration () {
     try {
-      // Load environment variables with defaults
+      
+// Load environment variables with defaults
       const config = {
-        // Application
+        
+// Application
         NODE_ENV: process.env.NODE_ENV || 'development',
         PORT: parseInt(process.env.PORT) || 3001,
         APP_NAME: process.env.APP_NAME || 'Trainer Platform',
         APP_VERSION: process.env.APP_VERSION || '1.0.0',
 
-        // Database
-        MONGODB_URL: process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017/luxgen_trainer_platform',
-        REDIS_URL: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
+        
+// Database
+        MONGODB_URL: process.env.MONGODB_URL || 'mongodb:
+//127.0.0.1:27017/luxgen_trainer_platform',
+        REDIS_URL: process.env.REDIS_URL || 'redis:
+//127.0.0.1:6379',
 
-        // Authentication
+        
+// Authentication
         JWT_SECRET: process.env.JWT_SECRET || 'your_jwt_secret_key_here_change_in_production_min_32_chars',
         JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
         JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
         BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS) || 12,
 
-        // CORS
-        CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:3000',
+        
+// CORS
+        CORS_ORIGIN: process.env.CORS_ORIGIN || 'http:
+//localhost:3000',
         CORS_CREDENTIALS: process.env.CORS_CREDENTIALS !== 'false',
 
-        // Email
+        
+// Email
         SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
         SMTP_PORT: parseInt(process.env.SMTP_PORT) || 587,
         SMTP_USER: process.env.SMTP_USER,
@@ -40,29 +49,34 @@ class EnvironmentConfig {
         EMAIL_FROM: process.env.EMAIL_FROM || 'noreply@trainerplatform.com',
         EMAIL_PROVIDER: process.env.EMAIL_PROVIDER || 'smtp',
 
-        // Security
+        
+// Security
         SESSION_SECRET: process.env.SESSION_SECRET || 'your_session_secret_here_change_in_production_min_32_chars',
         ENABLE_CSP: process.env.ENABLE_CSP !== 'false',
         ENABLE_HSTS: process.env.ENABLE_HSTS !== 'false',
         ENABLE_XSS_PROTECTION: process.env.ENABLE_XSS_PROTECTION !== 'false',
         ENABLE_CONTENT_TYPE_NOSNIFF: process.env.ENABLE_CONTENT_TYPE_NOSNIFF !== 'false',
 
-        // Rate Limiting
+        
+// Rate Limiting
         RATE_LIMIT_WINDOW: process.env.RATE_LIMIT_WINDOW || '15m',
         RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
         RATE_LIMIT_SKIP_SUCCESSFUL_REQUESTS: process.env.RATE_LIMIT_SKIP_SUCCESSFUL_REQUESTS === 'true',
 
-        // Logging
+        
+// Logging
         LOG_LEVEL: process.env.LOG_LEVEL || 'info',
         LOG_FORMAT: process.env.LOG_FORMAT || 'json',
 
-        // Performance
+        
+// Performance
         CACHE_TTL: parseInt(process.env.CACHE_TTL) || 3600,
         CACHE_MAX_SIZE: parseInt(process.env.CACHE_MAX_SIZE) || 1000,
         ENABLE_COMPRESSION: process.env.ENABLE_COMPRESSION !== 'false',
         UPLOAD_MAX_SIZE: process.env.UPLOAD_MAX_SIZE || '50MB',
 
-        // Feature Flags
+        
+// Feature Flags
         ENABLE_AI_ASSISTANT: process.env.ENABLE_AI_ASSISTANT === 'true',
         ENABLE_REAL_TIME_COLLABORATION: process.env.ENABLE_REAL_TIME_COLLABORATION !== 'false',
         ENABLE_ADVANCED_ANALYTICS: process.env.ENABLE_ADVANCED_ANALYTICS !== 'false',
@@ -71,39 +85,47 @@ class EnvironmentConfig {
         ENABLE_SWAGGER: process.env.ENABLE_SWAGGER !== 'false',
         ENABLE_GRAPHQL_PLAYGROUND: process.env.ENABLE_GRAPHQL_PLAYGROUND === 'true',
 
-        // Redis Connection Pool
+        
+// Redis Connection Pool
         REDIS_POOL_MIN: parseInt(process.env.REDIS_POOL_MIN) || 2,
         REDIS_POOL_MAX: parseInt(process.env.REDIS_POOL_MAX) || 10,
         REDIS_POOL_ACQUIRE: parseInt(process.env.REDIS_POOL_ACQUIRE) || 30000,
         REDIS_POOL_IDLE: parseInt(process.env.REDIS_POOL_IDLE) || 10000,
 
-        // AI Assistant Configuration
+        
+// AI Assistant Configuration
         AI_PROVIDER: process.env.AI_PROVIDER || 'openai',
         OPENAI_API_KEY: process.env.OPENAI_API_KEY,
 
-        // Storage
+        
+// Storage
         STORAGE_PROVIDER: process.env.STORAGE_PROVIDER || 'local',
         STORAGE_PATH: process.env.STORAGE_PATH || './uploads',
 
-        // Session Management
+        
+// Session Management
         SESSION_STORE: process.env.SESSION_STORE || 'redis',
         SESSION_TTL: parseInt(process.env.SESSION_TTL) || 86400,
 
-        // Redis Configuration
+        
+// Redis Configuration
         REDIS_HOST: process.env.REDIS_HOST || '127.0.0.1',
         REDIS_PORT: parseInt(process.env.REDIS_PORT) || 6379,
-        REDIS_PASSWORD: process.env.REDIS_PASSWORD,
+        REDIS_PASSWORD: process.env.REDIS_PASSWORD
       };
 
-      // Parse CORS origins
+      
+// Parse CORS origins
       if (config.CORS_ORIGIN) {
         config.CORS_ORIGINS = config.CORS_ORIGIN.split(',').map(origin => origin.trim());
       }
 
-      // Parse rate limit window
+      
+// Parse rate limit window
       config.RATE_LIMIT_WINDOW_MS = this.parseTimeString(config.RATE_LIMIT_WINDOW);
 
-      // Add security warnings for development
+      
+// Add security warnings for development
       if (config.NODE_ENV === 'development') {
         this.checkDevelopmentSecurity(config);
       }
@@ -116,21 +138,21 @@ class EnvironmentConfig {
     }
   }
 
-  checkDevelopmentSecurity(config) {
+  checkDevelopmentSecurity (config) {
     const warnings = [];
-    
+
     if (config.JWT_SECRET.includes('your_jwt_secret_key_here')) {
       warnings.push('⚠️  Using default JWT secret - change in production');
     }
-    
+
     if (config.SESSION_SECRET.includes('your_session_secret_here')) {
       warnings.push('⚠️  Using default session secret - change in production');
     }
-    
+
     if (config.MONGODB_URL.includes('127.0.0.1')) {
       warnings.push('⚠️  Using local MongoDB - ensure MongoDB is running locally');
     }
-    
+
     if (warnings.length > 0) {
       console.log('\n🔒 Development Security Warnings:');
       warnings.forEach(warning => console.log(`   ${warning}`));
@@ -138,12 +160,12 @@ class EnvironmentConfig {
     }
   }
 
-  parseTimeString(timeString) {
+  parseTimeString (timeString) {
     const units = {
-      's': 1000,
-      'm': 60 * 1000,
-      'h': 60 * 60 * 1000,
-      'd': 24 * 60 * 60 * 1000,
+      s: 1000,
+      m: 60 * 1000,
+      h: 60 * 60 * 1000,
+      d: 24 * 60 * 60 * 1000
     };
 
     const match = timeString.match(/^(\d+)([smhd])$/);
@@ -155,26 +177,29 @@ class EnvironmentConfig {
     return parseInt(value) * units[unit];
   }
 
-  // Get configuration value
-  get(key, defaultValue = undefined) {
+  
+// Get configuration value
+  get (key, defaultValue = undefined) {
     return this.config[key] !== undefined ? this.config[key] : defaultValue;
   }
 
-  // Environment checks
-  isDevelopment() {
+  
+// Environment checks
+  isDevelopment () {
     return this.config.NODE_ENV === 'development';
   }
 
-  isProduction() {
+  isProduction () {
     return this.config.NODE_ENV === 'production';
   }
 
-  isTest() {
+  isTest () {
     return this.config.NODE_ENV === 'test';
   }
 
-  // Database configuration
-  getDatabaseConfig() {
+  
+// Database configuration
+  getDatabaseConfig () {
     return {
       mongodb: {
         url: this.config.MONGODB_URL,
@@ -194,7 +219,7 @@ class EnvironmentConfig {
           serverApi: {
             version: '1',
             strict: true,
-            deprecationErrors: true,
+            deprecationErrors: true
           }
         }
       },
@@ -217,19 +242,21 @@ class EnvironmentConfig {
     };
   }
 
-  // JWT configuration
-  getJWTConfig() {
+  
+// JWT configuration
+  getJWTConfig () {
     return {
       secret: this.config.JWT_SECRET,
       expiresIn: this.config.JWT_EXPIRES_IN,
       refreshExpiresIn: this.config.JWT_REFRESH_EXPIRES_IN,
       issuer: 'trainer-platform',
-      audience: 'trainer-platform-users',
+      audience: 'trainer-platform-users'
     };
   }
 
-  // CORS configuration
-  getCORSConfig() {
+  
+// CORS configuration
+  getCORSConfig () {
     return {
       origin: this.config.CORS_ORIGINS || [this.config.CORS_ORIGIN],
       credentials: this.config.CORS_CREDENTIALS,
@@ -247,8 +274,9 @@ class EnvironmentConfig {
     };
   }
 
-  // Rate limiting configuration
-  getRateLimitConfig() {
+  
+// Rate limiting configuration
+  getRateLimitConfig () {
     return {
       windowMs: this.config.RATE_LIMIT_WINDOW_MS,
       max: this.config.RATE_LIMIT_MAX_REQUESTS,
@@ -258,12 +286,13 @@ class EnvironmentConfig {
         retryAfter: Math.ceil(this.config.RATE_LIMIT_WINDOW_MS / 1000)
       },
       standardHeaders: true,
-      legacyHeaders: false,
+      legacyHeaders: false
     };
   }
 
-  // Security configuration
-  getSecurityConfig() {
+  
+// Security configuration
+  getSecurityConfig () {
     return {
       helmet: {
         contentSecurityPolicy: this.config.ENABLE_CSP ? {
@@ -271,13 +300,13 @@ class EnvironmentConfig {
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
             scriptSrc: ["'self'"],
-            imgSrc: ["'self'", "data:", "https:"],
+            imgSrc: ["'self'", 'data:', 'https:'],
             connectSrc: ["'self'"],
             fontSrc: ["'self'"],
             objectSrc: ["'none'"],
             mediaSrc: ["'self'"],
-            frameSrc: ["'none'"],
-          },
+            frameSrc: ["'none'"]
+          }
         } : false,
         hsts: this.config.ENABLE_HSTS ? {
           maxAge: 31536000,
@@ -286,9 +315,7 @@ class EnvironmentConfig {
         } : false,
         xssFilter: this.config.ENABLE_XSS_PROTECTION,
         noSniff: this.config.ENABLE_CONTENT_TYPE_NOSNIFF,
-        frameguard: {
-          action: 'deny'
-        },
+        frameguard: { action: 'deny' },
         hidePoweredBy: true,
         ieNoOpen: true,
         noCache: false,
@@ -297,8 +324,9 @@ class EnvironmentConfig {
     };
   }
 
-  // Email configuration
-  getEmailConfig() {
+  
+// Email configuration
+  getEmailConfig () {
     return {
       provider: this.config.EMAIL_PROVIDER,
       host: this.config.SMTP_HOST,
@@ -306,12 +334,13 @@ class EnvironmentConfig {
       user: this.config.SMTP_USER,
       pass: this.config.SMTP_PASS,
       from: this.config.EMAIL_FROM,
-      secure: this.config.SMTP_PORT === 465,
+      secure: this.config.SMTP_PORT === 465
     };
   }
 
-  // Feature flags
-  getFeatureFlags() {
+  
+// Feature flags
+  getFeatureFlags () {
     return {
       aiAssistant: this.config.ENABLE_AI_ASSISTANT,
       realTimeCollaboration: this.config.ENABLE_REAL_TIME_COLLABORATION,
@@ -319,36 +348,40 @@ class EnvironmentConfig {
       multiTenancy: this.config.ENABLE_MULTI_TENANCY,
       sso: this.config.ENABLE_SSO,
       swagger: this.config.ENABLE_SWAGGER,
-      graphqlPlayground: this.config.ENABLE_GRAPHQL_PLAYGROUND,
+      graphqlPlayground: this.config.ENABLE_GRAPHQL_PLAYGROUND
     };
   }
 
-  // Logging configuration
-  getLoggingConfig() {
+  
+// Logging configuration
+  getLoggingConfig () {
     return {
       level: this.config.LOG_LEVEL,
       format: this.config.LOG_FORMAT,
       transports: ['console', 'file'],
       filename: 'logs/app.log',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
+      maxsize: 5242880, 
+// 5MB
+      maxFiles: 5
     };
   }
 
-  // Performance configuration
-  getPerformanceConfig() {
+  
+// Performance configuration
+  getPerformanceConfig () {
     return {
       cacheTTL: this.config.CACHE_TTL,
       cacheMaxSize: this.config.CACHE_MAX_SIZE,
       enableCompression: this.config.ENABLE_COMPRESSION,
-      uploadMaxSize: this.config.UPLOAD_MAX_SIZE,
+      uploadMaxSize: this.config.UPLOAD_MAX_SIZE
     };
   }
 
-  // Get all configuration
-  getAll() {
+  
+// Get all configuration
+  getAll () {
     return this.config;
   }
 }
 
-module.exports = new EnvironmentConfig(); 
+module.exports = new EnvironmentConfig();

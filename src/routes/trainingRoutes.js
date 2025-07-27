@@ -4,6 +4,7 @@ const trainingController = require('../controllers/trainingController');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { validateRequest } = require('../middleware/validation');
 
+
 // ==================== TRAINING SESSIONS ====================
 
 /**
@@ -11,8 +12,8 @@ const { validateRequest } = require('../middleware/validation');
  * @desc Get all training sessions
  * @access Private
  */
-router.get('/sessions', 
-  authenticateToken, 
+router.get('/sessions',
+  authenticateToken,
   trainingController.getTrainingSessions
 );
 
@@ -21,8 +22,8 @@ router.get('/sessions',
  * @desc Get training session by ID
  * @access Private
  */
-router.get('/sessions/:sessionId', 
-  authenticateToken, 
+router.get('/sessions/:sessionId',
+  authenticateToken,
   trainingController.getTrainingSession
 );
 
@@ -31,8 +32,8 @@ router.get('/sessions/:sessionId',
  * @desc Create new training session
  * @access Private (Admin/Trainer)
  */
-router.post('/sessions', 
-  authenticateToken, 
+router.post('/sessions',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.createTrainingSession
@@ -43,8 +44,8 @@ router.post('/sessions',
  * @desc Update training session
  * @access Private (Admin/Trainer)
  */
-router.put('/sessions/:sessionId', 
-  authenticateToken, 
+router.put('/sessions/:sessionId',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.updateTrainingSession
@@ -55,8 +56,8 @@ router.put('/sessions/:sessionId',
  * @desc Delete training session
  * @access Private (Admin)
  */
-router.delete('/sessions/:sessionId', 
-  authenticateToken, 
+router.delete('/sessions/:sessionId',
+  authenticateToken,
   authorizeRoles('admin'),
   trainingController.deleteTrainingSession
 );
@@ -66,8 +67,8 @@ router.delete('/sessions/:sessionId',
  * @desc Add participant to training session
  * @access Private (Admin/Trainer)
  */
-router.post('/sessions/:sessionId/participants', 
-  authenticateToken, 
+router.post('/sessions/:sessionId/participants',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.addSessionParticipant
@@ -78,8 +79,8 @@ router.post('/sessions/:sessionId/participants',
  * @desc Remove participant from training session
  * @access Private (Admin/Trainer)
  */
-router.delete('/sessions/:sessionId/participants/:userId', 
-  authenticateToken, 
+router.delete('/sessions/:sessionId/participants/:userId',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   trainingController.removeSessionParticipant
 );
@@ -89,8 +90,8 @@ router.delete('/sessions/:sessionId/participants/:userId',
  * @desc Mark attendance for participant
  * @access Private (Admin/Trainer)
  */
-router.post('/sessions/:sessionId/attendance/:userId', 
-  authenticateToken, 
+router.post('/sessions/:sessionId/attendance/:userId',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   trainingController.markAttendance
 );
@@ -100,11 +101,12 @@ router.post('/sessions/:sessionId/attendance/:userId',
  * @desc Complete training session
  * @access Private (Admin/Trainer)
  */
-router.post('/sessions/:sessionId/complete', 
-  authenticateToken, 
+router.post('/sessions/:sessionId/complete',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   trainingController.completeSession
 );
+
 
 // ==================== TRAINING COURSES ====================
 
@@ -113,8 +115,8 @@ router.post('/sessions/:sessionId/complete',
  * @desc Get all training courses
  * @access Private
  */
-router.get('/courses', 
-  authenticateToken, 
+router.get('/courses',
+  authenticateToken,
   trainingController.getTrainingCourses
 );
 
@@ -123,8 +125,8 @@ router.get('/courses',
  * @desc Get training course by ID
  * @access Private
  */
-router.get('/courses/:courseId', 
-  authenticateToken, 
+router.get('/courses/:courseId',
+  authenticateToken,
   trainingController.getTrainingCourse
 );
 
@@ -133,8 +135,8 @@ router.get('/courses/:courseId',
  * @desc Create new training course
  * @access Private (Admin/Trainer)
  */
-router.post('/courses', 
-  authenticateToken, 
+router.post('/courses',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.createTrainingCourse
@@ -145,8 +147,8 @@ router.post('/courses',
  * @desc Update training course
  * @access Private (Admin/Trainer)
  */
-router.put('/courses/:courseId', 
-  authenticateToken, 
+router.put('/courses/:courseId',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.updateTrainingCourse
@@ -157,8 +159,8 @@ router.put('/courses/:courseId',
  * @desc Delete training course
  * @access Private (Admin)
  */
-router.delete('/courses/:courseId', 
-  authenticateToken, 
+router.delete('/courses/:courseId',
+  authenticateToken,
   authorizeRoles('admin'),
   trainingController.deleteTrainingCourse
 );
@@ -168,8 +170,8 @@ router.delete('/courses/:courseId',
  * @desc Enroll user in course
  * @access Private
  */
-router.post('/courses/:courseId/enroll', 
-  authenticateToken, 
+router.post('/courses/:courseId/enroll',
+  authenticateToken,
   validateRequest,
   trainingController.enrollInCourse
 );
@@ -179,8 +181,8 @@ router.post('/courses/:courseId/enroll',
  * @desc Get participant progress
  * @access Private
  */
-router.get('/courses/:courseId/participants/:participantId/progress', 
-  authenticateToken, 
+router.get('/courses/:courseId/participants/:participantId/progress',
+  authenticateToken,
   trainingController.getParticipantProgress
 );
 
@@ -189,11 +191,12 @@ router.get('/courses/:courseId/participants/:participantId/progress',
  * @desc Complete module
  * @access Private
  */
-router.post('/courses/:courseId/modules/:moduleId/complete', 
-  authenticateToken, 
+router.post('/courses/:courseId/modules/:moduleId/complete',
+  authenticateToken,
   validateRequest,
   trainingController.completeModule
 );
+
 
 // ==================== TRAINING MODULES ====================
 
@@ -202,8 +205,8 @@ router.post('/courses/:courseId/modules/:moduleId/complete',
  * @desc Get all training modules
  * @access Private
  */
-router.get('/modules', 
-  authenticateToken, 
+router.get('/modules',
+  authenticateToken,
   trainingController.getTrainingModules
 );
 
@@ -212,8 +215,8 @@ router.get('/modules',
  * @desc Get training module by ID
  * @access Private
  */
-router.get('/modules/:moduleId', 
-  authenticateToken, 
+router.get('/modules/:moduleId',
+  authenticateToken,
   trainingController.getTrainingModule
 );
 
@@ -222,8 +225,8 @@ router.get('/modules/:moduleId',
  * @desc Create new training module
  * @access Private (Admin/Trainer)
  */
-router.post('/modules', 
-  authenticateToken, 
+router.post('/modules',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.createTrainingModule
@@ -234,8 +237,8 @@ router.post('/modules',
  * @desc Update training module
  * @access Private (Admin/Trainer)
  */
-router.put('/modules/:moduleId', 
-  authenticateToken, 
+router.put('/modules/:moduleId',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.updateTrainingModule
@@ -246,11 +249,12 @@ router.put('/modules/:moduleId',
  * @desc Delete training module
  * @access Private (Admin)
  */
-router.delete('/modules/:moduleId', 
-  authenticateToken, 
+router.delete('/modules/:moduleId',
+  authenticateToken,
   authorizeRoles('admin'),
   trainingController.deleteTrainingModule
 );
+
 
 // ==================== TRAINING ASSESSMENTS ====================
 
@@ -259,8 +263,8 @@ router.delete('/modules/:moduleId',
  * @desc Get all training assessments
  * @access Private
  */
-router.get('/assessments', 
-  authenticateToken, 
+router.get('/assessments',
+  authenticateToken,
   trainingController.getTrainingAssessments
 );
 
@@ -269,8 +273,8 @@ router.get('/assessments',
  * @desc Get training assessment by ID
  * @access Private
  */
-router.get('/assessments/:assessmentId', 
-  authenticateToken, 
+router.get('/assessments/:assessmentId',
+  authenticateToken,
   trainingController.getTrainingAssessment
 );
 
@@ -279,8 +283,8 @@ router.get('/assessments/:assessmentId',
  * @desc Create new training assessment
  * @access Private (Admin/Trainer)
  */
-router.post('/assessments', 
-  authenticateToken, 
+router.post('/assessments',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.createTrainingAssessment
@@ -291,8 +295,8 @@ router.post('/assessments',
  * @desc Update training assessment
  * @access Private (Admin/Trainer)
  */
-router.put('/assessments/:assessmentId', 
-  authenticateToken, 
+router.put('/assessments/:assessmentId',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   validateRequest,
   trainingController.updateTrainingAssessment
@@ -303,8 +307,8 @@ router.put('/assessments/:assessmentId',
  * @desc Delete training assessment
  * @access Private (Admin)
  */
-router.delete('/assessments/:assessmentId', 
-  authenticateToken, 
+router.delete('/assessments/:assessmentId',
+  authenticateToken,
   authorizeRoles('admin'),
   trainingController.deleteTrainingAssessment
 );
@@ -314,11 +318,12 @@ router.delete('/assessments/:assessmentId',
  * @desc Submit assessment answers
  * @access Private
  */
-router.post('/assessments/:assessmentId/submit', 
-  authenticateToken, 
+router.post('/assessments/:assessmentId/submit',
+  authenticateToken,
   validateRequest,
   trainingController.submitAssessment
 );
+
 
 // ==================== TRAINING STATISTICS ====================
 
@@ -327,8 +332,8 @@ router.post('/assessments/:assessmentId/submit',
  * @desc Get trainer statistics
  * @access Private (Admin/Trainer)
  */
-router.get('/trainers/:trainerId/stats', 
-  authenticateToken, 
+router.get('/trainers/:trainerId/stats',
+  authenticateToken,
   authorizeRoles('admin', 'trainer'),
   trainingController.getTrainerStats
 );
@@ -338,9 +343,9 @@ router.get('/trainers/:trainerId/stats',
  * @desc Get participant statistics
  * @access Private
  */
-router.get('/participants/:participantId/stats', 
-  authenticateToken, 
+router.get('/participants/:participantId/stats',
+  authenticateToken,
   trainingController.getParticipantStats
 );
 
-module.exports = router; 
+module.exports = router;
