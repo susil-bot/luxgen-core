@@ -1,7 +1,9 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { authLogger } = require('../utils/logger');
+const crypto = require('crypto');
+const logger = require('../utils/logger');
+const emailService = require('../services/emailService');
 
 /**
  * Register a new user with multi-tenant support
@@ -51,7 +53,9 @@ exports.registerUser = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'User with this email already exists'
+        message: 'User with this email already exists',
+        errorCode: 'EMAIL_ALREADY_EXISTS',
+        suggestion: 'Try logging in instead or use a different email address'
       });
     }
 
@@ -62,21 +66,21 @@ exports.registerUser = async (req, res) => {
       // Direct tenant ID provided
       tenant = await require('../models/Tenant').findOne({ 
         _id: tenantId, 
-        status: 'active', 
-        isDeleted: false 
+        isActive: true, 
+        isDeleted: { $ne: true } 
       });
     } else if (tenantSlug) {
       // Tenant slug provided
       tenant = await require('../models/Tenant').findOne({ 
         slug: tenantSlug, 
-        status: 'active', 
-        isDeleted: false 
+        isActive: true, 
+        isDeleted: { $ne: true } 
       });
     } else {
       // Fallback to default tenant (for backward compatibility)
       tenant = await require('../models/Tenant').findOne({ 
-        status: 'active', 
-        isDeleted: false 
+        isActive: true, 
+        isDeleted: { $ne: true } 
       });
     }
 
@@ -132,7 +136,11 @@ exports.registerUser = async (req, res) => {
         tenantSlug: tenant.slug
       },
       process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
+      { 
+        expiresIn: '24h',
+        issuer: 'trainer-platform',
+        audience: 'trainer-platform-users'
+      }
     );
 
     res.status(201).json({
@@ -198,7 +206,11 @@ exports.verifyEmail = async (req, res) => {
         tenantSlug: tenant?.slug
       },
       process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
+      { 
+        expiresIn: '24h',
+        issuer: 'trainer-platform',
+        audience: 'trainer-platform-users'
+      }
     );
 
     res.json({
@@ -462,7 +474,7 @@ exports.loginUser = async (req, res) => {
   
   // Log login attempt
   console.log(`🔐 Login attempt for email: ${email}`);
-  authLogger.login(email, false, {
+  logger.info(`🔐 Login attempt for email: ${email}`, {
     ip: req.ip,
     userAgent: req.get('User-Agent'),
     timestamp: new Date().toISOString()
@@ -472,7 +484,7 @@ exports.loginUser = async (req, res) => {
     // Validate required fields
     if (!email || !password) {
       console.log(`❌ Login failed: Missing email or password for ${email}`);
-      authLogger.failed(email, 'Missing email or password', {
+      logger.warn(`❌ Login failed: Missing email or password for ${email}`, {
         ip: req.ip,
         userAgent: req.get('User-Agent'),
         timestamp: new Date().toISOString()
@@ -488,7 +500,7 @@ exports.loginUser = async (req, res) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       console.log(`❌ Login failed: Invalid email format for ${email}`);
-      authLogger.failed(email, 'Invalid email format', {
+      logger.warn(`❌ Login failed: Invalid email format for ${email}`, {
         ip: req.ip,
         userAgent: req.get('User-Agent'),
         timestamp: new Date().toISOString()
@@ -504,7 +516,7 @@ exports.loginUser = async (req, res) => {
     const user = await User.findOne({ email, isActive: true });
     if (!user) {
       console.log(`❌ Login failed: User not found or inactive for ${email}`);
-      authLogger.failed(email, 'User not found or inactive', {
+      logger.warn(`❌ Login failed: User not found or inactive for ${email}`, {
         ip: req.ip,
         userAgent: req.get('User-Agent'),
         timestamp: new Date().toISOString()
@@ -522,7 +534,7 @@ exports.loginUser = async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       console.log(`❌ Login failed: Invalid password for ${email}`);
-      authLogger.failed(email, 'Invalid password', {
+      logger.warn(`❌ Login failed: Invalid password for ${email}`, {
         ip: req.ip,
         userAgent: req.get('User-Agent'),
         userId: user._id,
@@ -560,14 +572,18 @@ exports.loginUser = async (req, res) => {
         tenantSlug: tenant?.slug
       },
       process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
+      { 
+        expiresIn: '24h',
+        issuer: 'trainer-platform',
+        audience: 'trainer-platform-users'
+      }
     );
 
     const responseTime = Date.now() - startTime;
     console.log(`🎉 Login successful for ${email} (${responseTime}ms)`);
     
     // Log successful login
-    authLogger.login(email, true, {
+    logger.info(`🎉 Login successful for ${email}`, {
       ip: req.ip,
       userAgent: req.get('User-Agent'),
       userId: user._id,
@@ -606,7 +622,7 @@ exports.loginUser = async (req, res) => {
     console.error(`⏱️ Response time: ${responseTime}ms`);
     
     // Log login error
-    authLogger.failed(email, 'Server error', {
+    logger.error(`💥 Login error for ${email}`, {
       ip: req.ip,
       userAgent: req.get('User-Agent'),
       error: error.message,
@@ -617,6 +633,343 @@ exports.loginUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Login failed',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Logout user
+ */
+exports.logout = async (req, res) => {
+  try {
+    const token = req.token;
+    
+    if (token) {
+      // In a production environment, you would blacklist the token
+      // For now, we'll just return success
+      console.log(`🔓 Logout successful for user: ${req.user.email}`);
+      
+      logger.info(`🔓 Logout successful for user: ${req.user.email}`, {
+        userId: req.user._id,
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  } catch (error) {
+    console.error('💥 Logout error:', error.message);
+    
+    logger.error(`💥 Logout error for user: ${req.user?.email}`, {
+      userId: req.user?._id,
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: 'Logout failed',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Verify email address
+ */
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification token is required'
+      });
+    }
+
+    // Find user by verification token
+    const user = await User.findOne({ 
+      emailVerificationToken: token,
+      emailVerificationExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired verification token'
+      });
+    }
+
+    // Update user verification status
+    user.isVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    user.verifiedAt = new Date();
+    await user.save();
+
+    logger.info(`Email verified for user: ${user.email}`, {
+      userId: user._id,
+      ip: req.ip,
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Email verified successfully'
+    });
+  } catch (error) {
+    logger.error('Error verifying email:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify email',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Resend verification email
+ */
+exports.resendVerificationEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is already verified'
+      });
+    }
+
+    // Generate new verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    user.emailVerificationToken = verificationToken;
+    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    await user.save();
+
+    // Send verification email
+    await emailService.sendVerificationEmail(user.email, verificationToken);
+
+    logger.info(`Verification email resent to: ${email}`, {
+      userId: user._id,
+      ip: req.ip,
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Verification email sent successfully'
+    });
+  } catch (error) {
+    logger.error('Error resending verification email:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to resend verification email',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Forgot password
+ */
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      // Don't reveal if user exists or not for security
+      return res.json({
+        success: true,
+        message: 'If an account with that email exists, a password reset link has been sent'
+      });
+    }
+
+    // Generate password reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.passwordResetToken = resetToken;
+    user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    // Send password reset email
+    await emailService.sendPasswordResetEmail(user.email, resetToken);
+
+    logger.info(`Password reset email sent to: ${email}`, {
+      userId: user._id,
+      ip: req.ip,
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'If an account with that email exists, a password reset link has been sent'
+    });
+  } catch (error) {
+    logger.error('Error sending password reset email:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send password reset email',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Reset password
+ */
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token and new password are required'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Find user by reset token
+    const user = await User.findOne({ 
+      passwordResetToken: token,
+      passwordResetExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(password, 12);
+    user.password = hashedPassword;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    user.passwordChangedAt = new Date();
+    await user.save();
+
+    logger.info(`Password reset successful for user: ${user.email}`, {
+      userId: user._id,
+      ip: req.ip,
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully'
+    });
+  } catch (error) {
+    logger.error('Error resetting password:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset password',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Refresh token
+ */
+exports.refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Refresh token is required'
+      });
+    }
+
+    // Verify refresh token
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'your_jwt_secret_key_here_2024');
+
+    // Find user
+    const user = await User.findById(decoded.userId);
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid refresh token'
+      });
+    }
+
+    // Generate new access token
+    const newToken = jwt.sign(
+      {
+        userId: user._id,
+        email: user.email,
+        role: user.role,
+        tenantId: user.tenantId
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      {
+        expiresIn: '24h',
+        issuer: 'trainer-platform',
+        audience: 'trainer-platform-users'
+      }
+    );
+
+    logger.info(`Token refreshed for user: ${user.email}`, {
+      userId: user._id,
+      ip: req.ip,
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Token refreshed successfully',
+      data: {
+        token: newToken
+      }
+    });
+  } catch (error) {
+    logger.error('Error refreshing token:', error);
+    res.status(401).json({
+      success: false,
+      message: 'Invalid refresh token',
       error: error.message
     });
   }

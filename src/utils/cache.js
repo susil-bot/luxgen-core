@@ -4,238 +4,303 @@
  */
 
 const Redis = require('redis');
-const environmentConfig = require('../config/environment');
+const logger = require('./logger');
 
-class CacheManager {
+class EnhancedCacheManager {
   constructor() {
-    this.client = null;
+    this.redisClient = null;
+    this.memoryCache = new Map();
     this.isConnected = false;
-    this.defaultTTL = environmentConfig.get('CACHE_TTL', 3600);
+    this.defaultTTL = 3600; // 1 hour default
+    this.maxMemorySize = 100; // Maximum items in memory cache
   }
 
+  /**
+   * Initialize cache with Redis connection
+   */
   async connect() {
     try {
-      if (this.isConnected) {
-        return this.client;
-      }
-
-      const redisConfig = environmentConfig.getDatabaseConfig().redis;
+      logger.info('🔌 Connecting to Redis cache...');
       
-      this.client = Redis.createClient(redisConfig);
+      const redisUrl = process.env.REDIS_URL || `redis://${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || 6379}`;
       
-      this.client.on('error', (err) => {
-        console.error('❌ Redis cache error:', err);
-        this.isConnected = false;
+      this.redisClient = Redis.createClient({
+        url: redisUrl,
+        password: process.env.REDIS_PASSWORD || undefined,
+        retry_strategy: (options) => {
+          if (options.error && options.error.code === 'ECONNREFUSED') {
+            return new Error('The server refused the connection');
+          }
+          if (options.total_retry_time > 1000 * 60 * 60) {
+            return new Error('Retry time exhausted');
+          }
+          if (options.attempt > 10) {
+            return undefined;
+          }
+          return Math.min(options.attempt * 100, 3000);
+        }
       });
 
-      this.client.on('connect', () => {
-        console.log('✅ Redis cache connected');
+      await this.redisClient.connect();
+      this.isConnected = true;
+      
+      logger.info('✅ Redis cache connected successfully');
+      
+      // Set up event handlers
+      this.redisClient.on('error', (error) => {
+        logger.error('❌ Redis cache error:', error);
+        this.isConnected = false;
+      });
+      
+      this.redisClient.on('connect', () => {
+        logger.info('✅ Redis cache connected');
         this.isConnected = true;
       });
-
-      this.client.on('disconnect', () => {
-        console.log('⚠️ Redis cache disconnected');
+      
+      this.redisClient.on('disconnect', () => {
+        logger.warn('⚠️ Redis cache disconnected');
         this.isConnected = false;
       });
-
-      await this.client.connect();
-      return this.client;
-    } catch (error) {
-      console.error('❌ Failed to connect to Redis cache:', error.message);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('⚠️ Redis cache is optional for development - continuing without cache');
-        this.isConnected = false;
-        this.client = null;
-        return null;
-      } else {
-        this.isConnected = false;
-        return null;
-      }
-    }
-  }
-
-  async disconnect() {
-    if (this.client && this.isConnected) {
-      await this.client.quit();
-      this.isConnected = false;
-      console.log('✅ Redis cache disconnected');
-    }
-  }
-
-  // Generate cache key
-  generateKey(prefix, ...parts) {
-    const keyParts = [prefix, ...parts.filter(part => part !== undefined && part !== null)];
-    return keyParts.join(':');
-  }
-
-  // Set cache with automatic serialization
-  async set(key, value, ttl = this.defaultTTL) {
-    try {
-      if (!this.isConnected || !this.client) {
-        return false;
-      }
-
-      const serializedValue = JSON.stringify(value);
-      await this.client.setEx(key, ttl, serializedValue);
+      
       return true;
     } catch (error) {
-      console.error('❌ Cache set error:', error.message);
+      logger.warn('⚠️ Redis cache connection failed, falling back to memory cache:', error.message);
+      this.isConnected = false;
       return false;
     }
   }
 
-  // Get cache with automatic deserialization
+  /**
+   * Get value from cache
+   */
   async get(key) {
     try {
-      if (!this.isConnected || !this.client) {
-        return null;
+      if (this.isConnected && this.redisClient) {
+        const value = await this.redisClient.get(key);
+        if (value) {
+          logger.debug(`📥 Cache hit (Redis): ${key}`);
+          return JSON.parse(value);
+        }
+      } else {
+        // Fallback to memory cache
+        const item = this.memoryCache.get(key);
+        if (item && item.expiresAt > Date.now()) {
+          logger.debug(`📥 Cache hit (Memory): ${key}`);
+          return item.value;
+        } else if (item) {
+          // Remove expired item
+          this.memoryCache.delete(key);
+        }
       }
-
-      const value = await this.client.get(key);
-      return value ? JSON.parse(value) : null;
+      
+      logger.debug(`📤 Cache miss: ${key}`);
+      return null;
     } catch (error) {
-      console.error('❌ Cache get error:', error.message);
+      logger.error('❌ Cache get error:', error);
       return null;
     }
   }
 
-  // Delete cache key
-  async del(key) {
+  /**
+   * Set value in cache
+   */
+  async set(key, value, ttl = this.defaultTTL) {
     try {
-      if (!this.isConnected || !this.client) {
-        return false;
-      }
-
-      await this.client.del(key);
-      return true;
-    } catch (error) {
-      console.error('❌ Cache delete error:', error.message);
-      return false;
-    }
-  }
-
-  // Check if key exists
-  async exists(key) {
-    try {
-      if (!this.isConnected || !this.client) {
-        return false;
-      }
-
-      const result = await this.client.exists(key);
-      return result === 1;
-    } catch (error) {
-      console.error('❌ Cache exists error:', error.message);
-      return false;
-    }
-  }
-
-  // Set cache with expiration
-  async setEx(key, value, ttl) {
-    return this.set(key, value, ttl);
-  }
-
-  // Get or set cache (cache-aside pattern)
-  async getOrSet(key, fetchFunction, ttl = this.defaultTTL) {
-    try {
-      // Try to get from cache first
-      let value = await this.get(key);
-      
-      if (value !== null) {
-        return value;
-      }
-
-      // If not in cache, fetch from source
-      value = await fetchFunction();
-      
-      // Store in cache
-      if (value !== null && value !== undefined) {
-        await this.set(key, value, ttl);
-      }
-
-      return value;
-    } catch (error) {
-      console.error('❌ Cache getOrSet error:', error.message);
-      // Fallback to fetch function
-      return await fetchFunction();
-    }
-  }
-
-  // Clear cache by pattern
-  async clearPattern(pattern) {
-    try {
-      if (!this.isConnected || !this.client) {
-        return false;
-      }
-
-      const keys = await this.client.keys(pattern);
-      if (keys.length > 0) {
-        await this.client.del(keys);
+      if (this.isConnected && this.redisClient) {
+        await this.redisClient.setex(key, ttl, JSON.stringify(value));
+        logger.debug(`💾 Cache set (Redis): ${key}, TTL: ${ttl}s`);
+      } else {
+        // Fallback to memory cache
+        this.setMemoryCache(key, value, ttl);
+        logger.debug(`💾 Cache set (Memory): ${key}, TTL: ${ttl}s`);
       }
       return true;
     } catch (error) {
-      console.error('❌ Cache clear pattern error:', error.message);
+      logger.error('❌ Cache set error:', error);
       return false;
     }
   }
 
-  // Clear all cache
-  async clearAll() {
-    try {
-      if (!this.isConnected || !this.client) {
-        return false;
-      }
+  /**
+   * Set value in memory cache with TTL
+   */
+  setMemoryCache(key, value, ttl) {
+    // Clean up expired items first
+    this.cleanupMemoryCache();
+    
+    // Check if we need to evict items
+    if (this.memoryCache.size >= this.maxMemorySize) {
+      this.evictOldestItem();
+    }
+    
+    const expiresAt = Date.now() + (ttl * 1000);
+    this.memoryCache.set(key, { value, expiresAt });
+  }
 
-      await this.client.flushDb();
+  /**
+   * Delete value from cache
+   */
+  async delete(key) {
+    try {
+      if (this.isConnected && this.redisClient) {
+        await this.redisClient.del(key);
+        logger.debug(`🗑️ Cache delete (Redis): ${key}`);
+      } else {
+        this.memoryCache.delete(key);
+        logger.debug(`🗑️ Cache delete (Memory): ${key}`);
+      }
       return true;
     } catch (error) {
-      console.error('❌ Cache clear all error:', error.message);
+      logger.error('❌ Cache delete error:', error);
       return false;
     }
   }
 
-  // Get cache statistics
+  /**
+   * Invalidate cache by pattern
+   */
+  async invalidate(pattern) {
+    try {
+      if (this.isConnected && this.redisClient) {
+        const keys = await this.redisClient.keys(pattern);
+        if (keys.length > 0) {
+          await this.redisClient.del(keys);
+          logger.info(`🗑️ Cache invalidated (Redis): ${pattern}, ${keys.length} keys`);
+        }
+      } else {
+        // Fallback to memory cache pattern matching
+        this.invalidateMemoryCache(pattern);
+      }
+      return true;
+    } catch (error) {
+      logger.error('❌ Cache invalidate error:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Invalidate memory cache by pattern
+   */
+  invalidateMemoryCache(pattern) {
+    const regex = new RegExp(pattern.replace('*', '.*'));
+    let deletedCount = 0;
+    
+    for (const key of this.memoryCache.keys()) {
+      if (regex.test(key)) {
+        this.memoryCache.delete(key);
+        deletedCount++;
+      }
+    }
+    
+    if (deletedCount > 0) {
+      logger.info(`🗑️ Cache invalidated (Memory): ${pattern}, ${deletedCount} keys`);
+    }
+  }
+
+  /**
+   * Get cache statistics
+   */
   async getStats() {
     try {
-      if (!this.isConnected || !this.client) {
-        return null;
-      }
-
-      const info = await this.client.info();
-      const keys = await this.client.dbSize();
-      
-      return {
-        connected: this.isConnected,
-        keys,
-        info: info.split('\r\n').reduce((acc, line) => {
-          const [key, value] = line.split(':');
-          if (key && value) {
-            acc[key] = value;
-          }
-          return acc;
-        }, {})
+      const stats = {
+        isConnected: this.isConnected,
+        memoryCacheSize: this.memoryCache.size,
+        timestamp: new Date().toISOString()
       };
+      
+      if (this.isConnected && this.redisClient) {
+        const info = await this.redisClient.info();
+        stats.redisInfo = info;
+      }
+      
+      return stats;
     } catch (error) {
-      console.error('❌ Cache stats error:', error.message);
-      return null;
+      logger.error('❌ Cache stats error:', error);
+      return { error: error.message };
     }
   }
 
-  // Cache middleware for Express routes
+  /**
+   * Clean up expired items from memory cache
+   */
+  cleanupMemoryCache() {
+    const now = Date.now();
+    for (const [key, item] of this.memoryCache.entries()) {
+      if (item.expiresAt <= now) {
+        this.memoryCache.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Evict oldest item from memory cache
+   */
+  evictOldestItem() {
+    let oldestKey = null;
+    let oldestTime = Date.now();
+    
+    for (const [key, item] of this.memoryCache.entries()) {
+      if (item.expiresAt < oldestTime) {
+        oldestTime = item.expiresAt;
+        oldestKey = key;
+      }
+    }
+    
+    if (oldestKey) {
+      this.memoryCache.delete(oldestKey);
+      logger.debug(`🗑️ Evicted oldest cache item: ${oldestKey}`);
+    }
+  }
+
+  /**
+   * Clear all cache
+   */
+  async clear() {
+    try {
+      if (this.isConnected && this.redisClient) {
+        await this.redisClient.flushall();
+        logger.info('🗑️ Cache cleared (Redis)');
+      } else {
+        this.memoryCache.clear();
+        logger.info('🗑️ Cache cleared (Memory)');
+      }
+      return true;
+    } catch (error) {
+      logger.error('❌ Cache clear error:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Disconnect from Redis
+   */
+  async disconnect() {
+    try {
+      if (this.redisClient) {
+        await this.redisClient.quit();
+        this.isConnected = false;
+        logger.info('✅ Redis cache disconnected');
+      }
+    } catch (error) {
+      logger.error('❌ Cache disconnect error:', error);
+    }
+  }
+
+  /**
+   * Cache middleware for Express routes
+   */
   cacheMiddleware(ttl = this.defaultTTL, keyGenerator = null) {
     return async (req, res, next) => {
       try {
         // Generate cache key
-        const cacheKey = keyGenerator ? 
-          keyGenerator(req) : 
-          this.generateKey('api', req.method, req.originalUrl, req.user?.id);
-
+        const cacheKey = keyGenerator ? keyGenerator(req) : `route:${req.method}:${req.originalUrl}`;
+        
         // Try to get from cache
         const cachedResponse = await this.get(cacheKey);
-        
         if (cachedResponse) {
           return res.json(cachedResponse);
         }
-
+        
         // Store original send method
         const originalSend = res.json;
         
@@ -247,91 +312,17 @@ class CacheManager {
           // Call original send method
           return originalSend.call(this, data);
         }.bind(this);
-
+        
         next();
       } catch (error) {
-        console.error('❌ Cache middleware error:', error.message);
+        logger.error('❌ Cache middleware error:', error);
         next();
       }
     };
-  }
-
-  // Invalidate cache by tags
-  async invalidateByTags(tags) {
-    try {
-      if (!this.isConnected || !this.client) {
-        return false;
-      }
-
-      const patterns = Array.isArray(tags) ? tags : [tags];
-      const promises = patterns.map(pattern => this.clearPattern(`*:${pattern}:*`));
-      
-      await Promise.all(promises);
-      return true;
-    } catch (error) {
-      console.error('❌ Cache invalidate by tags error:', error.message);
-      return false;
-    }
-  }
-
-  // Health check
-  async healthCheck() {
-    try {
-      if (!this.isConnected || !this.client) {
-        return { status: 'disconnected', message: 'Cache not connected' };
-      }
-
-      await this.client.ping();
-      return { status: 'healthy', message: 'Cache is working' };
-    } catch (error) {
-      return { status: 'unhealthy', message: error.message };
-    }
   }
 }
 
 // Create singleton instance
-const cacheManager = new CacheManager();
+const cacheManager = new EnhancedCacheManager();
 
-// Cache decorator for functions
-const cache = (ttl = cacheManager.defaultTTL, keyGenerator = null) => {
-  return (target, propertyKey, descriptor) => {
-    const originalMethod = descriptor.value;
-
-    descriptor.value = async function(...args) {
-      try {
-        // Generate cache key
-        const cacheKey = keyGenerator ? 
-          keyGenerator(...args) : 
-          cacheManager.generateKey('func', target.constructor.name, propertyKey, JSON.stringify(args));
-
-        // Try to get from cache
-        const cachedResult = await cacheManager.get(cacheKey);
-        
-        if (cachedResult !== null) {
-          return cachedResult;
-        }
-
-        // Execute original method
-        const result = await originalMethod.apply(this, args);
-        
-        // Cache the result
-        if (result !== null && result !== undefined) {
-          await cacheManager.set(cacheKey, result, ttl);
-        }
-
-        return result;
-      } catch (error) {
-        console.error('❌ Cache decorator error:', error.message);
-        // Fallback to original method
-        return await originalMethod.apply(this, args);
-      }
-    };
-
-    return descriptor;
-  };
-};
-
-module.exports = {
-  cacheManager,
-  cache
-}; 
+module.exports = cacheManager; 

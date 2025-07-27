@@ -1,5 +1,9 @@
 // const { validateTenantData } = require('../utils/validation');
 const Tenant = require('../models/Tenant');
+const User = require('../models/User');
+const Poll = require('../models/Poll');
+const TrainingSession = require('../models/TrainingSession');
+const Presentation = require('../models/Presentation');
 const { emailService } = require('../services/emailService');
 const { generateSlug } = require('../utils/helpers');
 const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
@@ -765,6 +769,433 @@ const restoreTenant = async (req, res) => {
   }
 };
 
+// Get tenant analytics
+const getTenantAnalytics = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { period = '30d' } = req.query; // 7d, 30d, 90d, 1y
+    
+    const tenant = await Tenant.findById(id);
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found'
+      });
+    }
+
+    // Calculate date range based on period
+    const now = new Date();
+    let startDate;
+    switch (period) {
+      case '7d':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case '90d':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case '1y':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    // Get analytics data from various collections
+    const [
+      userStats,
+      pollStats,
+      trainingStats,
+      presentationStats,
+      aiUsageStats
+    ] = await Promise.all([
+      // User analytics
+      User.aggregate([
+        { $match: { tenantId: tenant._id, createdAt: { $gte: startDate } } },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+            },
+            newUsers: { $sum: 1 },
+            activeUsers: {
+              $sum: {
+                $cond: [
+                  { $gte: ["$lastLogin", startDate] },
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+
+      // Poll analytics
+      Poll.aggregate([
+        { $match: { tenantId: tenant._id, createdAt: { $gte: startDate } } },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+            },
+            pollsCreated: { $sum: 1 },
+            totalResponses: { $sum: "$responseCount" },
+            avgResponseRate: { $avg: "$responseRate" }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+
+      // Training analytics
+      TrainingSession.aggregate([
+        { $match: { tenantId: tenant._id, scheduledAt: { $gte: startDate } } },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: "%Y-%m-%d", date: "$scheduledAt" }
+            },
+            sessionsScheduled: { $sum: 1 },
+            sessionsCompleted: {
+              $sum: {
+                $cond: [
+                  { $eq: ["$status", "completed"] },
+                  1,
+                  0
+                ]
+              }
+            },
+            avgAttendance: { $avg: "$attendanceRate" }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+
+      // Presentation analytics
+      Presentation.aggregate([
+        { $match: { tenantId: tenant._id, createdAt: { $gte: startDate } } },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+            },
+            presentationsCreated: { $sum: 1 },
+            sessionsHeld: { $sum: { $size: "$sessions" } },
+            avgSessionDuration: { $avg: "$estimatedDuration" }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+
+      // AI usage analytics
+      // Note: This would require an AI usage tracking collection
+      // For now, returning empty array
+      Promise.resolve([])
+    ]);
+
+    // Calculate summary statistics
+    const summary = {
+      totalUsers: await User.countDocuments({ tenantId: tenant._id }),
+      activeUsers: await User.countDocuments({ 
+        tenantId: tenant._id, 
+        lastLogin: { $gte: startDate } 
+      }),
+      totalPolls: await Poll.countDocuments({ tenantId: tenant._id }),
+      totalTrainingSessions: await TrainingSession.countDocuments({ tenantId: tenant._id }),
+      totalPresentations: await Presentation.countDocuments({ tenantId: tenant._id }),
+      period: period,
+      startDate: startDate,
+      endDate: now
+    };
+
+    res.json({
+      success: true,
+      data: {
+        tenant: {
+          id: tenant._id,
+          name: tenant.name,
+          slug: tenant.slug
+        },
+        summary,
+        analytics: {
+          users: userStats,
+          polls: pollStats,
+          training: trainingStats,
+          presentations: presentationStats,
+          aiUsage: aiUsageStats
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching tenant analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tenant analytics',
+      error: error.message
+    });
+  }
+};
+
+// Get tenant users
+const getTenantUsers = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      page = 1,
+      limit = 10,
+      role,
+      status,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = req.query;
+
+    const tenant = await Tenant.findById(id);
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found'
+      });
+    }
+
+    // Build filter object
+    const filter = { tenantId: tenant._id };
+    
+    if (role) filter.role = role;
+    if (status) filter.status = status;
+    
+    if (search) {
+      filter.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Build sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+    // Execute query with pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const [users, total] = await Promise.all([
+      User.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .select('-password -verificationToken'),
+      User.countDocuments(filter)
+    ]);
+
+    const totalPages = Math.ceil(total / parseInt(limit));
+
+    // Calculate user statistics
+    const userStats = await User.aggregate([
+      { $match: { tenantId: tenant._id } },
+      {
+        $group: {
+          _id: null,
+          totalUsers: { $sum: 1 },
+          activeUsers: {
+            $sum: {
+              $cond: [
+                { $eq: ["$status", "active"] },
+                1,
+                0
+              ]
+            }
+          },
+          verifiedUsers: {
+            $sum: {
+              $cond: [
+                { $eq: ["$isVerified", true] },
+                1,
+                0
+              ]
+            }
+          },
+          adminUsers: {
+            $sum: {
+              $cond: [
+                { $eq: ["$role", "admin"] },
+                1,
+                0
+              ]
+            }
+          },
+          trainerUsers: {
+            $sum: {
+              $cond: [
+                { $eq: ["$role", "trainer"] },
+                1,
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        tenant: {
+          id: tenant._id,
+          name: tenant.name,
+          slug: tenant.slug
+        },
+        users,
+        statistics: userStats[0] || {
+          totalUsers: 0,
+          activeUsers: 0,
+          verifiedUsers: 0,
+          adminUsers: 0,
+          trainerUsers: 0
+        },
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching tenant users:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tenant users',
+      error: error.message
+    });
+  }
+};
+
+// Get tenant settings
+const getTenantSettings = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const tenant = await Tenant.findById(id);
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found'
+      });
+    }
+
+    // Extract settings from tenant document
+    const settings = {
+      general: {
+        name: tenant.name,
+        description: tenant.description,
+        contact: tenant.contact,
+        address: tenant.address,
+        business: tenant.business
+      },
+      subscription: tenant.subscription,
+      features: tenant.features,
+      branding: tenant.branding,
+      security: tenant.security,
+      notifications: tenant.notifications,
+      integrations: tenant.integrations,
+      customizations: tenant.customizations
+    };
+
+    res.json({
+      success: true,
+      data: {
+        tenant: {
+          id: tenant._id,
+          name: tenant.name,
+          slug: tenant.slug
+        },
+        settings
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching tenant settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tenant settings',
+      error: error.message
+    });
+  }
+};
+
+// Update tenant settings
+const updateTenantSettings = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    
+    const tenant = await Tenant.findById(id);
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found'
+      });
+    }
+
+    // Validate update data
+    const allowedSettings = [
+      'name', 'description', 'contact', 'address', 'business',
+      'features', 'branding', 'security', 'notifications',
+      'integrations', 'customizations'
+    ];
+
+    const validUpdates = {};
+    for (const [key, value] of Object.entries(updateData)) {
+      if (allowedSettings.includes(key)) {
+        validUpdates[key] = value;
+      }
+    }
+
+    if (Object.keys(validUpdates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid settings provided for update'
+      });
+    }
+
+    // Update tenant with new settings
+    const updatedTenant = await Tenant.findByIdAndUpdate(
+      id,
+      validUpdates,
+      { new: true, runValidators: true }
+    ).select('-verificationToken -verificationExpires');
+
+    res.json({
+      success: true,
+      message: 'Tenant settings updated successfully',
+      data: {
+        tenant: {
+          id: updatedTenant._id,
+          name: updatedTenant.name,
+          slug: updatedTenant.slug
+        },
+        updatedSettings: validUpdates
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating tenant settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update tenant settings',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   createTenant,
   getTenants,
@@ -779,5 +1210,9 @@ module.exports = {
   getTenantStats,
   getAllTenantStats,
   getDeletedTenants,
-  restoreTenant
+  restoreTenant,
+  getTenantAnalytics,
+  getTenantUsers,
+  getTenantSettings,
+  updateTenantSettings
 }; 

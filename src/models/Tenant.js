@@ -1,70 +1,74 @@
 const mongoose = require('mongoose');
 
 const tenantSchema = new mongoose.Schema({
-  // Basic Information
+  // Core tenant information
   name: {
     type: String,
     required: true,
     trim: true,
-    maxlength: 100
+    maxlength: 255
+  },
+  domain: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true,
+    lowercase: true
   },
   slug: {
     type: String,
     required: true,
-    lowercase: true,
+    unique: true,
     trim: true,
-    match: /^[a-z0-9-]+$/
+    lowercase: true,
+    match: [/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens']
   },
   description: {
     type: String,
-    trim: true,
-    maxlength: 500
-  },
-  
-  // Contact Information
-  contactEmail: {
-    type: String,
-    required: true,
-    lowercase: true,
-    trim: true
-  },
-  contactPhone: {
-    type: String,
-    trim: true
-  },
-  website: {
-    type: String,
     trim: true
   },
   
-  // Address Information
+  // Contact information
+  contact: {
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true
+    },
+    phone: {
+      type: String,
+      trim: true
+    },
+    website: {
+      type: String,
+      trim: true
+    }
+  },
+  
+  // Address information
   address: {
     street: String,
     city: String,
     state: String,
     country: String,
-    zipCode: String
+    postalCode: String
   },
   
-  // Business Information
-  industry: {
-    type: String,
-    trim: true
-  },
-  companySize: {
-    type: String,
-    enum: ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+']
-  },
-  timezone: {
-    type: String,
-    default: 'UTC'
-  },
-  language: {
-    type: String,
-    default: 'en'
+  // Business information
+  business: {
+    industry: {
+      type: String,
+      trim: true
+    },
+    companySize: {
+      type: String,
+      enum: ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+']
+    },
+    foundedYear: Number,
+    taxId: String
   },
   
-  // Subscription & Billing
+  // Subscription and billing
   subscription: {
     plan: {
       type: String,
@@ -74,119 +78,247 @@ const tenantSchema = new mongoose.Schema({
     status: {
       type: String,
       enum: ['active', 'trial', 'expired', 'cancelled', 'suspended'],
-      default: 'trial'
+      default: 'active'
     },
-    startDate: {
-      type: Date,
-      default: Date.now
-    },
-    endDate: Date,
-    trialEndDate: {
-      type: Date,
-      default: () => new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days trial
-    },
+    expiresAt: Date,
+    trialEndsAt: Date,
     billingCycle: {
       type: String,
       enum: ['monthly', 'yearly'],
       default: 'monthly'
     },
-    amount: {
-      type: Number,
-      default: 0
-    },
-    currency: {
-      type: String,
-      default: 'USD'
-    },
     stripeCustomerId: String,
     stripeSubscriptionId: String
   },
   
-  // Feature Flags & Settings
-  features: {
-    polls: {
-      enabled: { type: Boolean, default: true },
-      maxPolls: { type: Number, default: 10 },
-      maxRecipients: { type: Number, default: 100 }
+  // Usage limits
+  limits: {
+    maxUsers: {
+      type: Number,
+      default: 10,
+      min: 1
     },
-    analytics: {
-      enabled: { type: Boolean, default: true },
-      retention: { type: Number, default: 90 } // days
+    maxStorageGB: {
+      type: Number,
+      default: 1,
+      min: 0
     },
-    integrations: {
-      slack: { type: Boolean, default: false },
-      teams: { type: Boolean, default: false },
-      email: { type: Boolean, default: true }
+    maxPolls: {
+      type: Number,
+      default: 100,
+      min: 0
     },
-    branding: {
-      enabled: { type: Boolean, default: false },
-      logo: String,
-      colors: {
-        primary: { type: String, default: '#3B82F6' },
-        secondary: { type: String, default: '#6B7280' }
-      }
-    },
-    security: {
-      sso: { type: Boolean, default: false },
-      mfa: { type: Boolean, default: false },
-      ipWhitelist: [String]
+    maxApiCalls: {
+      type: Number,
+      default: 1000,
+      min: 0
     }
   },
   
-  // Usage Statistics
+  // Current usage
   usage: {
-    pollsCreated: { type: Number, default: 0 },
-    totalRecipients: { type: Number, default: 0 },
-    totalResponses: { type: Number, default: 0 },
-    lastActivity: { type: Date, default: Date.now }
+    currentUsers: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    currentStorageGB: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    currentPolls: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    apiCallsThisMonth: {
+      type: Number,
+      default: 0,
+      min: 0
+    }
   },
   
-  // Status & Configuration
-  status: {
-    type: String,
-    enum: ['active', 'inactive', 'suspended', 'pending'],
-    default: 'active'
-  },
-  isVerified: {
+  // Status and settings
+  isActive: {
     type: Boolean,
-    default: false
+    default: true
   },
   isDeleted: {
     type: Boolean,
     default: false
   },
-  deletedAt: {
-    type: Date,
-    default: null
-  },
-  deletedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    default: null
-  },
-  verificationToken: String,
-  verificationExpires: Date,
+  deletedAt: Date,
   
-  // Admin Settings
+  // Branding and customization
+  branding: {
+    logo: String,
+    favicon: String,
+    primaryColor: {
+      type: String,
+      default: '#3B82F6'
+    },
+    secondaryColor: {
+      type: String,
+      default: '#1E40AF'
+    },
+    accentColor: {
+      type: String,
+      default: '#10B981'
+    },
+    customCSS: String,
+    customJS: String
+  },
+  
+  // Feature flags
+  features: {
+    polls: {
+      type: Boolean,
+      default: true
+    },
+    analytics: {
+      type: Boolean,
+      default: true
+    },
+    api: {
+      type: Boolean,
+      default: true
+    },
+    sso: {
+      type: Boolean,
+      default: false
+    },
+    advancedReporting: {
+      type: Boolean,
+      default: false
+    },
+    customBranding: {
+      type: Boolean,
+      default: false
+    },
+    whiteLabel: {
+      type: Boolean,
+      default: false
+    }
+  },
+  
+  // Settings and configuration
   settings: {
-    allowPublicPolls: { type: Boolean, default: false },
-    requireEmailVerification: { type: Boolean, default: true },
-    autoArchivePolls: { type: Boolean, default: true },
-    archiveAfterDays: { type: Number, default: 90 },
-    notificationPreferences: {
-      email: { type: Boolean, default: true },
-      inApp: { type: Boolean, default: true },
-      slack: { type: Boolean, default: false }
+    timezone: {
+      type: String,
+      default: 'UTC'
+    },
+    dateFormat: {
+      type: String,
+      default: 'MM/DD/YYYY'
+    },
+    timeFormat: {
+      type: String,
+      enum: ['12h', '24h'],
+      default: '12h'
+    },
+    language: {
+      type: String,
+      default: 'en'
+    },
+    defaultUserRole: {
+      type: String,
+      enum: ['user', 'trainer', 'admin', 'super_admin'],
+      default: 'user'
+    },
+    requireEmailVerification: {
+      type: Boolean,
+      default: true
+    },
+    allowUserRegistration: {
+      type: Boolean,
+      default: true
+    },
+    sessionTimeout: {
+      type: Number,
+      default: 24, // hours
+      min: 1,
+      max: 168
+    }
+  },
+  
+  // Security settings
+  security: {
+    passwordPolicy: {
+      minLength: {
+        type: Number,
+        default: 8,
+        min: 6
+      },
+      requireUppercase: {
+        type: Boolean,
+        default: true
+      },
+      requireLowercase: {
+        type: Boolean,
+        default: true
+      },
+      requireNumbers: {
+        type: Boolean,
+        default: true
+      },
+      requireSpecialChars: {
+        type: Boolean,
+        default: false
+      }
+    },
+    loginPolicy: {
+      maxFailedAttempts: {
+        type: Number,
+        default: 5,
+        min: 1
+      },
+      lockoutDuration: {
+        type: Number,
+        default: 15, // minutes
+        min: 1
+      },
+      requireMFA: {
+        type: Boolean,
+        default: false
+      }
+    },
+    ipWhitelist: [String],
+    ipBlacklist: [String]
+  },
+  
+  // Integration settings
+  integrations: {
+    sso: {
+      provider: {
+        type: String,
+        enum: ['saml', 'oidc', 'oauth2'],
+        default: null
+      },
+      config: mongoose.Schema.Types.Mixed
+    },
+    email: {
+      provider: {
+        type: String,
+        enum: ['smtp', 'sendgrid', 'mailgun', 'ses'],
+        default: 'smtp'
+      },
+      config: mongoose.Schema.Types.Mixed
+    },
+    storage: {
+      provider: {
+        type: String,
+        enum: ['local', 's3', 'gcs', 'azure'],
+        default: 'local'
+      },
+      config: mongoose.Schema.Types.Mixed
     }
   },
   
   // Metadata
   metadata: {
-    source: String, // How the tenant was created (signup, admin, etc.)
-    referrer: String,
-    utmSource: String,
-    utmMedium: String,
-    utmCampaign: String
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 }, {
   timestamps: true,
@@ -194,173 +326,160 @@ const tenantSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+// Virtual for display name
+tenantSchema.virtual('displayName').get(function() {
+  return this.name || this.slug;
+});
+
+// Virtual for is trial
+tenantSchema.virtual('isTrial').get(function() {
+  return this.subscription.status === 'trial' && 
+         this.subscription.trialEndsAt && 
+         this.subscription.trialEndsAt > new Date();
+});
+
+// Virtual for is expired
+tenantSchema.virtual('isExpired').get(function() {
+  return this.subscription.expiresAt && 
+         this.subscription.expiresAt < new Date();
+});
+
+// Virtual for usage percentage
+tenantSchema.virtual('usagePercentage').get(function() {
+  const userPercentage = (this.usage.currentUsers / this.limits.maxUsers) * 100;
+  const storagePercentage = (this.usage.currentStorageGB / this.limits.maxStorageGB) * 100;
+  const pollPercentage = (this.usage.currentPolls / this.limits.maxPolls) * 100;
+  
+  return {
+    users: Math.min(userPercentage, 100),
+    storage: Math.min(storagePercentage, 100),
+    polls: Math.min(pollPercentage, 100)
+  };
+});
+
 // Indexes for performance
 tenantSchema.index({ slug: 1 });
-tenantSchema.index({ contactEmail: 1 });
-tenantSchema.index({ 'subscription.status': 1 });
-tenantSchema.index({ status: 1 });
+tenantSchema.index({ domain: 1 });
+tenantSchema.index({ isActive: 1 });
 tenantSchema.index({ isDeleted: 1 });
+tenantSchema.index({ 'subscription.status': 1 });
+tenantSchema.index({ 'subscription.expiresAt': 1 });
 tenantSchema.index({ createdAt: -1 });
-tenantSchema.index({ 'usage.lastActivity': -1 });
 
-// Virtual for subscription status
-tenantSchema.virtual('isSubscriptionActive').get(function() {
-  if (!this.subscription) return false;
-  
-  const now = new Date();
-  const { status, endDate, trialEndDate } = this.subscription;
-  
-  if (status === 'active') {
-    return !endDate || endDate > now;
-  }
-  
-  if (status === 'trial') {
-    return trialEndDate && trialEndDate > now;
-  }
-  
-  return false;
-});
-
-// Virtual for trial status
-tenantSchema.virtual('isInTrial').get(function() {
-  if (!this.subscription) return false;
-  
-  const now = new Date();
-  const { status, trialEndDate } = this.subscription;
-  
-  return status === 'trial' && trialEndDate && trialEndDate > now;
-});
-
-// Virtual for trial days remaining
-tenantSchema.virtual('trialDaysRemaining').get(function() {
-  if (!this.isInTrial) return 0;
-  
-  const now = new Date();
-  const trialEnd = this.subscription.trialEndDate;
-  const diffTime = trialEnd - now;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  return Math.max(0, diffDays);
-});
-
-// Pre-save middleware to generate slug if not provided
+// Pre-save middleware
 tenantSchema.pre('save', function(next) {
-  if (!this.slug && this.name) {
-    this.slug = this.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+  // Ensure slug is URL-friendly
+  if (this.isModified('slug')) {
+    this.slug = this.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
   }
+  
+  // Set deletedAt when isDeleted is true
+  if (this.isDeleted && !this.deletedAt) {
+    this.deletedAt = new Date();
+  }
+  
   next();
 });
 
-// Pre-save middleware to update last activity
-tenantSchema.pre('save', function(next) {
-  if (this.isModified()) {
-    this.usage.lastActivity = new Date();
-  }
-  next();
-});
+// Instance methods
+tenantSchema.methods.isWithinLimits = function() {
+  return {
+    users: this.usage.currentUsers < this.limits.maxUsers,
+    storage: this.usage.currentStorageGB < this.limits.maxStorageGB,
+    polls: this.usage.currentPolls < this.limits.maxPolls
+  };
+};
 
-// Static method to find active tenants (excluding deleted)
+tenantSchema.methods.canAddUser = function() {
+  return this.usage.currentUsers < this.limits.maxUsers;
+};
+
+tenantSchema.methods.canCreatePoll = function() {
+  return this.usage.currentPolls < this.limits.maxPolls;
+};
+
+tenantSchema.methods.incrementUserCount = async function() {
+  if (this.canAddUser()) {
+    this.usage.currentUsers += 1;
+    return this.save();
+  }
+  throw new Error('User limit exceeded');
+};
+
+tenantSchema.methods.decrementUserCount = async function() {
+  if (this.usage.currentUsers > 0) {
+    this.usage.currentUsers -= 1;
+    return this.save();
+  }
+};
+
+tenantSchema.methods.incrementPollCount = async function() {
+  if (this.canCreatePoll()) {
+    this.usage.currentPolls += 1;
+    return this.save();
+  }
+  throw new Error('Poll limit exceeded');
+};
+
+tenantSchema.methods.decrementPollCount = async function() {
+  if (this.usage.currentPolls > 0) {
+    this.usage.currentPolls -= 1;
+    return this.save();
+  }
+};
+
+// Static methods
+tenantSchema.statics.findBySlug = function(slug) {
+  return this.findOne({ slug: slug.toLowerCase(), isActive: true, isDeleted: false });
+};
+
+tenantSchema.statics.findByDomain = function(domain) {
+  return this.findOne({ domain: domain.toLowerCase(), isActive: true, isDeleted: false });
+};
+
 tenantSchema.statics.findActive = function() {
-  return this.find({ status: 'active', isDeleted: false });
+  return this.find({ isActive: true, isDeleted: false });
 };
 
-// Static method to find tenants by subscription status (excluding deleted)
-tenantSchema.statics.findBySubscriptionStatus = function(status) {
-  return this.find({ 'subscription.status': status, isDeleted: false });
-};
-
-// Static method to find tenants expiring soon (excluding deleted)
-tenantSchema.statics.findExpiringSoon = function(days = 7) {
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() + days);
-  
+tenantSchema.statics.findExpired = function() {
   return this.find({
-    'subscription.status': 'active',
-    'subscription.endDate': { $lte: cutoffDate },
-    isDeleted: false
+    'subscription.expiresAt': { $lt: new Date() },
+    'subscription.status': { $in: ['active', 'trial'] }
   });
 };
 
-// Static method to find all tenants including deleted ones
-tenantSchema.statics.findAllIncludingDeleted = function() {
-  return this.find({});
-};
-
-// Static method to find only deleted tenants
-tenantSchema.statics.findDeleted = function() {
-  return this.find({ isDeleted: true });
-};
-
-// Instance method to check feature access
-tenantSchema.methods.hasFeature = function(feature) {
-  if (!this.features || !this.features[feature]) {
-    return false;
-  }
-  return this.features[feature].enabled;
-};
-
-// Instance method to check usage limits
-tenantSchema.methods.checkUsageLimit = function(feature, currentUsage) {
-  if (!this.features || !this.features[feature]) {
-    return false;
-  }
-  
-  const limit = this.features[feature].maxPolls || this.features[feature].maxRecipients;
-  return currentUsage < limit;
-};
-
-// Instance method to update usage statistics
-tenantSchema.methods.updateUsage = function(type, count = 1) {
-  if (type === 'polls') {
-    this.usage.pollsCreated += count;
-  } else if (type === 'recipients') {
-    this.usage.totalRecipients += count;
-  } else if (type === 'responses') {
-    this.usage.totalResponses += count;
-  }
-  
-  this.usage.lastActivity = new Date();
-  return this.save();
-};
-
-// Instance method to verify tenant
-tenantSchema.methods.verify = function() {
-  this.isVerified = true;
-  this.verificationToken = undefined;
-  this.verificationExpires = undefined;
-  return this.save();
-};
-
-// Instance method to generate verification token
-tenantSchema.methods.generateVerificationToken = function() {
-  const crypto = require('crypto');
-  this.verificationToken = crypto.randomBytes(32).toString('hex');
-  this.verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-  return this.save();
-};
-
-// Instance method to soft delete tenant
-tenantSchema.methods.softDelete = function(deletedBy = null) {
-  this.isDeleted = true;
-  this.deletedAt = new Date();
-  this.deletedBy = deletedBy;
-  return this.save();
-};
-
-// Instance method to restore deleted tenant
-tenantSchema.methods.restore = function() {
-  this.isDeleted = false;
-  this.deletedAt = null;
-  this.deletedBy = null;
-  return this.save();
-};
-
-// Instance method to permanently delete tenant
-tenantSchema.methods.permanentDelete = function() {
-  return this.deleteOne();
+tenantSchema.statics.getTenantStatistics = function() {
+  return this.aggregate([
+    { $match: { isDeleted: false } },
+    {
+      $group: {
+        _id: null,
+        totalTenants: { $sum: 1 },
+        activeTenants: { $sum: { $cond: ['$isActive', 1, 0] } },
+        trialTenants: {
+          $sum: {
+            $cond: [
+              { $and: [
+                { $eq: ['$subscription.status', 'trial'] },
+                { $gt: ['$subscription.trialEndsAt', new Date()] }
+              ]},
+              1,
+              0
+            ]
+          }
+        },
+        expiredTenants: {
+          $sum: {
+            $cond: [
+              { $lt: ['$subscription.expiresAt', new Date()] },
+              1,
+              0
+            ]
+          }
+        }
+      }
+    }
+  ]);
 };
 
 module.exports = mongoose.model('Tenant', tenantSchema); 

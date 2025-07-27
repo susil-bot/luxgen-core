@@ -1,331 +1,191 @@
 const mongoose = require('mongoose');
-const Redis = require('redis');
+const logger = require('../utils/logger');
 
-class DatabaseManager {
-  constructor() {
-    this.mongodb = null;
-    this.redis = null;
-    this.connections = {
-      mongodb: { isConnected: false, connection: null },
-      redis: { isConnected: false, client: null }
-    };
-    this.healthCheckInterval = 30000; // 30 seconds
-    this.healthCheckTimer = null;
+// Enhanced database configuration with connection pooling and retry logic
+const databaseConfig = {
+  // Connection options with pooling
+  options: {
+    maxPoolSize: 10, // Maximum number of connections in the pool
+    minPoolSize: 2,  // Minimum number of connections in the pool
+    serverSelectionTimeoutMS: 5000, // Timeout for server selection
+    socketTimeoutMS: 45000, // Socket timeout
+    connectTimeoutMS: 10000, // Connection timeout
+    retryWrites: true, // Enable retry for write operations
+    retryReads: true,  // Enable retry for read operations
+    w: 'majority', // Write concern
+    readPreference: 'secondaryPreferred', // Read preference for better performance
+    maxIdleTimeMS: 30000, // Maximum time a connection can remain idle
+    heartbeatFrequencyMS: 10000, // Heartbeat frequency
+    bufferMaxEntries: 0, // Disable mongoose buffering
+    bufferCommands: false, // Disable mongoose command buffering
+  },
+  
+  // Index configuration for performance
+  indexes: {
+    // User indexes
+    userIndexes: [
+      { email: 1, tenantId: 1 }, // Compound index for email lookups
+      { tenantId: 1, role: 1 }, // Compound index for role-based queries
+      { tenantId: 1, status: 1 }, // Compound index for status queries
+      { createdAt: -1 }, // Index for sorting by creation date
+    ],
+    
+    // Training indexes
+    trainingSessionIndexes: [
+      { tenantId: 1, scheduledAt: 1 }, // Compound index for scheduled sessions
+      { tenantId: 1, status: 1 }, // Compound index for status queries
+      { trainerId: 1, tenantId: 1 }, // Compound index for trainer queries
+      { participants: 1, tenantId: 1 }, // Compound index for participant queries
+    ],
+    
+    trainingCourseIndexes: [
+      { tenantId: 1, status: 1 }, // Compound index for course status
+      { instructorId: 1, tenantId: 1 }, // Compound index for instructor queries
+      { category: 1, tenantId: 1 }, // Compound index for category queries
+      { tags: 1, tenantId: 1 }, // Index for tag-based searches
+    ],
+    
+    // Poll indexes
+    pollIndexes: [
+      { tenantId: 1, status: 1 }, // Compound index for poll status
+      { createdBy: 1, tenantId: 1 }, // Compound index for creator queries
+      { createdAt: -1 }, // Index for sorting by creation date
+    ],
+    
+    // Presentation indexes
+    presentationIndexes: [
+      { tenantId: 1, status: 1 }, // Compound index for presentation status
+      { createdBy: 1, tenantId: 1 }, // Compound index for creator queries
+      { tags: 1, tenantId: 1 }, // Index for tag-based searches
+    ]
   }
+};
 
-  // MongoDB Connection
-  async connectMongoDB() {
+// Enhanced connection function with retry logic
+async function connectToDatabase(uri) {
+  const maxRetries = 5;
+  let retryCount = 0;
+  
+  while (retryCount < maxRetries) {
     try {
-      if (this.connections.mongodb.isConnected) {
-        console.log('✅ MongoDB already connected');
-        return this.connections.mongodb.connection;
-      }
-
-      console.log('🔌 Connecting to MongoDB...');
+      logger.info(`🔄 Attempting database connection (attempt ${retryCount + 1}/${maxRetries})...`);
       
-      const mongoUri = process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017/luxgen_trainer_platform';
+      await mongoose.connect(uri, databaseConfig.options);
       
-      const connectionOptions = {
-        maxPoolSize: 5,
-        minPoolSize: 1,
-        serverSelectionTimeoutMS: 60000,
-        socketTimeoutMS: 60000,
-        bufferCommands: false,
-        maxIdleTimeMS: 60000,
-        retryWrites: true,
-        w: 'majority',
-        readPreference: 'primary',
-        heartbeatFrequencyMS: 30000,
-        family: 4,
-        connectTimeoutMS: 60000,
-        serverApi: {
-          version: '1',
-          strict: true,
-          deprecationErrors: true,
-        }
-      };
-
-      const connection = await mongoose.connect(mongoUri, {
-        ...connectionOptions,
-        dbName: 'luxgen_trainer_platform'
+      logger.info('✅ Database connected successfully');
+      
+      // Set up connection event listeners
+      mongoose.connection.on('error', (error) => {
+        logger.error('❌ Database connection error:', error);
       });
-
-      this.connections.mongodb.connection = connection;
-      this.connections.mongodb.isConnected = true;
-
-      console.log('✅ MongoDB connected successfully');
-
-      // Set up event handlers
-      connection.connection.on('error', (err) => {
-        console.error('❌ MongoDB connection error:', err);
-        this.connections.mongodb.isConnected = false;
-      });
-
-      connection.connection.on('disconnected', () => {
-        console.log('⚠️ MongoDB disconnected');
-        this.connections.mongodb.isConnected = false;
-      });
-
-      connection.connection.on('reconnected', () => {
-        console.log('✅ MongoDB reconnected');
-        this.connections.mongodb.isConnected = true;
-      });
-
-      return connection;
-    } catch (error) {
-      console.error('❌ Failed to connect to MongoDB:', error.message);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('⚠️ MongoDB is optional for development - continuing without MongoDB');
-        this.connections.mongodb.isConnected = false;
-        this.connections.mongodb.connection = null;
-        return null;
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  // Redis Connection
-  async connectRedis() {
-    try {
-      if (this.connections.redis.isConnected) {
-        console.log('✅ Redis already connected');
-        return this.connections.redis.client;
-      }
-
-      console.log('🔌 Connecting to Redis...');
       
-      const redisUrl = process.env.REDIS_URL || `redis://${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || 6379}`;
-      
-      const client = Redis.createClient({
-        url: redisUrl,
-        password: process.env.REDIS_PASSWORD || undefined,
-        retry_strategy: (options) => {
-          if (options.error && options.error.code === 'ECONNREFUSED') {
-            return new Error('The server refused the connection');
-          }
-          if (options.total_retry_time > 1000 * 60 * 60) {
-            return new Error('Retry time exhausted');
-          }
-          if (options.attempt > 10) {
-            return undefined;
-          }
-          return Math.min(options.attempt * 100, 3000);
-        }
+      mongoose.connection.on('disconnected', () => {
+        logger.warn('⚠️ Database disconnected');
       });
-
-      await client.connect();
-
-      this.connections.redis.client = client;
-      this.connections.redis.isConnected = true;
-
-      console.log('✅ Redis connected successfully');
-
-      // Set up event handlers
-      client.on('error', (err) => {
-        console.error('⚠️ Redis disconnected:', err);
-        this.connections.redis.isConnected = false;
+      
+      mongoose.connection.on('reconnected', () => {
+        logger.info('🔄 Database reconnected');
       });
-
-      client.on('connect', () => {
-        console.log('✅ Redis connected successfully');
-        this.connections.redis.isConnected = true;
-      });
-
-      return client;
-    } catch (error) {
-      console.error('❌ Failed to connect to Redis:', error.message);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('⚠️ Redis is optional for development - continuing without Redis');
-        this.connections.redis.isConnected = false;
-        this.connections.redis.client = null;
-        return null;
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  // Initialize all database connections
-  async initialize() {
-    try {
-      console.log('🚀 Initializing database connections...');
       
-      // Connect to MongoDB
-      try {
-        await this.connectMongoDB();
-        console.log('✅ MongoDB: Connected');
-      } catch (error) {
-        console.log('❌ MongoDB: Failed to connect');
-      }
-      
-      // Connect to Redis
-      try {
-        await this.connectRedis();
-        console.log('✅ Redis: Connected');
-      } catch (error) {
-        console.log('❌ Redis: Failed to connect');
-      }
-      
-      console.log('🎉 Database initialization completed');
-      
-      // Start health monitoring
-      this.startHealthCheck();
+      // Create indexes for performance
+      await createIndexes();
       
       return true;
     } catch (error) {
-      console.error('❌ Database initialization failed:', error.message);
-      throw error;
-    }
-  }
-
-  // Health check for all databases
-  async healthCheck() {
-    const health = {
-      mongodb: { status: 'unknown', error: null },
-      redis: { status: 'unknown', error: null },
-      timestamp: new Date().toISOString()
-    };
-
-    // Check MongoDB
-    if (this.connections.mongodb.isConnected && this.connections.mongodb.connection) {
-      try {
-        await this.connections.mongodb.connection.connection.db.admin().ping();
-        health.mongodb.status = 'healthy';
-      } catch (error) {
-        health.mongodb.status = 'unhealthy';
-        health.mongodb.error = error.message;
-      }
-    } else {
-      health.mongodb.status = 'disconnected';
-    }
-
-    // Check Redis
-    if (this.connections.redis.isConnected && this.connections.redis.client) {
-      try {
-        await this.connections.redis.client.ping();
-        health.redis.status = 'healthy';
-      } catch (error) {
-        health.redis.status = 'unhealthy';
-        health.redis.error = error.message;
-      }
-    } else {
-      health.redis.status = 'disconnected';
-    }
-
-    return health;
-  }
-
-  // Start health check monitoring
-  startHealthCheck() {
-    if (this.healthCheckTimer) {
-      clearInterval(this.healthCheckTimer);
-    }
-
-    this.healthCheckTimer = setInterval(async () => {
-      try {
-        const health = await this.healthCheck();
-        const allHealthy = health.mongodb.status === 'healthy' &&
-                          health.redis.status === 'healthy';
-
-        if (!allHealthy) {
-          console.log('⚠️ Database health check failed:', health);
-        }
-      } catch (error) {
-        console.error('❌ Health check error:', error.message);
-      }
-    }, this.healthCheckInterval);
-
-    console.log('🏥 Database health monitoring started');
-  }
-
-  // Stop health check monitoring
-  stopHealthCheck() {
-    if (this.healthCheckTimer) {
-      clearInterval(this.healthCheckTimer);
-      this.healthCheckTimer = null;
-    }
-  }
-
-  // Setup graceful shutdown
-  setupGracefulShutdown() {
-    const gracefulShutdown = async (signal) => {
-      console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
+      retryCount++;
+      logger.error(`❌ Database connection attempt ${retryCount} failed:`, error.message);
       
-      // Stop health monitoring
-      this.stopHealthCheck();
-
-      // Close MongoDB connections
-      if (this.connections.mongodb.connection) {
-        await this.connections.mongodb.connection.disconnect();
-        this.connections.mongodb.isConnected = false;
-        console.log('✅ MongoDB connections closed');
+      if (retryCount >= maxRetries) {
+        logger.error('💥 Maximum database connection retries reached');
+        throw error;
       }
-
-      // Close Redis connections
-      if (this.connections.redis.client) {
-        await this.connections.redis.client.quit();
-        this.connections.redis.isConnected = false;
-        console.log('✅ Redis connections closed');
-      }
-
-      console.log('✅ Graceful shutdown completed');
-      process.exit(0);
-    };
-
-    process.on('SIGTERM', gracefulShutdown);
-    process.on('SIGINT', gracefulShutdown);
-  }
-
-  // Get MongoDB connection
-  getMongoConnection() {
-    return this.connections.mongodb.connection;
-  }
-
-  // Get Redis client
-  getRedisClient() {
-    return this.connections.redis.client;
-  }
-
-  // Get connection status
-  getConnectionStatus() {
-    return {
-      mongodb: this.connections.mongodb.isConnected,
-      redis: this.connections.redis.isConnected,
-      timestamp: new Date().toISOString()
-    };
-  }
-
-  // Test all connections
-  async testConnections() {
-    const results = {
-      mongodb: { success: false, error: null },
-      redis: { success: false, error: null },
-      timestamp: new Date().toISOString()
-    };
-
-    // Test MongoDB
-    if (this.connections.mongodb.connection) {
-      try {
-        await this.connections.mongodb.connection.connection.db.admin().ping();
-        results.mongodb.success = true;
-      } catch (error) {
-        results.mongodb.error = error.message;
-      }
+      
+      // Exponential backoff
+      const delay = Math.pow(2, retryCount) * 1000;
+      logger.info(`⏳ Waiting ${delay}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
-
-    // Test Redis
-    if (this.connections.redis.client) {
-      try {
-        await this.connections.redis.client.ping();
-        results.redis.success = true;
-      } catch (error) {
-        results.redis.error = error.message;
-      }
-    }
-
-    return results;
   }
 }
 
-module.exports = new DatabaseManager(); 
+// Create database indexes for performance
+async function createIndexes() {
+  try {
+    logger.info('📊 Creating database indexes for performance...');
+    
+    const { User, TrainingSession, TrainingCourse, Poll, Presentation } = require('../models');
+    
+    // User indexes
+    await User.collection.createIndexes(databaseConfig.indexes.userIndexes);
+    
+    // Training indexes
+    await TrainingSession.collection.createIndexes(databaseConfig.indexes.trainingSessionIndexes);
+    await TrainingCourse.collection.createIndexes(databaseConfig.indexes.trainingCourseIndexes);
+    
+    // Poll indexes
+    await Poll.collection.createIndexes(databaseConfig.indexes.pollIndexes);
+    
+    // Presentation indexes
+    await Presentation.collection.createIndexes(databaseConfig.indexes.presentationIndexes);
+    
+    logger.info('✅ Database indexes created successfully');
+  } catch (error) {
+    logger.error('❌ Error creating database indexes:', error);
+    // Don't throw error as indexes are optional for functionality
+  }
+}
+
+// Enhanced query optimization helper
+function optimizeQuery(query, options = {}) {
+  const {
+    lean = true, // Use lean queries for better performance
+    limit = 50,  // Default limit
+    select = null, // Fields to select
+    populate = null, // Fields to populate
+    sort = null // Sort options
+  } = options;
+  
+  if (lean) {
+    query.lean();
+  }
+  
+  if (limit) {
+    query.limit(limit);
+  }
+  
+  if (select) {
+    query.select(select);
+  }
+  
+  if (populate) {
+    query.populate(populate);
+  }
+  
+  if (sort) {
+    query.sort(sort);
+  }
+  
+  return query;
+}
+
+// Pagination helper
+function createPaginationOptions(req) {
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+  const skip = (page - 1) * limit;
+  
+  return {
+    page,
+    limit,
+    skip,
+    sort: req.query.sort || { createdAt: -1 }
+  };
+}
+
+module.exports = {
+  connectToDatabase,
+  createIndexes,
+  optimizeQuery,
+  createPaginationOptions,
+  databaseConfig
+}; 
