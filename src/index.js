@@ -9,6 +9,7 @@ const databaseManager = require('./config/database');
 const environmentConfig = require('./config/environment');
 const { errorHandler } = require('./utils/errors');
 const { cacheManager } = require('./utils/cache');
+const aiService = require('./services/aiService');
 require('dotenv').config();
 
 const app = express();
@@ -23,10 +24,19 @@ app.use(helmet(environmentConfig.getSecurityConfig().helmet));
 // CORS configuration
 app.use(cors(environmentConfig.getCORSConfig()));
 
-// Compression middleware
-if (environmentConfig.get('ENABLE_COMPRESSION', true)) {
-  app.use(compression());
-}
+// Response compression for better performance
+app.use(compression({
+  level: 6, // Compression level (0-9)
+  threshold: 1024, // Only compress responses larger than 1KB
+  filter: (req, res) => {
+    // Don't compress if client doesn't support it
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    // Use compression for all other requests
+    return compression.filter(req, res);
+  }
+}));
 
 // Rate limiting
 app.use('/api/', limiter);
@@ -35,7 +45,8 @@ app.use('/api/', limiter);
 app.use(morgan('combined', {
   stream: {
     write: (message) => {
-      console.log(message.trim());
+      const logger = require('./utils/logger');
+      logger.info(message.trim());
     }
   }
 }));
@@ -137,41 +148,41 @@ app.get('/api', (req, res) => {
   });
 });
 
+// Apply request logging and performance monitoring BEFORE routes
+app.use(requestLogger);
+app.use(performanceMonitor);
+
 // Import and mount centralized API routes
 const apiRoutes = require('./routes/index');
 app.use('/', apiRoutes);
 
-// Tenant-specific routes
-app.get('/api/:tenantId/users', (req, res) => {
-  res.json({
-    message: `Users for tenant: ${req.tenantId}`,
-    users: [
-      { id: 1, name: 'John Doe', email: 'john@example.com', role: 'trainer' },
-      { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'participant' }
-    ]
-  });
-});
+// Apply comprehensive error handling middleware chain AFTER routes
+app.use(errorTracker);
+app.use(rateLimitErrorHandler);
+app.use(databaseErrorHandler);
+app.use(aiServiceErrorHandler);
+app.use(trainingErrorHandler);
+app.use(presentationErrorHandler);
+app.use(tenantErrorHandler);
+app.use(validationErrorHandler);
+app.use(authenticationErrorHandler);
+app.use(authorizationErrorHandler);
+app.use(notFoundErrorHandler);
+app.use(conflictErrorHandler);
+app.use(genericErrorHandler);
 
-app.get('/api/:tenantId/courses', (req, res) => {
-  res.json({
-    message: `Courses for tenant: ${req.tenantId}`,
-    courses: [
-      { id: 1, title: 'React Basics', instructor: 'John Doe', modules: 10 },
-      { id: 2, title: 'Node.js Advanced', instructor: 'Jane Smith', modules: 15 }
-    ]
-  });
-});
-
-// Error handling middleware
-app.use(errorHandler);
-
-// 404 handler
+// 404 handler - must be last
 app.use('*', (req, res) => {
   res.status(404).json({
-    error: 'Route not found',
-    path: req.originalUrl,
-    method: req.method,
-    timestamp: new Date().toISOString()
+    success: false,
+    error: {
+      message: 'Route not found',
+      statusCode: 404,
+      path: req.originalUrl,
+      method: req.method,
+      timestamp: new Date().toISOString(),
+      requestId: req.requestId
+    }
   });
 });
 
@@ -183,7 +194,13 @@ async function startServer() {
     
     // Initialize cache
     await cacheManager.connect();
-    
+
+    // Initialize AI service
+    await aiService.initialize();
+
+    // Initialize database connections first
+    await databaseManager.initialize();
+
     // Initialize database with step-by-step process
     const dbInitializer = createDatabaseInitializer();
     await dbInitializer.initialize();

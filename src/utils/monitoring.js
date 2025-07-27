@@ -1,493 +1,370 @@
-const os = require('os');
-const { performance } = require('perf_hooks');
-const databaseManager = require('../config/database');
-const { logger, healthLogger, performanceLogger } = require('./logger');
+const logger = require('./logger');
 
 class MonitoringSystem {
   constructor() {
     this.metrics = {
       requests: {
         total: 0,
-        successful: 0,
-        failed: 0,
         byMethod: {},
-        byEndpoint: {},
-        responseTimes: [],
-      },
-      database: {
-        queries: 0,
-        slowQueries: 0,
-        errors: 0,
-        connections: 0,
-        responseTimes: [],
-      },
-      memory: {
-        usage: [],
-        gc: {
-          count: 0,
-          duration: 0,
-        },
+        byRoute: {},
+        byStatus: {},
+        responseTimes: []
       },
       errors: {
         total: 0,
         byType: {},
-        recent: [],
+        byRoute: {}
       },
       performance: {
-        cpu: [],
-        uptime: 0,
-        startTime: Date.now(),
+        slowQueries: [],
+        memoryUsage: [],
+        cpuUsage: []
       },
-    };
-
-    this.alerts = [];
-    this.thresholds = {
-      memory: 0.9, // 90% memory usage
-      cpu: 0.8, // 80% CPU usage
-      responseTime: 5000, // 5 seconds
-      errorRate: 0.05, // 5% error rate
-      slowQueryRate: 0.1, // 10% slow queries
-    };
-
-    this.healthChecks = new Map();
-    this.monitoringInterval = null;
-    this.alertInterval = null;
-  }
-
-  // Initialize monitoring
-  initialize() {
-    logger.info('Initializing monitoring system');
-    
-    // Start monitoring intervals
-    this.startSystemMonitoring();
-    this.startHealthChecks();
-    this.startAlertMonitoring();
-    
-    // Set up process monitoring
-    this.setupProcessMonitoring();
-    
-    logger.info('Monitoring system initialized');
-  }
-
-  // Start system monitoring
-  startSystemMonitoring() {
-    this.monitoringInterval = setInterval(() => {
-      this.collectSystemMetrics();
-    }, 30000); // Every 30 seconds
-  }
-
-  // Start health checks
-  startHealthChecks() {
-    // Database health check
-    this.addHealthCheck('database', async () => {
-      try {
-        const health = await databaseManager.healthCheck();
-        return {
-          status: 'healthy',
-          details: health,
-        };
-      } catch (error) {
-        return {
-          status: 'unhealthy',
-          details: { error: error.message },
-        };
-      }
-    });
-
-    // Memory health check
-    this.addHealthCheck('memory', () => {
-      const usage = process.memoryUsage();
-      const memoryUsage = usage.heapUsed / usage.heapTotal;
-      
-      return {
-        status: memoryUsage < this.thresholds.memory ? 'healthy' : 'warning',
-        details: {
-          heapUsed: usage.heapUsed,
-          heapTotal: usage.heapTotal,
-          memoryUsage: memoryUsage,
-        },
-      };
-    });
-
-    // CPU health check
-    this.addHealthCheck('cpu', () => {
-      const cpuUsage = os.loadavg()[0] / os.cpus().length;
-      
-      return {
-        status: cpuUsage < this.thresholds.cpu ? 'healthy' : 'warning',
-        details: {
-          cpuUsage: cpuUsage,
-          loadAverage: os.loadavg(),
-        },
-      };
-    });
-
-    // Run health checks every minute
-    setInterval(async () => {
-      await this.runHealthChecks();
-    }, 60000);
-  }
-
-  // Start alert monitoring
-  startAlertMonitoring() {
-    this.alertInterval = setInterval(() => {
-      this.checkAlerts();
-    }, 60000); // Every minute
-  }
-
-  // Add health check
-  addHealthCheck(name, checkFunction) {
-    this.healthChecks.set(name, checkFunction);
-  }
-
-  // Run all health checks
-  async runHealthChecks() {
-    const results = {};
-    
-    for (const [name, checkFunction] of this.healthChecks) {
-      try {
-        const startTime = performance.now();
-        const result = await checkFunction();
-        const duration = performance.now() - startTime;
-        
-        results[name] = {
-          ...result,
-          duration: `${duration.toFixed(2)}ms`,
-          timestamp: new Date().toISOString(),
-        };
-        
-        healthLogger.serviceHealth(name, result.status, result.details);
-      } catch (error) {
-        results[name] = {
-          status: 'error',
-          details: { error: error.message },
-          timestamp: new Date().toISOString(),
-        };
-        
-        logger.error(`Health check failed for ${name}:`, error);
-      }
-    }
-    
-    return results;
-  }
-
-  // Collect system metrics
-  collectSystemMetrics() {
-    // Memory metrics
-    const memoryUsage = process.memoryUsage();
-    this.metrics.memory.usage.push({
-      timestamp: Date.now(),
-      heapUsed: memoryUsage.heapUsed,
-      heapTotal: memoryUsage.heapTotal,
-      rss: memoryUsage.rss,
-      external: memoryUsage.external,
-    });
-
-    // Keep only last 100 memory readings
-    if (this.metrics.memory.usage.length > 100) {
-      this.metrics.memory.usage = this.metrics.memory.usage.slice(-100);
-    }
-
-    // CPU metrics
-    const cpuUsage = os.loadavg();
-    this.metrics.performance.cpu.push({
-      timestamp: Date.now(),
-      loadAverage: cpuUsage,
-    });
-
-    // Keep only last 100 CPU readings
-    if (this.metrics.performance.cpu.length > 100) {
-      this.metrics.performance.cpu = this.metrics.performance.cpu.slice(-100);
-    }
-
-    // Update uptime
-    this.metrics.performance.uptime = Date.now() - this.metrics.performance.startTime;
-
-    // Log memory usage
-    performanceLogger.memoryUsage(memoryUsage);
-  }
-
-  // Track request metrics
-  trackRequest(method, endpoint, statusCode, duration, userId, tenantId) {
-    this.metrics.requests.total++;
-    
-    if (statusCode >= 200 && statusCode < 400) {
-      this.metrics.requests.successful++;
-    } else {
-      this.metrics.requests.failed++;
-    }
-
-    // Track by method
-    this.metrics.requests.byMethod[method] = (this.metrics.requests.byMethod[method] || 0) + 1;
-
-    // Track by endpoint
-    this.metrics.requests.byEndpoint[endpoint] = (this.metrics.requests.byEndpoint[endpoint] || 0) + 1;
-
-    // Track response times
-    this.metrics.requests.responseTimes.push({
-      timestamp: Date.now(),
-      duration,
-      method,
-      endpoint,
-      statusCode,
-    });
-
-    // Keep only last 1000 response times
-    if (this.metrics.requests.responseTimes.length > 1000) {
-      this.metrics.requests.responseTimes = this.metrics.requests.responseTimes.slice(-1000);
-    }
-
-    // Check for slow responses
-    if (duration > this.thresholds.responseTime) {
-      performanceLogger.apiResponse(endpoint, duration, statusCode);
-    }
-  }
-
-  // Track database metrics
-  trackDatabaseQuery(query, duration, success = true) {
-    this.metrics.database.queries++;
-    
-    if (!success) {
-      this.metrics.database.errors++;
-    }
-
-    if (duration > 1000) { // 1 second threshold
-      this.metrics.database.slowQueries++;
-      performanceLogger.slowQuery(query, duration);
-    }
-
-    this.metrics.database.responseTimes.push({
-      timestamp: Date.now(),
-      duration,
-      success,
-    });
-
-    // Keep only last 1000 database response times
-    if (this.metrics.database.responseTimes.length > 1000) {
-      this.metrics.database.responseTimes = this.metrics.database.responseTimes.slice(-1000);
-    }
-  }
-
-  // Track error
-  trackError(error, type = 'application', context = {}) {
-    this.metrics.errors.total++;
-    this.metrics.errors.byType[type] = (this.metrics.errors.byType[type] || 0) + 1;
-
-    this.metrics.errors.recent.push({
-      timestamp: Date.now(),
-      type,
-      message: error.message,
-      stack: error.stack,
-      context,
-    });
-
-    // Keep only last 100 errors
-    if (this.metrics.errors.recent.length > 100) {
-      this.metrics.errors.recent = this.metrics.errors.recent.slice(-100);
-    }
-  }
-
-  // Check alerts
-  checkAlerts() {
-    const alerts = [];
-
-    // Memory alert
-    const currentMemoryUsage = this.getCurrentMemoryUsage();
-    if (currentMemoryUsage > this.thresholds.memory) {
-      alerts.push({
-        type: 'memory',
-        severity: 'warning',
-        message: `High memory usage: ${(currentMemoryUsage * 100).toFixed(2)}%`,
-        value: currentMemoryUsage,
-        threshold: this.thresholds.memory,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // CPU alert
-    const currentCpuUsage = this.getCurrentCpuUsage();
-    if (currentCpuUsage > this.thresholds.cpu) {
-      alerts.push({
-        type: 'cpu',
-        severity: 'warning',
-        message: `High CPU usage: ${(currentCpuUsage * 100).toFixed(2)}%`,
-        value: currentCpuUsage,
-        threshold: this.thresholds.cpu,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // Error rate alert
-    const errorRate = this.getErrorRate();
-    if (errorRate > this.thresholds.errorRate) {
-      alerts.push({
-        type: 'error_rate',
-        severity: 'critical',
-        message: `High error rate: ${(errorRate * 100).toFixed(2)}%`,
-        value: errorRate,
-        threshold: this.thresholds.errorRate,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // Slow query rate alert
-    const slowQueryRate = this.getSlowQueryRate();
-    if (slowQueryRate > this.thresholds.slowQueryRate) {
-      alerts.push({
-        type: 'slow_queries',
-        severity: 'warning',
-        message: `High slow query rate: ${(slowQueryRate * 100).toFixed(2)}%`,
-        value: slowQueryRate,
-        threshold: this.thresholds.slowQueryRate,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // Add new alerts
-    this.alerts.push(...alerts);
-
-    // Keep only last 100 alerts
-    if (this.alerts.length > 100) {
-      this.alerts = this.alerts.slice(-100);
-    }
-
-    // Log alerts
-    alerts.forEach(alert => {
-      logger.warn(`Alert: ${alert.message}`, alert);
-    });
-
-    return alerts;
-  }
-
-  // Setup process monitoring
-  setupProcessMonitoring() {
-    // Monitor uncaught exceptions
-    process.on('uncaughtException', (error) => {
-      this.trackError(error, 'uncaught_exception');
-      logger.error('Uncaught Exception:', error);
-    });
-
-    // Monitor unhandled promise rejections
-    process.on('unhandledRejection', (reason, promise) => {
-      this.trackError(reason, 'unhandled_rejection');
-      logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    });
-
-    // Monitor memory usage
-    process.on('warning', (warning) => {
-      if (warning.name === 'MaxListenersExceededWarning') {
-        this.trackError(warning, 'max_listeners_exceeded');
-      }
-    });
-  }
-
-  // Get current memory usage
-  getCurrentMemoryUsage() {
-    if (this.metrics.memory.usage.length === 0) return 0;
-    
-    const latest = this.metrics.memory.usage[this.metrics.memory.usage.length - 1];
-    return latest.heapUsed / latest.heapTotal;
-  }
-
-  // Get current CPU usage
-  getCurrentCpuUsage() {
-    if (this.metrics.performance.cpu.length === 0) return 0;
-    
-    const latest = this.metrics.performance.cpu[this.metrics.performance.cpu.length - 1];
-    return latest.loadAverage[0] / os.cpus().length;
-  }
-
-  // Get error rate
-  getErrorRate() {
-    if (this.metrics.requests.total === 0) return 0;
-    return this.metrics.requests.failed / this.metrics.requests.total;
-  }
-
-  // Get slow query rate
-  getSlowQueryRate() {
-    if (this.metrics.database.queries === 0) return 0;
-    return this.metrics.database.slowQueries / this.metrics.database.queries;
-  }
-
-  // Get metrics summary
-  getMetricsSummary() {
-    const avgResponseTime = this.metrics.requests.responseTimes.length > 0
-      ? this.metrics.requests.responseTimes.reduce((sum, rt) => sum + rt.duration, 0) / this.metrics.requests.responseTimes.length
-      : 0;
-
-    const avgDbResponseTime = this.metrics.database.responseTimes.length > 0
-      ? this.metrics.database.responseTimes.reduce((sum, rt) => sum + rt.duration, 0) / this.metrics.database.responseTimes.length
-      : 0;
-
-    return {
-      requests: {
-        total: this.metrics.requests.total,
-        successful: this.metrics.requests.successful,
-        failed: this.metrics.requests.failed,
-        successRate: this.metrics.requests.total > 0 ? this.metrics.requests.successful / this.metrics.requests.total : 0,
-        avgResponseTime: `${avgResponseTime.toFixed(2)}ms`,
-        byMethod: this.metrics.requests.byMethod,
-        byEndpoint: this.metrics.requests.byEndpoint,
+      cache: {
+        hits: 0,
+        misses: 0,
+        hitRate: 0
       },
       database: {
-        queries: this.metrics.database.queries,
-        errors: this.metrics.database.errors,
-        slowQueries: this.metrics.database.slowQueries,
-        avgResponseTime: `${avgDbResponseTime.toFixed(2)}ms`,
-        errorRate: this.metrics.database.queries > 0 ? this.metrics.database.errors / this.metrics.database.queries : 0,
-      },
-      memory: {
-        currentUsage: this.getCurrentMemoryUsage(),
-        avgUsage: this.metrics.memory.usage.length > 0
-          ? this.metrics.memory.usage.reduce((sum, m) => sum + (m.heapUsed / m.heapTotal), 0) / this.metrics.memory.usage.length
-          : 0,
-      },
-      performance: {
-        uptime: this.metrics.performance.uptime,
-        cpuUsage: this.getCurrentCpuUsage(),
+        connections: 0,
+        queries: 0,
+        slowQueries: 0
+      }
+    };
+    
+    this.startTime = Date.now();
+    this.uptime = 0;
+    
+    // Start monitoring intervals
+    this.startMonitoring();
+  }
+
+  /**
+   * Start monitoring intervals
+   */
+  startMonitoring() {
+    // Update uptime every second
+    setInterval(() => {
+      this.uptime = Date.now() - this.startTime;
+    }, 1000);
+
+    // Log performance metrics every 5 minutes
+    setInterval(() => {
+      this.logPerformanceMetrics();
+    }, 5 * 60 * 1000);
+
+    // Log memory usage every minute
+    setInterval(() => {
+      this.recordMemoryUsage();
+    }, 60 * 1000);
+
+    // Clean up old metrics every hour
+    setInterval(() => {
+      this.cleanupOldMetrics();
+    }, 60 * 60 * 1000);
+  }
+
+  /**
+   * Record HTTP request
+   */
+  recordRequest(method, route, statusCode, responseTime) {
+    this.metrics.requests.total++;
+    
+    // Record by method
+    this.metrics.requests.byMethod[method] = 
+      (this.metrics.requests.byMethod[method] || 0) + 1;
+    
+    // Record by route
+    this.metrics.requests.byRoute[route] = 
+      (this.metrics.requests.byRoute[route] || 0) + 1;
+    
+    // Record by status
+    this.metrics.requests.byStatus[statusCode] = 
+      (this.metrics.requests.byStatus[statusCode] || 0) + 1;
+    
+    // Record response time
+    this.metrics.requests.responseTimes.push({
+      timestamp: Date.now(),
+      responseTime,
+      route,
+      method
+    });
+    
+    // Keep only last 1000 response times
+    if (this.metrics.requests.responseTimes.length > 1000) {
+      this.metrics.requests.responseTimes.shift();
+    }
+    
+    // Record slow requests (> 1 second)
+    if (responseTime > 1000) {
+      this.metrics.performance.slowQueries.push({
+        timestamp: Date.now(),
+        route,
+        method,
+        responseTime
+      });
+      
+      // Keep only last 100 slow queries
+      if (this.metrics.performance.slowQueries.length > 100) {
+        this.metrics.performance.slowQueries.shift();
+      }
+    }
+  }
+
+  /**
+   * Record error
+   */
+  recordError(errorType, route, error) {
+    this.metrics.errors.total++;
+    
+    // Record by type
+    this.metrics.errors.byType[errorType] = 
+      (this.metrics.errors.byType[errorType] || 0) + 1;
+    
+    // Record by route
+    this.metrics.errors.byRoute[route] = 
+      (this.metrics.errors.byRoute[route] || 0) + 1;
+    
+    logger.error(`❌ Error recorded: ${errorType} on ${route}`, {
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  /**
+   * Record cache hit/miss
+   */
+  recordCacheHit(hit) {
+    if (hit) {
+      this.metrics.cache.hits++;
+    } else {
+      this.metrics.cache.misses++;
+    }
+    
+    // Calculate hit rate
+    const total = this.metrics.cache.hits + this.metrics.cache.misses;
+    this.metrics.cache.hitRate = total > 0 ? (this.metrics.cache.hits / total) * 100 : 0;
+  }
+
+  /**
+   * Record database query
+   */
+  recordDatabaseQuery(query, duration) {
+    this.metrics.database.queries++;
+    
+    // Record slow queries (> 100ms)
+    if (duration > 100) {
+      this.metrics.database.slowQueries++;
+      
+      logger.warn(`🐌 Slow database query detected: ${duration}ms`, {
+        query: query.substring(0, 200) + '...',
+        duration,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  /**
+   * Record memory usage
+   */
+  recordMemoryUsage() {
+    const memUsage = process.memoryUsage();
+    
+    this.metrics.performance.memoryUsage.push({
+      timestamp: Date.now(),
+      rss: memUsage.rss,
+      heapUsed: memUsage.heapUsed,
+      heapTotal: memUsage.heapTotal,
+      external: memUsage.external
+    });
+    
+    // Keep only last 100 memory readings
+    if (this.metrics.performance.memoryUsage.length > 100) {
+      this.metrics.performance.memoryUsage.shift();
+    }
+    
+    // Log high memory usage
+    const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
+    if (heapUsedMB > 500) { // 500MB threshold
+      logger.warn(`⚠️ High memory usage detected: ${heapUsedMB.toFixed(2)}MB`);
+    }
+  }
+
+  /**
+   * Get current metrics
+   */
+  getMetrics() {
+    const avgResponseTime = this.metrics.requests.responseTimes.length > 0 ?
+      this.metrics.requests.responseTimes.reduce((sum, rt) => sum + rt.responseTime, 0) / 
+      this.metrics.requests.responseTimes.length : 0;
+    
+    const latestMemory = this.metrics.performance.memoryUsage.length > 0 ?
+      this.metrics.performance.memoryUsage[this.metrics.performance.memoryUsage.length - 1] : null;
+    
+    return {
+      uptime: this.uptime,
+      requests: {
+        total: this.metrics.requests.total,
+        byMethod: this.metrics.requests.byMethod,
+        byRoute: this.metrics.requests.byRoute,
+        byStatus: this.metrics.requests.byStatus,
+        averageResponseTime: avgResponseTime
       },
       errors: {
         total: this.metrics.errors.total,
         byType: this.metrics.errors.byType,
-        recent: this.metrics.errors.recent.slice(-10), // Last 10 errors
+        byRoute: this.metrics.errors.byRoute
       },
-      alerts: this.alerts.slice(-10), // Last 10 alerts
+      cache: {
+        hits: this.metrics.cache.hits,
+        misses: this.metrics.cache.misses,
+        hitRate: this.metrics.cache.hitRate
+      },
+      database: {
+        queries: this.metrics.database.queries,
+        slowQueries: this.metrics.database.slowQueries,
+        slowQueryRate: this.metrics.database.queries > 0 ? 
+          (this.metrics.database.slowQueries / this.metrics.database.queries) * 100 : 0
+      },
+      performance: {
+        memoryUsage: latestMemory,
+        slowQueries: this.metrics.performance.slowQueries.slice(-10) // Last 10 slow queries
+      },
+      timestamp: new Date().toISOString()
     };
   }
 
-  // Get detailed metrics
-  getDetailedMetrics() {
-    return {
-      ...this.metrics,
-      summary: this.getMetricsSummary(),
-      thresholds: this.thresholds,
-      timestamp: new Date().toISOString(),
+  /**
+   * Get health status
+   */
+  getHealthStatus() {
+    const metrics = this.getMetrics();
+    const avgResponseTime = metrics.requests.averageResponseTime;
+    const errorRate = metrics.requests.total > 0 ? 
+      (metrics.errors.total / metrics.requests.total) * 100 : 0;
+    const memoryUsage = metrics.performance.memoryUsage;
+    
+    const health = {
+      status: 'healthy',
+      checks: {
+        responseTime: {
+          status: avgResponseTime < 1000 ? 'healthy' : 'warning',
+          value: `${avgResponseTime.toFixed(2)}ms`,
+          threshold: '1000ms'
+        },
+        errorRate: {
+          status: errorRate < 5 ? 'healthy' : 'critical',
+          value: `${errorRate.toFixed(2)}%`,
+          threshold: '5%'
+        },
+        memoryUsage: {
+          status: memoryUsage && memoryUsage.heapUsed / 1024 / 1024 < 500 ? 'healthy' : 'warning',
+          value: memoryUsage ? `${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)}MB` : 'unknown',
+          threshold: '500MB'
+        },
+        cacheHitRate: {
+          status: metrics.cache.hitRate > 80 ? 'healthy' : 'warning',
+          value: `${metrics.cache.hitRate.toFixed(2)}%`,
+          threshold: '80%'
+        }
+      },
+      uptime: this.uptime,
+      timestamp: new Date().toISOString()
     };
+    
+    // Determine overall status
+    const criticalChecks = Object.values(health.checks).filter(check => check.status === 'critical');
+    const warningChecks = Object.values(health.checks).filter(check => check.status === 'warning');
+    
+    if (criticalChecks.length > 0) {
+      health.status = 'critical';
+    } else if (warningChecks.length > 0) {
+      health.status = 'warning';
+    }
+    
+    return health;
   }
 
-  // Update thresholds
-  updateThresholds(newThresholds) {
-    this.thresholds = { ...this.thresholds, ...newThresholds };
-    logger.info('Monitoring thresholds updated', this.thresholds);
+  /**
+   * Log performance metrics
+   */
+  logPerformanceMetrics() {
+    const metrics = this.getMetrics();
+    
+    logger.info('📊 Performance Metrics', {
+      uptime: `${Math.floor(metrics.uptime / 1000 / 60)} minutes`,
+      totalRequests: metrics.requests.total,
+      averageResponseTime: `${metrics.requests.averageResponseTime.toFixed(2)}ms`,
+      errorRate: `${((metrics.errors.total / metrics.requests.total) * 100).toFixed(2)}%`,
+      cacheHitRate: `${metrics.cache.hitRate.toFixed(2)}%`,
+      slowQueryRate: `${metrics.database.slowQueryRate.toFixed(2)}%`,
+      memoryUsage: metrics.performance.memoryUsage ? 
+        `${(metrics.performance.memoryUsage.heapUsed / 1024 / 1024).toFixed(2)}MB` : 'unknown'
+    });
   }
 
-  // Stop monitoring
-  stop() {
-    if (this.monitoringInterval) {
-      clearInterval(this.monitoringInterval);
-    }
-    if (this.alertInterval) {
-      clearInterval(this.alertInterval);
-    }
-    logger.info('Monitoring system stopped');
+  /**
+   * Clean up old metrics
+   */
+  cleanupOldMetrics() {
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    
+    // Clean up old response times
+    this.metrics.requests.responseTimes = 
+      this.metrics.requests.responseTimes.filter(rt => rt.timestamp > oneHourAgo);
+    
+    // Clean up old slow queries
+    this.metrics.performance.slowQueries = 
+      this.metrics.performance.slowQueries.filter(sq => sq.timestamp > oneHourAgo);
+    
+    // Clean up old memory usage (keep last 24 hours)
+    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+    this.metrics.performance.memoryUsage = 
+      this.metrics.performance.memoryUsage.filter(mu => mu.timestamp > oneDayAgo);
+    
+    logger.debug('🧹 Cleaned up old metrics');
+  }
+
+  /**
+   * Reset metrics
+   */
+  resetMetrics() {
+    this.metrics = {
+      requests: {
+        total: 0,
+        byMethod: {},
+        byRoute: {},
+        byStatus: {},
+        responseTimes: []
+      },
+      errors: {
+        total: 0,
+        byType: {},
+        byRoute: {}
+      },
+      performance: {
+        slowQueries: [],
+        memoryUsage: [],
+        cpuUsage: []
+      },
+      cache: {
+        hits: 0,
+        misses: 0,
+        hitRate: 0
+      },
+      database: {
+        connections: 0,
+        queries: 0,
+        slowQueries: 0
+      }
+    };
+    
+    logger.info('🔄 Metrics reset');
   }
 }
 
 // Create singleton instance
 const monitoringSystem = new MonitoringSystem();
 
-// Export monitoring utilities
-module.exports = {
-  monitoringSystem,
-  MonitoringSystem,
-}; 
+module.exports = monitoringSystem; 

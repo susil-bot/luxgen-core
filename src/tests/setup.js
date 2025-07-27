@@ -5,140 +5,292 @@
 
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
+const jwt = require('jsonwebtoken');
 
 let mongoServer;
 
-// Setup before all tests
-beforeAll(async () => {
-  // Start in-memory MongoDB server
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  
-  // Connect to test database
-  await mongoose.connect(mongoUri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
-  
-  console.log('✅ Test database connected');
-});
-
-// Cleanup after each test
-afterEach(async () => {
-  // Clear all collections
-  const collections = mongoose.connection.collections;
-  
-  for (const key in collections) {
-    const collection = collections[key];
-    await collection.deleteMany();
-  }
-});
-
-// Cleanup after all tests
-afterAll(async () => {
-  // Disconnect from test database
-  await mongoose.disconnect();
-  
-  // Stop in-memory MongoDB server
-  if (mongoServer) {
-    await mongoServer.stop();
-  }
-  
-  console.log('✅ Test database disconnected');
-});
-
-// Global test utilities
-global.testUtils = {
-  // Create test user
-  createTestUser: async (userData = {}) => {
-    const User = require('../models/User');
-    const Tenant = require('../models/Tenant');
-    
-    // Create test tenant if not provided
-    let tenant = userData.tenantId;
-    if (!tenant) {
-      tenant = await Tenant.create({
-        name: 'Test Tenant',
-        slug: 'test-tenant',
-        contactEmail: 'test@tenant.com',
-        status: 'active'
-      });
+// Test configuration
+const testConfig = {
+  // Database
+  database: {
+    uri: null, // Will be set to in-memory database
+    options: {
+      maxPoolSize: 1,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      bufferCommands: false,
+      bufferMaxEntries: 0
     }
-    
-    const defaultUserData = {
-      tenantId: tenant._id || tenant,
-      firstName: 'Test',
+  },
+  
+  // JWT
+  jwt: {
+    secret: 'test-secret-key',
+    expiresIn: '1h'
+  },
+  
+  // Test data
+  testUsers: [
+    {
+      _id: new mongoose.Types.ObjectId(),
+      email: 'admin@test.com',
+      password: 'TestPass123!',
+      firstName: 'Admin',
       lastName: 'User',
-      email: 'test@example.com',
-      password: 'password123',
-      role: 'user',
-      isActive: true,
-      isVerified: true
-    };
-    
-    return await User.create({ ...defaultUserData, ...userData });
-  },
+      role: 'admin',
+      tenantId: 'test-tenant-1',
+      status: 'active'
+    },
+    {
+      _id: new mongoose.Types.ObjectId(),
+      email: 'trainer@test.com',
+      password: 'TestPass123!',
+      firstName: 'Trainer',
+      lastName: 'User',
+      role: 'trainer',
+      tenantId: 'test-tenant-1',
+      status: 'active'
+    },
+    {
+      _id: new mongoose.Types.ObjectId(),
+      email: 'participant@test.com',
+      password: 'TestPass123!',
+      firstName: 'Participant',
+      lastName: 'User',
+      role: 'participant',
+      tenantId: 'test-tenant-1',
+      status: 'active'
+    }
+  ],
   
-  // Create test tenant
-  createTestTenant: async (tenantData = {}) => {
-    const Tenant = require('../models/Tenant');
-    
-    const defaultTenantData = {
-      name: 'Test Tenant',
-      slug: 'test-tenant',
-      contactEmail: 'test@tenant.com',
+  testTenants: [
+    {
+      _id: new mongoose.Types.ObjectId(),
+      name: 'Test Tenant 1',
+      slug: 'test-tenant-1',
+      domain: 'test1.example.com',
       status: 'active',
-      isVerified: true
-    };
-    
-    return await Tenant.create({ ...defaultTenantData, ...tenantData });
-  },
-  
-  // Generate JWT token
-  generateTestToken: (user) => {
-    const jwt = require('jsonwebtoken');
-    const secret = process.env.JWT_SECRET || 'test-secret';
-    
-    return jwt.sign(
-      {
-        userId: user._id,
-        email: user.email,
-        role: user.role,
-        tenantId: user.tenantId
-      },
-      secret,
-      { expiresIn: '1h' }
-    );
-  },
-  
-  // Mock request object
-  mockRequest: (data = {}) => ({
-    body: data.body || {},
-    query: data.query || {},
-    params: data.params || {},
-    headers: data.headers || {},
-    user: data.user || null,
-    ip: data.ip || '127.0.0.1',
-    method: data.method || 'GET',
-    url: data.url || '/test',
-    originalUrl: data.originalUrl || '/test'
-  }),
-  
-  // Mock response object
-  mockResponse: () => {
-    const res = {};
-    res.status = jest.fn().mockReturnValue(res);
-    res.json = jest.fn().mockReturnValue(res);
-    res.send = jest.fn().mockReturnValue(res);
-    return res;
-  },
-  
-  // Mock next function
-  mockNext: () => jest.fn()
+      settings: {
+        features: ['training', 'polls', 'ai'],
+        branding: {
+          primaryColor: '#007bff',
+          logo: 'test-logo.png'
+        }
+      }
+    }
+  ]
 };
 
-// Environment setup for tests
-process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-purposes-only';
-process.env.MONGODB_URL = 'mongodb://localhost:27017/test';
-process.env.REDIS_URL = 'redis://localhost:6379/1'; 
+/**
+ * Setup test database
+ */
+async function setupTestDatabase() {
+  try {
+    // Start in-memory MongoDB server
+    mongoServer = await MongoMemoryServer.create();
+    const mongoUri = mongoServer.getUri();
+    
+    // Connect to test database
+    await mongoose.connect(mongoUri, testConfig.database.options);
+    
+    console.log('✅ Test database connected');
+    
+    return mongoUri;
+  } catch (error) {
+    console.error('❌ Failed to setup test database:', error);
+    throw error;
+  }
+}
+
+/**
+ * Teardown test database
+ */
+async function teardownTestDatabase() {
+  try {
+    // Disconnect from database
+    await mongoose.disconnect();
+    
+    // Stop in-memory server
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
+    
+    console.log('✅ Test database disconnected');
+  } catch (error) {
+    console.error('❌ Failed to teardown test database:', error);
+    throw error;
+  }
+}
+
+/**
+ * Clear all collections
+ */
+async function clearCollections() {
+  try {
+    const collections = mongoose.connection.collections;
+    
+    for (const key in collections) {
+      const collection = collections[key];
+      await collection.deleteMany({});
+    }
+    
+    console.log('🧹 Collections cleared');
+  } catch (error) {
+    console.error('❌ Failed to clear collections:', error);
+    throw error;
+  }
+}
+
+/**
+ * Seed test data
+ */
+async function seedTestData() {
+  try {
+    const { User, Tenant } = require('../models');
+    
+    // Create test tenants
+    await Tenant.insertMany(testConfig.testTenants);
+    
+    // Create test users
+    await User.insertMany(testConfig.testUsers);
+    
+    console.log('🌱 Test data seeded');
+  } catch (error) {
+    console.error('❌ Failed to seed test data:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generate test JWT token
+ */
+function generateTestToken(user = testConfig.testUsers[0]) {
+  return jwt.sign(
+    {
+      id: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId
+    },
+    testConfig.jwt.secret,
+    { expiresIn: testConfig.jwt.expiresIn }
+  );
+}
+
+/**
+ * Create test request object
+ */
+function createTestRequest(options = {}) {
+  const {
+    method = 'GET',
+    url = '/test',
+    body = {},
+    query = {},
+    params = {},
+    headers = {},
+    user = testConfig.testUsers[0]
+  } = options;
+  
+  return {
+    method,
+    url,
+    body,
+    query,
+    params,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${generateTestToken(user)}`,
+      ...headers
+    },
+    user: {
+      id: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId
+    }
+  };
+}
+
+/**
+ * Create test response object
+ */
+function createTestResponse() {
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn().mockReturnThis(),
+    send: jest.fn().mockReturnThis(),
+    end: jest.fn().mockReturnThis()
+  };
+  
+  return res;
+}
+
+/**
+ * Create test next function
+ */
+function createTestNext() {
+  return jest.fn();
+}
+
+/**
+ * Test utilities
+ */
+const testUtils = {
+  // Database utilities
+  setupTestDatabase,
+  teardownTestDatabase,
+  clearCollections,
+  seedTestData,
+  
+  // Authentication utilities
+  generateTestToken,
+  
+  // Request/Response utilities
+  createTestRequest,
+  createTestResponse,
+  createTestNext,
+  
+  // Test data
+  testConfig,
+  
+  // Helper functions
+  async wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  },
+  
+  createMockModel(mockData = []) {
+    return {
+      find: jest.fn().mockReturnValue({
+        lean: jest.fn().mockReturnValue({
+          limit: jest.fn().mockReturnValue({
+            skip: jest.fn().mockResolvedValue(mockData)
+          })
+        })
+      }),
+      findById: jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue(mockData[0] || null)
+      }),
+      findOne: jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue(mockData[0] || null)
+      }),
+      create: jest.fn().mockResolvedValue(mockData[0] || {}),
+      findByIdAndUpdate: jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue(mockData[0] || null)
+      }),
+      findByIdAndDelete: jest.fn().mockResolvedValue(mockData[0] || null),
+      countDocuments: jest.fn().mockResolvedValue(mockData.length),
+      deleteMany: jest.fn().mockResolvedValue({ deletedCount: mockData.length })
+    };
+  },
+  
+  createMockService(mockData = {}) {
+    return {
+      initialize: jest.fn().mockResolvedValue(true),
+      generateContent: jest.fn().mockResolvedValue(mockData),
+      checkHealth: jest.fn().mockResolvedValue({ healthy: true }),
+      getContentLibrary: jest.fn().mockResolvedValue(mockData)
+    };
+  }
+};
+
+module.exports = testUtils; 

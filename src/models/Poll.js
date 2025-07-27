@@ -1,264 +1,296 @@
 const mongoose = require('mongoose');
 
-// Question Schema
-const questionSchema = new mongoose.Schema({
-  question: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  type: {
-    type: String,
-    enum: ['multiple_choice', 'rating', 'text', 'yes_no'],
-    required: true
-  },
-  options: [{
-    type: String,
-    trim: true
-  }],
-  required: {
-    type: Boolean,
-    default: false
-  },
-  order: {
-    type: Number,
-    default: 0
-  }
-}, { timestamps: true });
-
-// Feedback Schema
-const feedbackSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  userName: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  userEmail: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  rating: {
-    type: Number,
-    min: 1,
-    max: 5,
-    required: true
-  },
-  comment: {
-    type: String,
-    trim: true
-  },
-  helpful: {
-    type: Number,
-    default: 0
-  },
-  helpfulUsers: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }]
-}, { timestamps: true });
-
-// Notification Schema
-const notificationSchema = new mongoose.Schema({
-  type: {
-    type: String,
-    enum: ['poll_response', 'feedback_received', 'schedule_reminder', 'completion_alert'],
-    required: true
-  },
-  title: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  message: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  read: {
-    type: Boolean,
-    default: false
-  },
-  actionUrl: {
-    type: String,
-    trim: true
-  },
-  recipientId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }
-}, { timestamps: true });
-
-// Poll Response Schema
-const pollResponseSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  userName: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  userEmail: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  answers: [{
-    questionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true
-    },
-    answer: {
-      type: mongoose.Schema.Types.Mixed,
-      required: true
-    },
-    questionText: {
-      type: String,
-      required: true
-    }
-  }],
-  completedAt: {
-    type: Date,
-    default: Date.now
-  }
-}, { timestamps: true });
-
-// Main Poll Schema
 const pollSchema = new mongoose.Schema({
+  // Core poll information
   tenantId: {
-    type: String,
-    required: true,
-    index: true
-  },
-  title: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  description: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  niche: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  targetAudience: [{
-    type: String,
-    trim: true
-  }],
-  questions: [questionSchema],
-  channels: [{
-    type: String,
-    enum: ['email', 'whatsapp', 'slack', 'sms'],
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tenant',
     required: true
-  }],
-  status: {
-    type: String,
-    enum: ['draft', 'scheduled', 'sent', 'completed'],
-    default: 'draft'
-  },
-  priority: {
-    type: String,
-    enum: ['low', 'medium', 'high'],
-    default: 'medium'
-  },
-  tags: [{
-    type: String,
-    trim: true
-  }],
-  scheduledDate: {
-    type: Date
-  },
-  sentDate: {
-    type: Date
-  },
-  recipients: [{
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    email: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    name: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    sentAt: {
-      type: Date
-    },
-    respondedAt: {
-      type: Date
-    }
-  }],
-  responses: [pollResponseSchema],
-  feedback: [feedbackSchema],
-  notifications: [notificationSchema],
-  settings: {
-    allowAnonymous: {
-      type: Boolean,
-      default: false
-    },
-    requireEmail: {
-      type: Boolean,
-      default: true
-    },
-    maxResponses: {
-      type: Number,
-      default: null
-    },
-    autoClose: {
-      type: Boolean,
-      default: false
-    },
-    closeDate: {
-      type: Date
-    }
-  },
-  analytics: {
-    totalRecipients: {
-      type: Number,
-      default: 0
-    },
-    totalResponses: {
-      type: Number,
-      default: 0
-    },
-    responseRate: {
-      type: Number,
-      default: 0
-    },
-    averageRating: {
-      type: Number,
-      default: 0
-    },
-    completionTime: {
-      type: Number, // in minutes
-      default: 0
-    }
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  updatedBy: {
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 255
+  },
+  description: {
+    type: String,
+    trim: true
+  },
+  question: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  
+  // Poll options and configuration
+  options: {
+    type: [{
+      id: {
+        type: String,
+        required: true
+      },
+      text: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      value: {
+        type: mongoose.Schema.Types.Mixed
+      },
+      isCorrect: {
+        type: Boolean,
+        default: false
+      }
+    }],
+    validate: {
+      validator: function(options) {
+        return options && options.length >= 2;
+      },
+      message: 'Poll must have at least 2 options'
+    }
+  },
+  
+  // Poll type and settings
+  pollType: {
+    type: String,
+    enum: ['multiple_choice', 'rating', 'text', 'yes_no', 'ranking', 'matrix'],
+    default: 'multiple_choice'
+  },
+  
+  status: {
+    type: String,
+    enum: ['draft', 'active', 'paused', 'archived'],
+    default: 'draft'
+  },
+  
+  // Privacy and access settings
+  isAnonymous: {
+    type: Boolean,
+    default: false
+  },
+  allowMultipleResponses: {
+    type: Boolean,
+    default: false
+  },
+  requireAuthentication: {
+    type: Boolean,
+    default: true
+  },
+  allowGuestResponses: {
+    type: Boolean,
+    default: false
+  },
+  
+  // Timing settings
+  expiresAt: {
+    type: Date
+  },
+  scheduledAt: {
+    type: Date
+  },
+  autoArchive: {
+    type: Boolean,
+    default: true
+  },
+  archiveAfterDays: {
+    type: Number,
+    default: 90,
+    min: 1
+  },
+  
+  // Display settings
+  settings: {
+    showResults: {
+      type: Boolean,
+      default: true
+    },
+    showResultsAfterVote: {
+      type: Boolean,
+      default: true
+    },
+    showResultsImmediately: {
+      type: Boolean,
+      default: false
+    },
+    showProgressBar: {
+      type: Boolean,
+      default: true
+    },
+    showResponseCount: {
+      type: Boolean,
+      default: true
+    },
+    randomizeOptions: {
+      type: Boolean,
+      default: false
+    },
+    allowComments: {
+      type: Boolean,
+      default: false
+    },
+    maxSelections: {
+      type: Number,
+      default: 1,
+      min: 1
+    },
+    minSelections: {
+      type: Number,
+      default: 1,
+      min: 1
+    }
+  },
+  
+  // Targeting and distribution
+  targetAudience: {
+    roles: [{
+      type: String,
+      enum: ['user', 'trainer', 'admin', 'super_admin']
+    }],
+    departments: [String],
+    locations: [String],
+    customFilters: mongoose.Schema.Types.Mixed
+  },
+  
+  // Notification settings
+  notifications: {
+    onResponse: {
+      type: Boolean,
+      default: false
+    },
+    onCompletion: {
+      type: Boolean,
+      default: true
+    },
+    recipients: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }]
+  },
+  
+  // Analytics and tracking
+  analytics: {
+    totalResponses: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    uniqueRespondents: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    completionRate: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100
+    },
+    averageTimeToComplete: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    lastResponseAt: Date
+  },
+  
+  // Response data
+  responses: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      sparse: true
+    },
+    sessionId: String,
+    responseData: {
+      type: mongoose.Schema.Types.Mixed,
+      required: true
+    },
+    selectedOptions: [String],
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5
+    },
+    textResponse: String,
+    comment: String,
+    ipAddress: String,
+    userAgent: String,
+    timeSpent: Number, // in seconds
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  
+  // Feedback and ratings
+  feedback: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      sparse: true
+    },
+    rating: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 5
+    },
+    comment: String,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  
+  // Tags and categories
+  tags: [{
+    type: String,
+    trim: true
+  }],
+  category: {
+    type: String,
+    trim: true
+  },
+  
+  // Sharing and embedding
+  sharing: {
+    isPublic: {
+      type: Boolean,
+      default: false
+    },
+    allowEmbedding: {
+      type: Boolean,
+      default: false
+    },
+    embedCode: String,
+    shareUrl: String,
+    qrCode: String
+  },
+  
+  // Version control
+  version: {
+    type: Number,
+    default: 1
+  },
+  isTemplate: {
+    type: Boolean,
+    default: false
+  },
+  templateId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'Poll'
+  },
+  
+  // Metadata
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 }, {
   timestamps: true,
@@ -266,102 +298,182 @@ const pollSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Virtual for response rate
-pollSchema.virtual('responseRatePercentage').get(function() {
-  if (this.analytics.totalRecipients === 0) return 0;
-  return Math.round((this.analytics.totalResponses / this.analytics.totalRecipients) * 100);
+// Virtual for is expired
+pollSchema.virtual('isExpired').get(function() {
+  return this.expiresAt && this.expiresAt < new Date();
 });
 
-// Indexes for better performance
-pollSchema.index({ tenantId: 1, status: 1 });
-pollSchema.index({ tenantId: 1, niche: 1 });
-pollSchema.index({ tenantId: 1, createdBy: 1 });
-pollSchema.index({ scheduledDate: 1, status: 'scheduled' });
-pollSchema.index({ 'recipients.email': 1 });
+// Virtual for is active
+pollSchema.virtual('isActive').get(function() {
+  return this.status === 'active' && !this.isExpired;
+});
 
-// Pre-save middleware to update analytics
+// Virtual for response rate
+pollSchema.virtual('responseRate').get(function() {
+  if (!this.analytics.totalResponses) return 0;
+  return (this.analytics.uniqueRespondents / this.analytics.totalResponses) * 100;
+});
+
+// Virtual for average rating
+pollSchema.virtual('averageRating').get(function() {
+  if (!this.feedback.length) return 0;
+  const totalRating = this.feedback.reduce((sum, item) => sum + item.rating, 0);
+  return totalRating / this.feedback.length;
+});
+
+// Indexes for performance
+pollSchema.index({ tenantId: 1, status: 1 });
+pollSchema.index({ tenantId: 1, createdBy: 1 });
+pollSchema.index({ tenantId: 1, expiresAt: 1 });
+pollSchema.index({ tenantId: 1, createdAt: -1 });
+pollSchema.index({ status: 1, expiresAt: 1 });
+pollSchema.index({ 'responses.userId': 1 });
+pollSchema.index({ tags: 1 });
+pollSchema.index({ category: 1 });
+
+// Pre-save middleware
 pollSchema.pre('save', function(next) {
-  // Update total recipients
-  this.analytics.totalRecipients = this.recipients.length;
-  
-  // Update total responses
-  this.analytics.totalResponses = this.responses.length;
-  
-  // Update response rate
-  if (this.analytics.totalRecipients > 0) {
-    this.analytics.responseRate = (this.analytics.totalResponses / this.analytics.totalRecipients) * 100;
+  // Auto-archive expired polls
+  if (this.autoArchive && this.expiresAt && this.expiresAt < new Date()) {
+    this.status = 'archived';
   }
   
-  // Update average rating from feedback
-  if (this.feedback.length > 0) {
-    const totalRating = this.feedback.reduce((sum, f) => sum + f.rating, 0);
-    this.analytics.averageRating = totalRating / this.feedback.length;
+  // Update analytics
+  if (this.responses && this.responses.length > 0) {
+    this.analytics.totalResponses = this.responses.length;
+    this.analytics.uniqueRespondents = new Set(this.responses.map(r => r.userId || r.sessionId)).size;
+    this.analytics.lastResponseAt = this.responses[this.responses.length - 1].createdAt;
   }
   
   next();
 });
 
-// Static method to get polls by tenant
-pollSchema.statics.findByTenant = function(tenantId, filters = {}) {
-  const query = { tenantId, ...filters };
-  return this.find(query).populate('createdBy', 'firstName lastName email');
+// Instance methods
+pollSchema.methods.addResponse = async function(responseData) {
+  this.responses.push(responseData);
+  this.analytics.totalResponses += 1;
+  
+  // Update unique respondents count
+  const uniqueRespondents = new Set(
+    this.responses.map(r => r.userId || r.sessionId)
+  );
+  this.analytics.uniqueRespondents = uniqueRespondents.size;
+  
+  return this.save();
 };
 
-// Instance method to add recipient
-pollSchema.methods.addRecipient = function(userId, email, name) {
-  const existingRecipient = this.recipients.find(r => r.email === email);
-  if (!existingRecipient) {
-    this.recipients.push({ userId, email, name });
+pollSchema.methods.getResponseSummary = function() {
+  const summary = {
+    totalResponses: this.responses.length,
+    uniqueRespondents: this.analytics.uniqueRespondents,
+    optionCounts: {},
+    averageRating: this.averageRating,
+    feedbackCount: this.feedback.length
+  };
+  
+  // Count responses by option
+  this.responses.forEach(response => {
+    if (response.selectedOptions) {
+      response.selectedOptions.forEach(optionId => {
+        summary.optionCounts[optionId] = (summary.optionCounts[optionId] || 0) + 1;
+      });
+    }
+  });
+  
+  return summary;
+};
+
+pollSchema.methods.activate = async function() {
+  this.status = 'active';
+  return this.save();
+};
+
+pollSchema.methods.pause = async function() {
+  this.status = 'paused';
+  return this.save();
+};
+
+pollSchema.methods.archive = async function() {
+  this.status = 'archived';
+  return this.save();
+};
+
+pollSchema.methods.duplicate = async function(newCreatedBy) {
+  const Poll = mongoose.model('Poll');
+  const duplicatedPoll = new Poll({
+    ...this.toObject(),
+    _id: undefined,
+    createdBy: newCreatedBy,
+    status: 'draft',
+    responses: [],
+    feedback: [],
+    analytics: {
+      totalResponses: 0,
+      uniqueRespondents: 0,
+      completionRate: 0,
+      averageTimeToComplete: 0
+    },
+    version: 1,
+    templateId: this._id
+  });
+  
+  return duplicatedPoll.save();
+};
+
+// Static methods
+pollSchema.statics.findByTenant = function(tenantId, options = {}) {
+  const query = { tenantId };
+  
+  if (options.status) {
+    query.status = options.status;
   }
-  return this.save();
-};
-
-// Instance method to add response
-pollSchema.methods.addResponse = function(userId, userName, userEmail, answers) {
-  const response = {
-    userId,
-    userName,
-    userEmail,
-    answers
-  };
   
-  this.responses.push(response);
-  
-  // Update recipient response status
-  const recipient = this.recipients.find(r => r.email === userEmail);
-  if (recipient) {
-    recipient.respondedAt = new Date();
+  if (options.createdBy) {
+    query.createdBy = options.createdBy;
   }
   
-  return this.save();
+  return this.find(query).sort({ createdAt: -1 });
 };
 
-// Instance method to add feedback
-pollSchema.methods.addFeedback = function(userId, userName, userEmail, rating, comment) {
-  const feedback = {
-    userId,
-    userName,
-    userEmail,
-    rating,
-    comment
-  };
-  
-  this.feedback.push(feedback);
-  return this.save();
+pollSchema.statics.findActiveByTenant = function(tenantId) {
+  return this.find({
+    tenantId,
+    status: 'active',
+    $or: [
+      { expiresAt: { $exists: false } },
+      { expiresAt: { $gt: new Date() } }
+    ]
+  }).sort({ createdAt: -1 });
 };
 
-// Instance method to add notification
-pollSchema.methods.addNotification = function(type, title, message, recipientId = null, actionUrl = null) {
-  const notification = {
-    type,
-    title,
-    message,
-    recipientId,
-    actionUrl
-  };
-  
-  this.notifications.push(notification);
-  return this.save();
+pollSchema.statics.findExpired = function() {
+  return this.find({
+    status: 'active',
+    expiresAt: { $lt: new Date() }
+  });
+};
+
+pollSchema.statics.getPollStatistics = function(tenantId) {
+  return this.aggregate([
+    { $match: { tenantId: new mongoose.Types.ObjectId(tenantId) } },
+    {
+      $group: {
+        _id: null,
+        totalPolls: { $sum: 1 },
+        activePolls: {
+          $sum: {
+            $cond: [
+              { $eq: ['$status', 'active'] },
+              1,
+              0
+            ]
+          }
+        },
+        totalResponses: { $sum: '$analytics.totalResponses' },
+        averageResponseRate: { $avg: '$analytics.completionRate' }
+      }
+    }
+  ]);
 };
 
 module.exports = mongoose.model('Poll', pollSchema); 

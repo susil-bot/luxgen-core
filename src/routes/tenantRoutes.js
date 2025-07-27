@@ -33,6 +33,12 @@ router.put('/:id/features', requireAdmin, tenantController.updateFeatures);
 // Tenant statistics routes
 router.get('/:id/stats', requireAdmin, tenantController.getTenantStats);
 
+// Tenant analytics routes
+router.get('/:id/analytics', requireAdmin, tenantController.getTenantAnalytics);
+router.get('/:id/users', requireAdmin, tenantController.getTenantUsers);
+router.get('/:id/settings', requireAdmin, tenantController.getTenantSettings);
+router.put('/:id/settings', requireAdmin, tenantController.updateTenantSettings);
+
 // Bulk operations (admin only)
 router.post('/bulk/restore', requireAdmin, async (req, res) => {
   try {
