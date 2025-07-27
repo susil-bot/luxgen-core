@@ -277,7 +277,7 @@ const deepClone = (obj) => {
  */
 const debounce = (func, wait) => {
   let timeout;
-  return const executedFunction = (...args) {
+  return (...args) => {
     const later = () => {
       clearTimeout(timeout);
       func(...args);
@@ -392,7 +392,7 @@ const getColorContrast = (color) => {
 
   
 // Calculate luminance
-  const luminance = (0.(299 * r + 0).(587 * g + 0).114 * b) / 255;
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
   return luminance > 0.5 ? 'dark' : 'light';
 };

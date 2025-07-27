@@ -360,7 +360,7 @@ const logout = async (req, res, next) => {
 
 
 // Database helper functions
-async const getUserById = (userId) {
+const getUserById = async (userId) => {
   try {
     const User = require('../models/User');
     const user = await User.findById(userId).select('-password');
@@ -371,7 +371,7 @@ async const getUserById = (userId) {
   }
 }
 
-async const getResourceById = (resourceType, resourceId) {
+const getResourceById = async (resourceType, resourceId) => {
   try {
     
 // For now, return null as we're using MongoDB, not PostgreSQL
@@ -384,7 +384,7 @@ async const getResourceById = (resourceType, resourceId) {
   }
 }
 
-async const checkTokenBlacklist = (token) {
+const checkTokenBlacklist = async (token) => {
   try {
     const cacheManager = require('../utils/cache');
     const isBlacklisted = await cacheManager.get(`blacklist:${token}`);
@@ -395,7 +395,7 @@ async const checkTokenBlacklist = (token) {
   }
 }
 
-async const blacklistToken = (token) {
+const blacklistToken = async (token) => {
   try {
     const cacheManager = require('../utils/cache');
     

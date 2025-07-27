@@ -61,19 +61,19 @@ const defaultConfig = {
 // Load all tenant configurations dynamically
 let tenantConfigs = null;
 
-const getTenantConfigs = () {
+const getTenantConfigs = () => {
   if (!tenantConfigs) {
     tenantConfigs = loadAllTenants();
   }
   return tenantConfigs;
-}
+};
 
 /**
  * Get tenant configuration by slug
  * @param {string} slug - Tenant slug
  * @returns {Object} Tenant configuration
  */
-const getTenantConfig = (slug) {
+const getTenantConfig = (slug) => {
   const configs = getTenantConfigs();
   const config = configs[slug];
   if (!config) {
