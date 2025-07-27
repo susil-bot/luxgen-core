@@ -23,8 +23,7 @@ const testConfig = {
       socketTimeoutMS: 45000,
       bufferCommands: false,
       bufferMaxEntries: 0
-    }
-  },
+    } },
 
   
 // JWT
@@ -65,8 +64,7 @@ const testConfig = {
       role: 'participant',
       tenantId: 'test-tenant-1',
       status: 'active'
-    }
-  ],
+    } ],
 
   testTenants: [
     {
@@ -80,16 +78,13 @@ const testConfig = {
         branding: {
           primaryColor: '#007bff',
           logo: 'test-logo.png'
-        }
-      }
-    }
-  ]
-};
-
+        } }
+    } ]
+}
 /**
  * Setup test database
  */
-async const setupTestDatabase = () {
+const setupTestDatabase = async () => {
   try {
     
 // Start in-memory MongoDB server
@@ -106,13 +101,11 @@ async const setupTestDatabase = () {
   } catch (error) {
     console.error('❌ Failed to setup test database:', error);
     throw error;
-  }
-}
-
+  } }
 /**
  * Teardown test database
  */
-async const teardownTestDatabase = () {
+const teardownTestDatabase = async () => {
   try {
     
 // Disconnect from database
@@ -123,18 +116,15 @@ async const teardownTestDatabase = () {
     if (mongoServer) {
       await mongoServer.stop();
     }
-
     console.log('✅ Test database disconnected');
   } catch (error) {
     console.error('❌ Failed to teardown test database:', error);
     throw error;
-  }
-}
-
+  } }
 /**
  * Clear all collections
  */
-async const clearCollections = () {
+const clearCollections = async () => {
   try {
     const { collections } = mongoose.connection;
 
@@ -142,18 +132,15 @@ async const clearCollections = () {
       const collection = collections[key];
       await collection.deleteMany({});
     }
-
     console.log('🧹 Collections cleared');
   } catch (error) {
     console.error('❌ Failed to clear collections:', error);
     throw error;
-  }
-}
-
+  } }
 /**
  * Seed test data
  */
-async const seedTestData = () {
+const seedTestData = async () => {
   try {
     const { User, Tenant } = require('../models');
 
@@ -169,13 +156,11 @@ async const seedTestData = () {
   } catch (error) {
     console.error('❌ Failed to seed test data:', error);
     throw error;
-  }
-}
-
+  } }
 /**
  * Generate test JWT token
  */
-const generateTestToken = (user = testConfig.testUsers[0]) {
+const generateTestToken = (user = testConfig.testUsers[0]) => {
   return jwt.sign(
     {
       id: user._id.toString(),
@@ -184,14 +169,12 @@ const generateTestToken = (user = testConfig.testUsers[0]) {
       tenantId: user.tenantId
     },
     testConfig.jwt.secret,
-    { expiresIn: testConfig.jwt.expiresIn }
-  );
+    { expiresIn: testConfig.jwt.expiresIn } );
 }
-
 /**
  * Create test request object
  */
-const createTestRequest = (options = {}) {
+const createTestRequest = (options = {}) => {
   const {
     method = 'GET',
     url = '/test',
@@ -218,31 +201,26 @@ const createTestRequest = (options = {}) {
       email: user.email,
       role: user.role,
       tenantId: user.tenantId
-    }
-  };
+    } }
 }
-
 /**
  * Create test response object
  */
-const createTestResponse = () {
+const createTestResponse = () => {
   const res = {
     status: jest.fn().mockReturnThis(),
     json: jest.fn().mockReturnThis(),
     send: jest.fn().mockReturnThis(),
     end: jest.fn().mockReturnThis()
-  };
-
+  }
   return res;
 }
-
 /**
  * Create test next function
  */
-const createTestNext = () {
+const createTestNext = () => {
   return jest.fn();
 }
-
 /**
  * Test utilities
  */
@@ -284,8 +262,7 @@ const testUtils = {
       findByIdAndDelete: jest.fn().mockResolvedValue(mockData[0] || null),
       countDocuments: jest.fn().mockResolvedValue(mockData.length),
       deleteMany: jest.fn().mockResolvedValue({ deletedCount: mockData.length })
-    };
-  },
+    } },
 
   createMockService (mockData = {}) {
     return {
@@ -293,8 +270,6 @@ const testUtils = {
       generateContent: jest.fn().mockResolvedValue(mockData),
       checkHealth: jest.fn().mockResolvedValue({ healthy: true }),
       getContentLibrary: jest.fn().mockResolvedValue(mockData)
-    };
-  }
-};
-
+    } }
+}
 module.exports = testUtils;

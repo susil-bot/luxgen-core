@@ -16,22 +16,17 @@ exports.addUserToTenant = async (req, res) => {
         message: 'Access denied. Admin privileges required.'
       });
     }
-
-
     // Get tenant ID from JWT (for tenant admins) or from request (for super admins)
     let { tenantId } = req.user;
     if (req.user.role === 'super_admin' && req.body.tenantId) {
       tenantId = req.body.tenantId;
     }
-
     if (!tenantId) {
       return res.status(400).json({
         success: false,
         message: 'User not associated with any tenant'
       });
     }
-
-
     // Get tenant configuration
     const tenant = await Tenant.findById(tenantId);
     if (!tenant) {
@@ -40,7 +35,6 @@ exports.addUserToTenant = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     const tenantConfig = getTenantConfig(tenant.slug);
     if (!tenantConfig) {
       return res.status(404).json({
@@ -48,8 +42,6 @@ exports.addUserToTenant = async (req, res) => {
         message: 'Tenant configuration not found'
       });
     }
-
-
     // Check user limits
     const limits = getTenantLimits(tenant.slug);
     const currentUserCount = await User.countDocuments({
@@ -64,7 +56,6 @@ exports.addUserToTenant = async (req, res) => {
         message: `Maximum user limit reached (${limits.maxUsers})`
       });
     }
-
     const { email, firstName, lastName, role = 'user', phone, department } = req.body;
 
 
@@ -75,8 +66,6 @@ exports.addUserToTenant = async (req, res) => {
         message: 'Email, firstName, and lastName are required'
       });
     }
-
-
     // Check if user already exists in this tenant
     const existingUser = await User.findOne({
       email,
@@ -90,8 +79,6 @@ exports.addUserToTenant = async (req, res) => {
         message: 'User already exists in this tenant'
       });
     }
-
-
     // Generate temporary password
     const tempPassword = Math.random().toString(36).slice(-8);
     const hashedPassword = await bcrypt.hash(tempPassword, 12);
@@ -114,8 +101,7 @@ exports.addUserToTenant = async (req, res) => {
       profile: {
         company: tenant.name,
         position: role
-      }
-    });
+      } });
 
     await user.save();
 
@@ -129,8 +115,7 @@ exports.addUserToTenant = async (req, res) => {
         tenantId: user.tenantId
       },
       process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+      { expiresIn: '24h' } );
 
     res.status(201).json({
       success: true,
@@ -149,8 +134,7 @@ exports.addUserToTenant = async (req, res) => {
         tenant: {
           name: tenant.name,
           slug: tenant.slug
-        }
-      }
+        } }
     });
   } catch (error) {
     console.error('Error adding user to tenant:', error);
@@ -159,9 +143,7 @@ exports.addUserToTenant = async (req, res) => {
       message: 'Failed to add user to tenant',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get all users for a specific tenant
  */
@@ -174,22 +156,17 @@ exports.getTenantUsers = async (req, res) => {
         message: 'Access denied. Admin privileges required.'
       });
     }
-
-
     // Get tenant ID from JWT (for tenant admins) or from request (for super admins)
     let { tenantId } = req.user;
     if (req.user.role === 'super_admin' && req.query.tenantId) {
       tenantId = req.query.tenantId;
     }
-
     if (!tenantId) {
       return res.status(400).json({
         success: false,
         message: 'User not associated with any tenant'
       });
     }
-
-
     // Get tenant configuration
     const tenant = await Tenant.findById(tenantId);
     if (!tenant) {
@@ -198,7 +175,6 @@ exports.getTenantUsers = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     const { page = 1, limit = 10, search, role, status } = req.query;
     const skip = (page - 1) * limit;
 
@@ -207,25 +183,19 @@ exports.getTenantUsers = async (req, res) => {
     const query = {
       tenantId,
       isDeleted: false
-    };
-
+    }
     if (search) {
       query.$or = [
         { firstName: { $regex: search, $options: 'i' } },
         { lastName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
-      ];
+        { email: { $regex: search, $options: 'i' } } ];
     }
-
     if (role) {
       query.role = role;
     }
-
     if (status) {
       query.isActive = status === 'active';
     }
-
-
     // Get users with pagination
     const users = await User.find(query)
       .select('-password')
@@ -248,8 +218,7 @@ exports.getTenantUsers = async (req, res) => {
         tenant: {
           name: tenant.name,
           slug: tenant.slug
-        }
-      }
+        } }
     });
   } catch (error) {
     console.error('Error getting tenant users:', error);
@@ -258,9 +227,7 @@ exports.getTenantUsers = async (req, res) => {
       message: 'Failed to get tenant users',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Update a user in a specific tenant
  */
@@ -273,7 +240,6 @@ exports.updateTenantUser = async (req, res) => {
         message: 'Access denied. Admin privileges required.'
       });
     }
-
     const { userId } = req.params;
     const { firstName, lastName, role, phone, department, isActive } = req.body;
 
@@ -283,15 +249,12 @@ exports.updateTenantUser = async (req, res) => {
     if (req.user.role === 'super_admin' && req.body.tenantId) {
       tenantId = req.body.tenantId;
     }
-
     if (!tenantId) {
       return res.status(400).json({
         success: false,
         message: 'User not associated with any tenant'
       });
     }
-
-
     // Find user in the specific tenant
     const user = await User.findOne({
       _id: userId,
@@ -305,8 +268,6 @@ exports.updateTenantUser = async (req, res) => {
         message: 'User not found in this tenant'
       });
     }
-
-
     // Prevent admin from modifying super_admin users
     if (user.role === 'super_admin' && req.user.role !== 'super_admin') {
       return res.status(403).json({
@@ -314,8 +275,6 @@ exports.updateTenantUser = async (req, res) => {
         message: 'Cannot modify super admin users'
       });
     }
-
-
     // Update user fields
     if (firstName) {
       user.firstName = firstName;
@@ -335,7 +294,6 @@ exports.updateTenantUser = async (req, res) => {
     if (typeof isActive === 'boolean') {
       user.isActive = isActive;
     }
-
     user.updatedBy = req.user._id;
     user.updatedAt = new Date();
 
@@ -354,8 +312,7 @@ exports.updateTenantUser = async (req, res) => {
           isActive: user.isActive,
           phone: user.phone,
           department: user.department
-        }
-      }
+        } }
     });
   } catch (error) {
     console.error('Error updating tenant user:', error);
@@ -364,9 +321,7 @@ exports.updateTenantUser = async (req, res) => {
       message: 'Failed to update tenant user',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Remove a user from a specific tenant (soft delete)
  */
@@ -379,7 +334,6 @@ exports.removeUserFromTenant = async (req, res) => {
         message: 'Access denied. Admin privileges required.'
       });
     }
-
     const { userId } = req.params;
 
 
@@ -388,15 +342,12 @@ exports.removeUserFromTenant = async (req, res) => {
     if (req.user.role === 'super_admin' && req.body.tenantId) {
       tenantId = req.body.tenantId;
     }
-
     if (!tenantId) {
       return res.status(400).json({
         success: false,
         message: 'User not associated with any tenant'
       });
     }
-
-
     // Find user in the specific tenant
     const user = await User.findOne({
       _id: userId,
@@ -410,8 +361,6 @@ exports.removeUserFromTenant = async (req, res) => {
         message: 'User not found in this tenant'
       });
     }
-
-
     // Prevent admin from removing super_admin users
     if (user.role === 'super_admin' && req.user.role !== 'super_admin') {
       return res.status(403).json({
@@ -419,8 +368,6 @@ exports.removeUserFromTenant = async (req, res) => {
         message: 'Cannot remove super admin users'
       });
     }
-
-
     // Prevent admin from removing themselves
     if (user._id.toString() === req.user._id.toString()) {
       return res.status(400).json({
@@ -428,8 +375,6 @@ exports.removeUserFromTenant = async (req, res) => {
         message: 'Cannot remove yourself from the tenant'
       });
     }
-
-
     // Soft delete the user
     user.isActive = false;
     user.isDeleted = true;
@@ -444,8 +389,7 @@ exports.removeUserFromTenant = async (req, res) => {
       data: {
         userId: user._id,
         email: user.email
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error removing user from tenant:', error);
     res.status(500).json({
@@ -453,7 +397,5 @@ exports.removeUserFromTenant = async (req, res) => {
       message: 'Failed to remove user from tenant',
       error: error.message
     });
-  }
-};
-
+  } }
 module.exports = exports;

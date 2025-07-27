@@ -5,7 +5,6 @@ class TenantStylingService {
 
     // No database connection needed - uses Mongoose models
   }
-
   /**
    * Get tenant styling configuration by tenant ID
    */
@@ -16,15 +15,12 @@ class TenantStylingService {
       if (!tenant) {
         return this.getDefaultStyling();
       }
-
-      const settings = tenant.branding || {};
+      const settings = tenant.branding || {}
       return this.mergeWithDefaults(settings);
     } catch (error) {
       console.error('Error getting tenant styling:', error);
       return this.getDefaultStyling();
-    }
-  }
-
+    } }
   /**
    * Get default styling configuration
    */
@@ -63,8 +59,7 @@ class TenantStylingService {
           medium: '500',
           semibold: '600',
           bold: '700'
-        }
-      },
+        } },
       spacing: {
         xs: '0.25rem',
         sm: '0.5rem',
@@ -100,8 +95,7 @@ class TenantStylingService {
           easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
           easeOut: 'cubic-bezier(0, 0, 0.2, 1)',
           easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)'
-        }
-      },
+        } },
       components: {
         button: {
           primary: {
@@ -117,17 +111,13 @@ class TenantStylingService {
             borderColor: '#6B7280',
             hoverBackgroundColor: '#4B5563',
             hoverBorderColor: '#4B5563'
-          }
-        },
+          } },
         card: {
           backgroundColor: '#FFFFFF',
           borderColor: '#E5E7EB',
           shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
-        }
-      }
-    };
-  }
-
+        } }
+    } }
   /**
    * Merge tenant settings with defaults
    */
@@ -135,7 +125,6 @@ class TenantStylingService {
     const defaults = this.getDefaultStyling();
     return this.deepMerge(defaults, tenantSettings);
   }
-
   /**
    * Generate CSS variables from styling configuration
    */
@@ -148,57 +137,43 @@ class TenantStylingService {
       Object.entries(styling.branding).forEach(([key, value]) => {
         if (typeof value === 'string' && value.startsWith('#')) {
           variables.push(`--color-${key}: ${value};`);
-        }
-      });
+        } });
     }
-
-
     // Typography
     if (styling.typography) {
       if (styling.typography.fontFamily) {
         variables.push(`--font-family: ${styling.typography.fontFamily};`);
       }
-
       if (styling.typography.fontSize) {
         Object.entries(styling.typography.fontSize).forEach(([key, value]) => {
           variables.push(`--font-size-${key}: ${value};`);
         });
       }
-
       if (styling.typography.fontWeight) {
         Object.entries(styling.typography.fontWeight).forEach(([key, value]) => {
           variables.push(`--font-weight-${key}: ${value};`);
         });
-      }
-    }
-
-
+      } }
     // Spacing
     if (styling.spacing) {
       Object.entries(styling.spacing).forEach(([key, value]) => {
         variables.push(`--spacing-${key}: ${value};`);
       });
     }
-
-
     // Border radius
     if (styling.borderRadius) {
       Object.entries(styling.borderRadius).forEach(([key, value]) => {
         variables.push(`--border-radius-${key}: ${value};`);
       });
     }
-
-
     // Shadows
     if (styling.shadows) {
       Object.entries(styling.shadows).forEach(([key, value]) => {
         variables.push(`--shadow-${key}: ${value};`);
       });
     }
-
     return `:root {\n  ${variables.join('\n  ')}\n}`;
   }
-
   /**
    * Generate Tailwind config from styling
    */
@@ -222,19 +197,15 @@ class TenantStylingService {
               600: this.generateColorShades(styling.branding.secondaryColor, 600),
               700: this.generateColorShades(styling.branding.secondaryColor, 700),
               900: this.generateColorShades(styling.branding.secondaryColor, 900)
-            }
-          } : {},
+            } } : {},
           fontFamily: styling.typography?.fontFamily ? { sans: styling.typography.fontFamily.split(', ').map(font => font.replace(/['"]/g, '')) } : {},
           fontSize: styling.typography?.fontSize || {},
           fontWeight: styling.typography?.fontWeight || {},
           spacing: styling.spacing || {},
           borderRadius: styling.borderRadius || {},
-          boxShadow: styling.shadows || {}
-        }
-      }
-    };
+          boxShadow: styling.shadows || {} }
+      } }
   }
-
   /**
    * Generate color shades
    */
@@ -242,7 +213,6 @@ class TenantStylingService {
     // Simple color shade generation - in production, use a proper color library
     return baseColor;
   }
-
   /**
    * Generate tenant CSS
    */
@@ -259,9 +229,7 @@ class TenantStylingService {
     } catch (error) {
       console.error('Error generating tenant CSS:', error);
       return this.generateCSSVariables(this.getDefaultStyling());
-    }
-  }
-
+    } }
   /**
    * Generate component-specific styles
    */
@@ -272,36 +240,31 @@ class TenantStylingService {
       Object.entries(styling.components.button).forEach(([variant, config]) => {
         styles += `
 .btn-${variant} {
-  background-color: ${config.backgroundColor};
-  color: ${config.textColor};
-  border: 1px solid ${config.borderColor};
+  background-color: ${config.backgroundColor}
+  color: ${config.textColor}
+  border: 1px solid ${config.borderColor}
   transition: all 0.2s ease-in-out;
 }
-
 .btn-${variant}:hover {
-  background-color: ${config.hoverBackgroundColor};
-  border-color: ${config.hoverBorderColor};
-}
+  background-color: ${config.hoverBackgroundColor}
+  border-color: ${config.hoverBorderColor} }
 `;
       });
     }
-
     if (styling.components?.card) {
       const { card } = styling.components;
       styles += `
 .card {
-  background-color: ${card.backgroundColor};
-  border: 1px solid ${card.borderColor};
-  box-shadow: ${card.shadow};
+  background-color: ${card.backgroundColor}
+  border: 1px solid ${card.borderColor}
+  box-shadow: ${card.shadow}
   border-radius: var(--border-radius-base);
   padding: var(--spacing-md);
 }
 `;
     }
-
     return styles;
   }
-
   /**
    * Update tenant styling
    */
@@ -312,10 +275,8 @@ class TenantStylingService {
       if (!tenant) {
         throw new Error('Tenant not found');
       }
-
-
       // Merge existing branding with updates
-      const currentBranding = tenant.branding || {};
+      const currentBranding = tenant.branding || {}
       const updatedBranding = this.deepMerge(currentBranding, stylingUpdates);
 
 
@@ -327,34 +288,27 @@ class TenantStylingService {
     } catch (error) {
       console.error('Error updating tenant styling:', error);
       throw error;
-    }
-  }
-
+    } }
   /**
    * Deep merge objects
    */
   deepMerge (target, source) {
-    const result = { ...target };
-
+    const result = { ...target }
     for (const key in source) {
       if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
         result[key] = this.deepMerge(result[key] || {}, source[key]);
       } else {
         result[key] = source[key];
-      }
-    }
-
+      } }
     return result;
   }
-
   /**
    * Get multiple tenant styling
    */
   async getMultipleTenantStyling (tenantIds) {
     try {
       const tenants = await Tenant.find({ _id: { $in: tenantIds } });
-      const stylingMap = {};
-
+      const stylingMap = {}
       tenants.forEach(tenant => {
         stylingMap[tenant._id.toString()] = this.mergeWithDefaults(tenant.branding || {});
       });
@@ -362,9 +316,6 @@ class TenantStylingService {
       return stylingMap;
     } catch (error) {
       console.error('Error getting multiple tenant styling:', error);
-      return {};
-    }
-  }
-}
-
+      return {} }
+  } }
 module.exports = new TenantStylingService();

@@ -26,10 +26,7 @@ class EnhancedAIService {
     this.rateLimits = {
       standard: { perMinute: 60, perHour: 1000 },
       premium: { perMinute: 120, perHour: 2000 },
-      enterprise: { perMinute: 300, perHour: 5000 }
-    };
-
-
+      enterprise: { perMinute: 300, perHour: 5000 } }
     // In-memory storage (in production, use proper databases)
     this.conversations = new Map();
     this.contentLibrary = new Map();
@@ -37,7 +34,6 @@ class EnhancedAIService {
     this.userPreferences = new Map();
     this.usageStats = new Map();
   }
-
   /**
    * Initialize AI service
    */
@@ -54,8 +50,6 @@ class EnhancedAIService {
       } else {
         logger.warn('⚠️ GROQ_API_KEY not found - AI features disabled');
       }
-
-
       // Initialize OpenAI client
       if (process.env.OPENAI_API_KEY) {
         this.openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -63,7 +57,6 @@ class EnhancedAIService {
       } else {
         logger.warn('⚠️ OPENAI_API_KEY not found - Some features disabled');
       }
-
       this.isInitialized = true;
       logger.info('🎉 Enhanced AI Service initialized successfully');
 
@@ -71,9 +64,7 @@ class EnhancedAIService {
     } catch (error) {
       logger.error('❌ Failed to initialize Enhanced AI Service:', error.message);
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate content with enhanced options
    */
@@ -83,7 +74,6 @@ class EnhancedAIService {
       if (!this.isInitialized || !this.groqClient) {
         throw new Error('AI Service not available');
       }
-
       const {
         maxTokens = this.maxTokens,
         temperature = this.temperature,
@@ -91,9 +81,7 @@ class EnhancedAIService {
         length = 'medium',
         style = 'informative',
         language = 'english'
-      } = options || {};
-
-
+      } = options || {}
       // Build system prompt based on type and options
       const systemPrompt = this.buildSystemPrompt(type, {
         tone, style, length, language
@@ -105,11 +93,9 @@ class EnhancedAIService {
       if (context) {
         enhancedPrompt = `Context: ${context}\n\nRequest: ${prompt}`;
       }
-
       const messages = [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: enhancedPrompt }
-      ];
+        { role: 'user', content: enhancedPrompt } ];
 
       const completion = await this.groqClient.chat.completions.create({
         model: this.defaultModel,
@@ -127,8 +113,6 @@ class EnhancedAIService {
       if (!content) {
         throw new Error('No content generated');
       }
-
-
       // Track usage
       this.trackUsage(userId, 'content_generation', type);
 
@@ -140,14 +124,11 @@ class EnhancedAIService {
           model: this.defaultModel,
           type,
           options
-        }
-      };
+        } }
     } catch (error) {
       logger.error('AI Content Generation Error:', error.message);
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate training materials
    */
@@ -158,8 +139,7 @@ class EnhancedAIService {
       type: 'training_material',
       tone: 'educational',
       style: 'structured'
-    };
-
+    }
     const prompt = `Create comprehensive training material about: ${topic}`;
 
     return this.generateContent({
@@ -171,7 +151,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Generate assessment questions
    */
@@ -181,8 +160,7 @@ class EnhancedAIService {
       types = ['multiple_choice', 'true_false'],
       difficulty = 'intermediate',
       timeLimit = 30
-    } = options || {};
-
+    } = options || {}
     const prompt = `Create ${questionCount} assessment questions about: ${topic}
     Question types: ${types.join(', ')}
     Difficulty: ${difficulty}
@@ -196,7 +174,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Generate presentation outline
    */
@@ -206,8 +183,7 @@ class EnhancedAIService {
       duration = 'medium',
       style = 'educational',
       slideCount = 10
-    } = options || {};
-
+    } = options || {}
     const prompt = `Create a presentation outline about: ${topic}
     Duration: ${duration}
     Style: ${style}
@@ -221,7 +197,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Improve content
    */
@@ -231,22 +206,18 @@ class EnhancedAIService {
       targetLength,
       tone = 'professional',
       style = 'academic'
-    } = options || {};
-
+    } = options || {}
     let prompt = `Improve the following content for ${improvement}:`;
 
     if (targetLength) {
       prompt += ` Target length: ${targetLength} words.`;
     }
-
     if (tone) {
       prompt += ` Tone: ${tone}.`;
     }
-
     if (style) {
       prompt += ` Style: ${style}.`;
     }
-
     prompt += `\n\nContent:\n${content}`;
 
     return this.generateContent({
@@ -257,7 +228,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Translate content
    */
@@ -266,14 +236,12 @@ class EnhancedAIService {
     const {
       formality = 'formal',
       context = 'business'
-    } = options || {};
-
+    } = options || {}
     let prompt = `Translate the following content to ${targetLanguage}`;
 
     if (preserveTone) {
       prompt += ' while preserving the original tone';
     }
-
     prompt += `.\nFormality: ${formality}\nContext: ${context}\n\nContent:\n${content}`;
 
     return this.generateContent({
@@ -284,7 +252,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Generate blog post
    */
@@ -295,26 +262,21 @@ class EnhancedAIService {
       tone = 'professional',
       targetAudience = 'general',
       keywords = []
-    } = options || {};
-
+    } = options || {}
     let prompt = `Write a blog post about: ${topic}`;
 
     if (length) {
       prompt += `\nLength: ${length}`;
     }
-
     if (tone) {
       prompt += `\nTone: ${tone}`;
     }
-
     if (targetAudience) {
       prompt += `\nTarget audience: ${targetAudience}`;
     }
-
     if (keywords.length > 0) {
       prompt += `\nKeywords: ${keywords.join(', ')}`;
     }
-
     return this.generateContent({
       type: 'blog_post',
       prompt,
@@ -323,7 +285,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Generate social media content
    */
@@ -333,22 +294,18 @@ class EnhancedAIService {
       tone = 'engaging',
       includeHashtags = true,
       callToAction = ''
-    } = options || {};
-
+    } = options || {}
     let prompt = `Create ${platform} content about: ${topic}`;
 
     if (tone) {
       prompt += `\nTone: ${tone}`;
     }
-
     if (includeHashtags) {
       prompt += '\nInclude relevant hashtags';
     }
-
     if (callToAction) {
       prompt += `\nCall to action: ${callToAction}`;
     }
-
     return this.generateContent({
       type: 'social_media',
       prompt,
@@ -359,7 +316,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Generate email content
    */
@@ -369,22 +325,18 @@ class EnhancedAIService {
       recipientType = 'client',
       tone = 'professional',
       includeCallToAction = true
-    } = options || {};
-
+    } = options || {}
     let prompt = `Write a ${type} email about: ${topic}`;
 
     if (recipientType) {
       prompt += `\nRecipient: ${recipientType}`;
     }
-
     if (tone) {
       prompt += `\nTone: ${tone}`;
     }
-
     if (includeCallToAction) {
       prompt += '\nInclude a call to action';
     }
-
     return this.generateContent({
       type: 'email',
       prompt,
@@ -395,7 +347,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Generate product description
    */
@@ -404,26 +355,21 @@ class EnhancedAIService {
     const {
       style = 'marketing',
       length = 'medium'
-    } = options || {};
-
+    } = options || {}
     let prompt = `Write a product description for: ${productName}`;
 
     if (targetAudience) {
       prompt += `\nTarget audience: ${targetAudience}`;
     }
-
     if (features && features.length > 0) {
       prompt += `\nFeatures: ${features.join(', ')}`;
     }
-
     if (style) {
       prompt += `\nStyle: ${style}`;
     }
-
     if (length) {
       prompt += `\nLength: ${length}`;
     }
-
     return this.generateContent({
       type: 'product_description',
       prompt,
@@ -432,7 +378,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Generate image prompt
    */
@@ -441,22 +386,18 @@ class EnhancedAIService {
     const {
       aspectRatio = '16:9',
       mood = 'professional'
-    } = options || {};
-
+    } = options || {}
     let prompt = `Create a detailed image prompt for: ${description}`;
 
     if (style) {
       prompt += `\nStyle: ${style}`;
     }
-
     if (aspectRatio) {
       prompt += `\nAspect ratio: ${aspectRatio}`;
     }
-
     if (mood) {
       prompt += `\nMood: ${mood}`;
     }
-
     return this.generateContent({
       type: 'image_prompt',
       prompt,
@@ -465,7 +406,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Generate video script
    */
@@ -474,26 +414,21 @@ class EnhancedAIService {
     const {
       includeVisuals = true,
       targetAudience = 'general'
-    } = options || {};
-
+    } = options || {}
     let prompt = `Create a video script about: ${topic}`;
 
     if (duration) {
       prompt += `\nDuration: ${duration}`;
     }
-
     if (style) {
       prompt += `\nStyle: ${style}`;
     }
-
     if (includeVisuals) {
       prompt += '\nInclude visual descriptions';
     }
-
     if (targetAudience) {
       prompt += `\nTarget audience: ${targetAudience}`;
     }
-
     return this.generateContent({
       type: 'video_script',
       prompt,
@@ -502,7 +437,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Generate audio script
    */
@@ -511,22 +445,18 @@ class EnhancedAIService {
     const {
       tone = 'professional',
       includeMusic = true
-    } = options || {};
-
+    } = options || {}
     let prompt = `Create an audio script for ${type} about: ${topic}`;
 
     if (duration) {
       prompt += `\nDuration: ${duration} minutes`;
     }
-
     if (tone) {
       prompt += `\nTone: ${tone}`;
     }
-
     if (includeMusic) {
       prompt += '\nInclude music cues';
     }
-
     return this.generateContent({
       type: 'audio_script',
       prompt,
@@ -535,8 +465,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
-
   // ==================== CONVERSATION MANAGEMENT ====================
 
   /**
@@ -554,8 +482,7 @@ class EnhancedAIService {
       messages: [],
       createdAt: new Date(),
       updatedAt: new Date()
-    };
-
+    }
     if (initialMessage) {
       conversation.messages.push({
         id: crypto.randomUUID(),
@@ -564,12 +491,10 @@ class EnhancedAIService {
         timestamp: new Date()
       });
     }
-
     this.conversations.set(conversationId, conversation);
 
     return conversation;
   }
-
   /**
    * Get user's conversations
    */
@@ -590,10 +515,8 @@ class EnhancedAIService {
         limit,
         total: conversations.length,
         pages: Math.ceil(conversations.length / limit)
-      }
-    };
+      } }
   }
-
   /**
    * Get specific conversation
    */
@@ -604,10 +527,8 @@ class EnhancedAIService {
     if (!conversation || conversation.userId !== userId || conversation.tenantId !== tenantId) {
       throw new Error('Conversation not found');
     }
-
     return conversation;
   }
-
   /**
    * Delete conversation
    */
@@ -618,11 +539,8 @@ class EnhancedAIService {
     if (!conversation || conversation.userId !== userId || conversation.tenantId !== tenantId) {
       throw new Error('Conversation not found');
     }
-
     this.conversations.delete(conversationId);
-    return { success: true };
-  }
-
+    return { success: true } }
   /**
    * Send message in conversation
    */
@@ -633,21 +551,18 @@ class EnhancedAIService {
     if (!conversation || conversation.userId !== userId || conversation.tenantId !== tenantId) {
       throw new Error('Conversation not found');
     }
-
     const message = {
       id: crypto.randomUUID(),
       content,
       type: type || 'text',
       metadata: metadata || {},
       timestamp: new Date()
-    };
-
+    }
     conversation.messages.push(message);
     conversation.updatedAt = new Date();
 
     return message;
   }
-
   /**
    * Generate AI response
    */
@@ -664,11 +579,9 @@ class EnhancedAIService {
         .join('\n');
       prompt = `Conversation context:\n${conversationContext}\n\nUser message: ${message}`;
     }
-
     if (context) {
       prompt = `Context: ${JSON.stringify(context)}\n\n${prompt}`;
     }
-
     const response = await this.generateContent({
       type: 'chat_response',
       prompt,
@@ -683,15 +596,12 @@ class EnhancedAIService {
         content: response.content,
         type: 'ai',
         timestamp: new Date()
-      };
+      }
       conversation.messages.push(aiMessage);
       conversation.updatedAt = new Date();
     }
-
     return response;
   }
-
-
   // ==================== TRAINING-SPECIFIC AI ====================
 
   /**
@@ -705,30 +615,24 @@ class EnhancedAIService {
       format = 'interactive',
       includeAssessment = true,
       learningObjectives = []
-    } = options || {};
-
+    } = options || {}
     let prompt = `Create a complete training module about: ${topic}`;
 
     if (duration) {
       prompt += `\nDuration: ${duration} hours`;
     }
-
     if (difficulty) {
       prompt += `\nDifficulty: ${difficulty}`;
     }
-
     if (format) {
       prompt += `\nFormat: ${format}`;
     }
-
     if (includeAssessment) {
       prompt += '\nInclude assessment questions';
     }
-
     if (learningObjectives.length > 0) {
       prompt += `\nLearning objectives: ${learningObjectives.join(', ')}`;
     }
-
     return this.generateContent({
       type: 'training_module',
       prompt,
@@ -737,7 +641,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Generate exercises
    */
@@ -748,26 +651,21 @@ class EnhancedAIService {
       duration = 30,
       difficulty = 'intermediate',
       materials = []
-    } = options || {};
-
+    } = options || {}
     let prompt = `Create practical exercises for: ${topic}`;
 
     if (type) {
       prompt += `\nType: ${type}`;
     }
-
     if (duration) {
       prompt += `\nDuration: ${duration} minutes`;
     }
-
     if (difficulty) {
       prompt += `\nDifficulty: ${difficulty}`;
     }
-
     if (materials.length > 0) {
       prompt += `\nMaterials: ${materials.join(', ')}`;
     }
-
     return this.generateContent({
       type: 'exercises',
       prompt,
@@ -776,7 +674,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Generate case studies
    */
@@ -787,26 +684,21 @@ class EnhancedAIService {
       complexity = 'moderate',
       includeSolutions = true,
       learningOutcomes = []
-    } = options || {};
-
+    } = options || {}
     let prompt = `Create case studies for: ${topic}`;
 
     if (industry) {
       prompt += `\nIndustry: ${industry}`;
     }
-
     if (complexity) {
       prompt += `\nComplexity: ${complexity}`;
     }
-
     if (includeSolutions) {
       prompt += '\nInclude solutions';
     }
-
     if (learningOutcomes.length > 0) {
       prompt += `\nLearning outcomes: ${learningOutcomes.join(', ')}`;
     }
-
     return this.generateContent({
       type: 'case_studies',
       prompt,
@@ -815,7 +707,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Generate quiz
    */
@@ -827,30 +718,24 @@ class EnhancedAIService {
       difficulty = 'intermediate',
       timeLimit = 30,
       passingScore = 70
-    } = options || {};
-
+    } = options || {}
     let prompt = `Create a quiz about: ${topic}`;
 
     if (questionCount) {
       prompt += `\nQuestions: ${questionCount}`;
     }
-
     if (types.length > 0) {
       prompt += `\nQuestion types: ${types.join(', ')}`;
     }
-
     if (difficulty) {
       prompt += `\nDifficulty: ${difficulty}`;
     }
-
     if (timeLimit) {
       prompt += `\nTime limit: ${timeLimit} minutes`;
     }
-
     if (passingScore) {
       prompt += `\nPassing score: ${passingScore}%`;
     }
-
     return this.generateContent({
       type: 'quiz',
       prompt,
@@ -859,7 +744,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
   /**
    * Generate scenarios
    */
@@ -870,26 +754,21 @@ class EnhancedAIService {
       complexity = 'moderate',
       includeMultipleChoice = true,
       includeEssay = true
-    } = options || {};
-
+    } = options || {}
     let prompt = `Create scenario-based assessments for: ${topic}`;
 
     if (scenarioCount) {
       prompt += `\nNumber of scenarios: ${scenarioCount}`;
     }
-
     if (complexity) {
       prompt += `\nComplexity: ${complexity}`;
     }
-
     if (includeMultipleChoice) {
       prompt += '\nInclude multiple choice questions';
     }
-
     if (includeEssay) {
       prompt += '\nInclude essay questions';
     }
-
     return this.generateContent({
       type: 'scenarios',
       prompt,
@@ -898,8 +777,6 @@ class EnhancedAIService {
       tenantId
     });
   }
-
-
   // ==================== CONTENT MANAGEMENT ====================
 
   /**
@@ -920,13 +797,11 @@ class EnhancedAIService {
       tenantId,
       createdAt: new Date(),
       updatedAt: new Date()
-    };
-
+    }
     this.contentLibrary.set(contentId, savedContent);
 
     return savedContent;
   }
-
   /**
    * Get content library
    */
@@ -938,18 +813,15 @@ class EnhancedAIService {
     if (type) {
       contents = contents.filter(content => content.type === type);
     }
-
     if (category) {
       contents = contents.filter(content => content.category === category);
     }
-
     if (search) {
       contents = contents.filter(content =>
         content.title.toLowerCase().includes(search.toLowerCase()) ||
         content.content.toLowerCase().includes(search.toLowerCase())
       );
     }
-
     contents.sort((a, b) => b.updatedAt - a.updatedAt);
 
     const startIndex = (page - 1) * limit;
@@ -963,10 +835,8 @@ class EnhancedAIService {
         limit,
         total: contents.length,
         pages: Math.ceil(contents.length / limit)
-      }
-    };
+      } }
   }
-
   /**
    * Update content
    */
@@ -977,12 +847,10 @@ class EnhancedAIService {
     if (!content || content.userId !== userId || content.tenantId !== tenantId) {
       throw new Error('Content not found');
     }
-
     Object.assign(content, updateData, { updatedAt: new Date() });
 
     return content;
   }
-
   /**
    * Delete content
    */
@@ -993,11 +861,8 @@ class EnhancedAIService {
     if (!content || content.userId !== userId || content.tenantId !== tenantId) {
       throw new Error('Content not found');
     }
-
     this.contentLibrary.delete(contentId);
-    return { success: true };
-  }
-
+    return { success: true } }
   /**
    * Get templates
    */
@@ -1022,15 +887,13 @@ class EnhancedAIService {
         platform: 'email',
         prompt: 'Write a newsletter about {topic}',
         variables: ['topic']
-      }
-    ];
+      } ];
 
     const userTemplates = Array.from(this.templates.values())
       .filter(template => template.userId === userId && template.tenantId === tenantId);
 
     return [...defaultTemplates, ...userTemplates];
   }
-
   /**
    * Create template
    */
@@ -1048,14 +911,11 @@ class EnhancedAIService {
       userId,
       tenantId,
       createdAt: new Date()
-    };
-
+    }
     this.templates.set(templateId, template);
 
     return template;
   }
-
-
   // ==================== PREFERENCES & PERSONALIZATION ====================
 
   /**
@@ -1071,25 +931,20 @@ class EnhancedAIService {
       notifications: {
         contentReady: true,
         insights: true
-      }
-    };
-
+      } }
     return preferences;
   }
-
   /**
    * Update preferences
    */
   async updatePreferences ({ preferences, userId, tenantId }) {
     // TODO: Add await statements
     const key = `${userId}-${tenantId}`;
-    const existingPreferences = this.userPreferences.get(key) || {};
-
+    const existingPreferences = this.userPreferences.get(key) || {}
     this.userPreferences.set(key, { ...existingPreferences, ...preferences });
 
     return this.userPreferences.get(key);
   }
-
   /**
    * Get niches
    */
@@ -1123,7 +978,6 @@ class EnhancedAIService {
       keywords: [niche.toLowerCase(), 'business', 'professional']
     }));
   }
-
   /**
    * Set user niche
    */
@@ -1136,19 +990,15 @@ class EnhancedAIService {
       userId,
       tenantId,
       setAt: new Date()
-    };
-
-
+    }
     // Store in user preferences
     const key = `${userId}-${tenantId}`;
-    const preferences = this.userPreferences.get(key) || {};
+    const preferences = this.userPreferences.get(key) || {}
     preferences.primaryNiche = userNiche;
     this.userPreferences.set(key, preferences);
 
     return userNiche;
   }
-
-
   // ==================== ANALYTICS & INSIGHTS ====================
 
   /**
@@ -1173,14 +1023,10 @@ class EnhancedAIService {
           age: {
             '18-24': 25, '25-34': 35, '35-44': 25, '45+': 15
           },
-          gender: { male: 45, female: 55 }
-        },
+          gender: { male: 45, female: 55 } },
         interests: ['technology', 'business', 'education'],
-        behavior: { avgTimeOnPage: 120, pagesPerSession: 2.5 }
-      }
-    };
-  }
-
+        behavior: { avgTimeOnPage: 120, pagesPerSession: 2.5 } }
+    } }
   /**
    * Get conversation insights
    */
@@ -1191,7 +1037,6 @@ class EnhancedAIService {
     if (!conversation) {
       throw new Error('Conversation not found');
     }
-
     return {
       totalMessages: conversation.messages.length,
       userMessages: conversation.messages.filter(m => m.type === 'user').length,
@@ -1200,9 +1045,7 @@ class EnhancedAIService {
       topics: [conversation.niche],
       sentiment: 'positive',
       engagement: 'high'
-    };
-  }
-
+    } }
   /**
    * Get usage analytics
    */
@@ -1212,8 +1055,7 @@ class EnhancedAIService {
       totalRequests: 0,
       contentGenerated: 0,
       conversations: 0
-    };
-
+    }
     return {
       totalRequests: userStats.totalRequests + Math.floor(Math.random() * 100) + 50,
       contentGenerated: userStats.contentGenerated + Math.floor(Math.random() * 30) + 20,
@@ -1223,11 +1065,8 @@ class EnhancedAIService {
         text: Math.floor(Math.random() * 60) + 30,
         image: Math.floor(Math.random() * 25) + 15,
         video: Math.floor(Math.random() * 15) + 10
-      }
-    };
+      } }
   }
-
-
   // ==================== PERFORMANCE & MONITORING ====================
 
   /**
@@ -1244,9 +1083,7 @@ class EnhancedAIService {
       responseTime: 2.5,
       uptime: 99.9,
       lastCheck: new Date()
-    };
-  }
-
+    } }
   /**
    * Get rate limits
    */
@@ -1264,10 +1101,7 @@ class EnhancedAIService {
       },
       resetTime: new Date(Date.now() + 15 * 60 * 1000)
       // 15 minutes from now
-    };
-  }
-
-
+    } }
   // ==================== UTILITY METHODS ====================
 
   /**
@@ -1306,26 +1140,20 @@ class EnhancedAIService {
       default:
         systemPrompt += 'Provide clear, accurate, and useful responses.';
     }
-
     if (tone) {
       systemPrompt += ` Maintain a ${tone} tone.`;
     }
-
     if (style) {
       systemPrompt += ` Use a ${style} style.`;
     }
-
     if (length) {
       systemPrompt += ` Keep the content ${length} in length.`;
     }
-
     if (language && language !== 'english') {
       systemPrompt += ` Respond in ${language}.`;
     }
-
     return systemPrompt;
   }
-
   /**
    * Track usage statistics
    */
@@ -1335,8 +1163,7 @@ class EnhancedAIService {
       totalRequests: 0,
       contentGenerated: 0,
       conversations: 0
-    };
-
+    }
     stats.totalRequests += 1;
 
     if (action === 'content_generation') {
@@ -1344,12 +1171,8 @@ class EnhancedAIService {
     } else if (action === 'conversation') {
       stats.conversations += 1;
     }
-
     this.usageStats.set(key, stats);
-  }
-}
-
-
+  } }
 // Create and export singleton instance
 const enhancedAIService = new EnhancedAIService();
 

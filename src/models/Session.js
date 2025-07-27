@@ -58,8 +58,7 @@ const sessionSchema = new mongoose.Schema({
     coordinates: {
       latitude: Number,
       longitude: Number
-    }
-  },
+    } },
 
 
   // Session status and timing
@@ -98,8 +97,7 @@ const sessionSchema = new mongoose.Schema({
       default: 0,
       min: 0,
       max: 100
-    }
-  },
+    } },
 
 
   // Session context
@@ -136,13 +134,11 @@ const sessionSchema = new mongoose.Schema({
   // Metadata
   metadata: {
     type: mongoose.Schema.Types.Mixed,
-    default: {}
-  }
+    default: {} }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+  toObject: { virtuals: true } });
 
 
 // Virtual for is expired
@@ -177,7 +173,6 @@ sessionSchema.pre('save', function (next) {
   if (this.isExpired) {
     this.isActive = false;
   }
-
   next();
 });
 
@@ -188,33 +183,27 @@ sessionSchema.methods.updateActivity = async function () {
   this.activity.pageViews += 1;
   this.lastPageView = new Date();
   return this.save();
-};
-
+}
 sessionSchema.methods.updateApiActivity = async function () {
   this.lastActivityAt = new Date();
   this.activity.apiCalls += 1;
   this.lastApiCall = new Date();
   return this.save();
-};
-
+}
 sessionSchema.methods.extend = async function (duration = 24 * 60 * 60 * 1000) {
 // 24 hours
   this.expiresAt = new Date(Date.now() + duration);
   return this.save();
-};
-
+}
 sessionSchema.methods.deactivate = async function () {
   this.isActive = false;
   return this.save();
-};
-
+}
 sessionSchema.methods.updateSecurityInfo = async function (securityInfo) {
   // TODO: Add await statements
-  this.security = { ...this.security, ...securityInfo };
+  this.security = { ...this.security, ...securityInfo }
   return this.save();
-};
-
-
+}
 // Static methods
 sessionSchema.statics.createSession = async function (userId, tenantId, options = {}) {
   // TODO: Add await statements
@@ -254,38 +243,28 @@ sessionSchema.statics.createSession = async function (userId, tenantId, options 
     session,
     token,
     refreshToken
-  };
-};
-
+  } }
 sessionSchema.statics.findByToken = function (token) {
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
   return this.findOne({ tokenHash, isActive: true });
-};
-
+}
 sessionSchema.statics.findByRefreshToken = function (refreshToken) {
   const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
   return this.findOne({ refreshTokenHash, isActive: true });
-};
-
+}
 sessionSchema.statics.findActiveByUser = function (userId) {
   return this.find({
-    userId, isActive: true, expiresAt: { $gt: new Date() }
-  });
-};
-
+    userId, isActive: true, expiresAt: { $gt: new Date() } });
+}
 sessionSchema.statics.findActiveByTenant = function (tenantId) {
   return this.find({
-    tenantId, isActive: true, expiresAt: { $gt: new Date() }
-  });
-};
-
+    tenantId, isActive: true, expiresAt: { $gt: new Date() } });
+}
 sessionSchema.statics.cleanupExpired = async function () {
   return this.updateMany(
     { expiresAt: { $lt: new Date() }, isActive: true },
-    { isActive: false }
-  );
-};
-
+    { isActive: false } );
+}
 sessionSchema.statics.getSessionStatistics = function (tenantId) {
   return this.aggregate([
     { $match: { tenantId: new mongoose.Types.ObjectId(tenantId) } },
@@ -300,21 +279,16 @@ sessionSchema.statics.getSessionStatistics = function (tenantId) {
               1,
               0
             ]
-          }
-        },
+          } },
         averageSessionDuration: { $avg: '$duration' },
-        uniqueUsers: { $addToSet: '$userId' }
-      }
+        uniqueUsers: { $addToSet: '$userId' } }
     },
     {
       $project: {
         totalSessions: 1,
         activeSessions: 1,
         averageSessionDuration: 1,
-        uniqueUsers: { $size: '$uniqueUsers' }
-      }
-    }
-  ]);
-};
-
+        uniqueUsers: { $size: '$uniqueUsers' } }
+    } ]);
+}
 module.exports = mongoose.model('Session', sessionSchema);

@@ -60,21 +60,18 @@ router.post('/bulk/restore', requireAdmin, async (req, res) => {
         message: 'Tenant IDs array is required'
       });
     }
-
     const result = await Tenant.updateMany(
       { _id: { $in: tenantIds }, isDeleted: true },
       {
         isDeleted: false,
         deletedAt: null,
         deletedBy: null
-      }
-    );
+      } );
 
     res.json({
       success: true,
       message: `Restored ${result.modifiedCount} tenants`,
-      data: { restored: result.modifiedCount }
-    });
+      data: { restored: result.modifiedCount } });
   } catch (error) {
     console.error('Error in bulk restore:', error);
     res.status(500).json({
@@ -82,8 +79,7 @@ router.post('/bulk/restore', requireAdmin, async (req, res) => {
       message: 'Failed to perform bulk restore',
       error: error.message
     });
-  }
-});
+  } });
 
 router.post('/bulk/update', requireAdmin, async (req, res) => {
   try {
@@ -95,12 +91,10 @@ router.post('/bulk/update', requireAdmin, async (req, res) => {
         message: 'Tenant IDs array is required'
       });
     }
-
     const result = await Tenant.updateMany(
       { _id: { $in: tenantIds }, isDeleted: false },
       updates,
-      { runValidators: true }
-    );
+      { runValidators: true } );
 
     res.json({
       success: true,
@@ -108,8 +102,7 @@ router.post('/bulk/update', requireAdmin, async (req, res) => {
       data: {
         matched: result.matchedCount,
         modified: result.modifiedCount
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error in bulk update:', error);
     res.status(500).json({
@@ -117,8 +110,7 @@ router.post('/bulk/update', requireAdmin, async (req, res) => {
       message: 'Failed to perform bulk update',
       error: error.message
     });
-  }
-});
+  } });
 
 router.post('/bulk/delete', requireAdmin, async (req, res) => {
   try {
@@ -130,7 +122,6 @@ router.post('/bulk/delete', requireAdmin, async (req, res) => {
         message: 'Tenant IDs array is required'
       });
     }
-
     if (permanent) {
       // Permanent deletion
       const result = await Tenant.deleteMany({ _id: { $in: tenantIds } });
@@ -138,8 +129,7 @@ router.post('/bulk/delete', requireAdmin, async (req, res) => {
       res.json({
         success: true,
         message: `Permanently deleted ${result.deletedCount} tenants`,
-        data: { deleted: result.deletedCount }
-      });
+        data: { deleted: result.deletedCount } });
     } else {
       // Soft deletion
       const result = await Tenant.updateMany(
@@ -148,24 +138,20 @@ router.post('/bulk/delete', requireAdmin, async (req, res) => {
           isDeleted: true,
           deletedAt: new Date(),
           deletedBy: req.user.id
-        }
-      );
+        } );
 
       res.json({
         success: true,
         message: `Soft deleted ${result.modifiedCount} tenants`,
-        data: { deleted: result.modifiedCount }
-      });
-    }
-  } catch (error) {
+        data: { deleted: result.modifiedCount } });
+    } } catch (error) {
     console.error('Error in bulk delete:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to perform bulk delete',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // Export tenants (admin only)
@@ -175,7 +161,7 @@ router.get('/export/csv', requireAdmin, async (req, res) => {
 
 
     // Build filter
-    const filter = {};
+    const filter = {}
     if (includeDeleted !== 'true') {
       filter.isDeleted = false;
     }
@@ -188,7 +174,6 @@ router.get('/export/csv', requireAdmin, async (req, res) => {
     if (industry) {
       filter.industry = industry;
     }
-
     const tenants = await Tenant.find(filter)
       .select('-verificationToken -verificationExpires')
       .lean();
@@ -241,8 +226,7 @@ router.get('/export/csv', requireAdmin, async (req, res) => {
       message: 'Failed to export tenants',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // Tenant search (admin only)
@@ -266,14 +250,11 @@ router.get('/search/advanced', requireAdmin, async (req, res) => {
 
 
     // Build filter
-    const filter = {};
-
-
+    const filter = {}
     // By default, exclude deleted tenants unless explicitly requested
     if (includeDeleted !== 'true') {
       filter.isDeleted = false;
     }
-
     if (status) {
       filter.status = status;
     }
@@ -289,29 +270,23 @@ router.get('/search/advanced', requireAdmin, async (req, res) => {
     if (verified !== undefined) {
       filter.isVerified = verified === 'true';
     }
-
     if (dateFrom || dateTo) {
-      filter.createdAt = {};
+      filter.createdAt = {}
       if (dateFrom) {
         filter.createdAt.$gte = new Date(dateFrom);
       }
       if (dateTo) {
         filter.createdAt.$lte = new Date(dateTo);
-      }
-    }
-
+      } }
     if (query) {
       filter.$or = [
         { name: { $regex: query, $options: 'i' } },
         { contactEmail: { $regex: query, $options: 'i' } },
         { slug: { $regex: query, $options: 'i' } },
-        { description: { $regex: query, $options: 'i' } }
-      ];
+        { description: { $regex: query, $options: 'i' } } ];
     }
-
-
     // Build sort
-    const sort = {};
+    const sort = {}
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
 
@@ -349,8 +324,7 @@ router.get('/search/advanced', requireAdmin, async (req, res) => {
         dateFrom,
         dateTo,
         verified
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error in advanced search:', error);
     res.status(500).json({
@@ -358,8 +332,7 @@ router.get('/search/advanced', requireAdmin, async (req, res) => {
       message: 'Failed to perform search',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // Tenant analytics (admin only)
@@ -367,24 +340,23 @@ router.get('/analytics/overview', requireAdmin, async (req, res) => {
   try {
     const { period = '30d' } = req.query;
 
-    let dateFilter = {};
+    let dateFilter = {}
     const now = new Date();
 
     switch (period) {
       case '7d':
-        dateFilter = { $gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) };
+        dateFilter = { $gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) }
         break;
       case '30d':
-        dateFilter = { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) };
+        dateFilter = { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) }
         break;
       case '90d':
-        dateFilter = { $gte: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000) };
+        dateFilter = { $gte: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000) }
         break;
       case '1y':
-        dateFilter = { $gte: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000) };
+        dateFilter = { $gte: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000) }
         break;
     }
-
     const analytics = await Tenant.aggregate([
       { $match: dateFilter },
       {
@@ -396,10 +368,8 @@ router.get('/analytics/overview', requireAdmin, async (req, res) => {
           trialTenants: { $sum: { $cond: [{ $eq: ['$subscription.status', 'trial'] }, 1, 0] } },
           totalPolls: { $sum: '$usage.pollsCreated' },
           totalRecipients: { $sum: '$usage.totalRecipients' },
-          totalResponses: { $sum: '$usage.totalResponses' }
-        }
-      }
-    ]);
+          totalResponses: { $sum: '$usage.totalResponses' } }
+      } ]);
 
 
     // Get daily signups for the period
@@ -408,11 +378,9 @@ router.get('/analytics/overview', requireAdmin, async (req, res) => {
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          count: { $sum: 1 }
-        }
+          count: { $sum: 1 } }
       },
-      { $sort: { _id: 1 } }
-    ]);
+      { $sort: { _id: 1 } } ]);
 
 
     // Get subscription distribution
@@ -420,11 +388,9 @@ router.get('/analytics/overview', requireAdmin, async (req, res) => {
       {
         $group: {
           _id: '$subscription.plan',
-          count: { $sum: 1 }
-        }
+          count: { $sum: 1 } }
       },
-      { $sort: { count: -1 } }
-    ]);
+      { $sort: { count: -1 } } ]);
 
     res.json({
       success: true,
@@ -433,8 +399,7 @@ router.get('/analytics/overview', requireAdmin, async (req, res) => {
         dailySignups,
         subscriptionDistribution,
         period
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error fetching analytics:', error);
     res.status(500).json({
@@ -442,7 +407,6 @@ router.get('/analytics/overview', requireAdmin, async (req, res) => {
       message: 'Failed to fetch analytics',
       error: error.message
     });
-  }
-});
+  } });
 
 module.exports = router;

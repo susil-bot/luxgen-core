@@ -19,7 +19,7 @@ exports.getAllGroups = async (req, res) => {
       search
     } = req.query;
 
-    const options = {};
+    const options = {}
     if (category) {
       options.category = category;
     }
@@ -29,19 +29,13 @@ exports.getAllGroups = async (req, res) => {
     if (isActive !== undefined) {
       options.isActive = isActive === 'true';
     }
-
-    const query = { tenantId, isDeleted: false };
-
-
+    const query = { tenantId, isDeleted: false }
     // Add search functionality
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
+        { description: { $regex: search, $options: 'i' } } ];
     }
-
-
     // Add filter options
     Object.assign(query, options);
 
@@ -73,8 +67,7 @@ exports.getAllGroups = async (req, res) => {
           totalPages: Math.ceil(total / limit),
           totalItems: total,
           itemsPerPage: limit
-        }
-      },
+        } },
       message: 'Groups retrieved successfully'
     });
   } catch (error) {
@@ -84,9 +77,7 @@ exports.getAllGroups = async (req, res) => {
       message: 'Failed to retrieve groups',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get group by ID
  */
@@ -108,7 +99,6 @@ exports.getGroupById = async (req, res) => {
     if (!group) {
       throw new NotFoundError('Group not found');
     }
-
     logger.info(`Group retrieved: ${groupId}`, { groupId, tenantId });
 
     res.json({
@@ -129,10 +119,8 @@ exports.getGroupById = async (req, res) => {
         message: 'Failed to retrieve group',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Create new group
  */
@@ -153,8 +141,6 @@ exports.createGroup = async (req, res) => {
     if (!name || !trainerId) {
       throw new ValidationError('Name and trainer are required');
     }
-
-
     // Verify trainer exists and belongs to tenant
     const trainer = await User.findOne({
       _id: trainerId,
@@ -165,13 +151,10 @@ exports.createGroup = async (req, res) => {
     if (!trainer) {
       throw new ValidationError('Invalid trainer selected');
     }
-
-
     // Check if trainer has appropriate role
     if (!['admin', 'trainer'].includes(trainer.role)) {
       throw new ValidationError('Selected user is not a trainer');
     }
-
     const group = new Group({
       name,
       description,
@@ -215,10 +198,8 @@ exports.createGroup = async (req, res) => {
         message: 'Failed to create group',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Update group
  */
@@ -237,8 +218,6 @@ exports.updateGroup = async (req, res) => {
     if (!group) {
       throw new NotFoundError('Group not found');
     }
-
-
     // Check if user has permission to update this group
     const isTrainer = group.trainerId.toString() === userId;
     const isAdmin = req.user.role === 'admin';
@@ -246,8 +225,6 @@ exports.updateGroup = async (req, res) => {
     if (!isTrainer && !isAdmin) {
       throw new AuthorizationError('You do not have permission to update this group');
     }
-
-
     // If trainer is being changed, verify new trainer
     if (updateData.trainerId && updateData.trainerId !== group.trainerId.toString()) {
       const newTrainer = await User.findOne({
@@ -258,10 +235,7 @@ exports.updateGroup = async (req, res) => {
 
       if (!newTrainer || !['admin', 'trainer'].includes(newTrainer.role)) {
         throw new ValidationError('Invalid trainer selected');
-      }
-    }
-
-
+      } }
     // Update group
     Object.assign(group, updateData, { updatedBy: userId });
     await group.save();
@@ -295,10 +269,8 @@ exports.updateGroup = async (req, res) => {
         message: 'Failed to update group',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Delete group (soft delete)
  */
@@ -316,8 +288,6 @@ exports.deleteGroup = async (req, res) => {
     if (!group) {
       throw new NotFoundError('Group not found');
     }
-
-
     // Check if user has permission to delete this group
     const isTrainer = group.trainerId.toString() === userId;
     const isAdmin = req.user.role === 'admin';
@@ -325,8 +295,6 @@ exports.deleteGroup = async (req, res) => {
     if (!isTrainer && !isAdmin) {
       throw new AuthorizationError('You do not have permission to delete this group');
     }
-
-
     // Soft delete
     group.isDeleted = true;
     group.deletedAt = new Date();
@@ -356,10 +324,8 @@ exports.deleteGroup = async (req, res) => {
         message: 'Failed to delete group',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Add member to group
  */
@@ -378,8 +344,6 @@ exports.addMemberToGroup = async (req, res) => {
     if (!group) {
       throw new NotFoundError('Group not found');
     }
-
-
     // Check if user has permission to add members
     const isTrainer = group.trainerId.toString() === userId;
     const isAdmin = req.user.role === 'admin';
@@ -387,8 +351,6 @@ exports.addMemberToGroup = async (req, res) => {
     if (!isTrainer && !isAdmin) {
       throw new AuthorizationError('You do not have permission to add members to this group');
     }
-
-
     // Verify user exists and belongs to tenant
     const user = await User.findOne({
       _id: memberUserId,
@@ -399,7 +361,6 @@ exports.addMemberToGroup = async (req, res) => {
     if (!user) {
       throw new ValidationError('Invalid user selected');
     }
-
     await group.addMember(memberUserId, role);
 
 
@@ -431,10 +392,8 @@ exports.addMemberToGroup = async (req, res) => {
         message: 'Failed to add member to group',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Remove member from group
  */
@@ -452,8 +411,6 @@ exports.removeMemberFromGroup = async (req, res) => {
     if (!group) {
       throw new NotFoundError('Group not found');
     }
-
-
     // Check if user has permission to remove members
     const isTrainer = group.trainerId.toString() === userId;
     const isAdmin = req.user.role === 'admin';
@@ -461,7 +418,6 @@ exports.removeMemberFromGroup = async (req, res) => {
     if (!isTrainer && !isAdmin) {
       throw new AuthorizationError('You do not have permission to remove members from this group');
     }
-
     await group.removeMember(memberUserId);
 
     logger.info(`Member removed from group: ${groupId}`, {
@@ -487,10 +443,8 @@ exports.removeMemberFromGroup = async (req, res) => {
         message: 'Failed to remove member from group',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Get group members
  */
@@ -509,7 +463,6 @@ exports.getGroupMembers = async (req, res) => {
     if (!group) {
       throw new NotFoundError('Group not found');
     }
-
     logger.info(`Group members retrieved: ${groupId}`, { groupId, tenantId });
 
     res.json({
@@ -536,10 +489,8 @@ exports.getGroupMembers = async (req, res) => {
         message: 'Failed to retrieve group members',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Update member role
  */
@@ -558,8 +509,6 @@ exports.updateMemberRole = async (req, res) => {
     if (!group) {
       throw new NotFoundError('Group not found');
     }
-
-
     // Check if user has permission to update member roles
     const isTrainer = group.trainerId.toString() === userId;
     const isAdmin = req.user.role === 'admin';
@@ -567,7 +516,6 @@ exports.updateMemberRole = async (req, res) => {
     if (!isTrainer && !isAdmin) {
       throw new AuthorizationError('You do not have permission to update member roles in this group');
     }
-
     await group.updateMemberRole(memberUserId, role);
 
     logger.info(`Member role updated: ${groupId}`, {
@@ -594,10 +542,8 @@ exports.updateMemberRole = async (req, res) => {
         message: 'Failed to update member role',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Get group performance
  */
@@ -615,8 +561,6 @@ exports.getGroupPerformance = async (req, res) => {
     if (!group) {
       throw new NotFoundError('Group not found');
     }
-
-
     // Get group statistics
     const stats = await Group.getGroupStats(groupId);
 
@@ -632,8 +576,7 @@ exports.getGroupPerformance = async (req, res) => {
           memberUtilization: group.currentSize / group.maxSize * 100,
           activeMemberRate: group.members.filter(m => m.status === 'active').length / group.members.length * 100,
           averageMemberRole: stats[0]?.averageMemberRole || 0
-        }
-      },
+        } },
       message: 'Group performance retrieved successfully'
     });
   } catch (error) {
@@ -649,6 +592,5 @@ exports.getGroupPerformance = async (req, res) => {
         message: 'Failed to retrieve group performance',
         error: error.message
       });
-    }
-  }
-};
+    } }
+}

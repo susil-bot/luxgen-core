@@ -46,15 +46,13 @@ const pollSchema = new mongoose.Schema({
       isCorrect: {
         type: Boolean,
         default: false
-      }
-    }],
+      } }],
     validate: {
       validator (options) {
         return options && options.length >= 2;
       },
       message: 'Poll must have at least 2 options'
-    }
-  },
+    } },
 
 
   // Poll type and settings
@@ -143,8 +141,7 @@ const pollSchema = new mongoose.Schema({
       type: Number,
       default: 1,
       min: 1
-    }
-  },
+    } },
 
 
   // Targeting and distribution
@@ -230,8 +227,7 @@ const pollSchema = new mongoose.Schema({
     createdAt: {
       type: Date,
       default: Date.now
-    }
-  }],
+    } }],
 
 
   // Feedback and ratings
@@ -251,8 +247,7 @@ const pollSchema = new mongoose.Schema({
     createdAt: {
       type: Date,
       default: Date.now
-    }
-  }],
+    } }],
 
 
   // Tags and categories
@@ -300,13 +295,11 @@ const pollSchema = new mongoose.Schema({
   // Metadata
   metadata: {
     type: mongoose.Schema.Types.Mixed,
-    default: {}
-  }
+    default: {} }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+  toObject: { virtuals: true } });
 
 
 // Virtual for is expired
@@ -357,15 +350,12 @@ pollSchema.pre('save', function (next) {
   if (this.autoArchive && this.expiresAt && this.expiresAt < new Date()) {
     this.status = 'archived';
   }
-
-
   // Update analytics
   if (this.responses && this.responses.length > 0) {
     this.analytics.totalResponses = this.responses.length;
     this.analytics.uniqueRespondents = new Set(this.responses.map(r => r.userId || r.sessionId)).size;
     this.analytics.lastResponseAt = this.responses[this.responses.length - 1].createdAt;
   }
-
   next();
 });
 
@@ -383,8 +373,7 @@ pollSchema.methods.addResponse = async function (responseData) {
   this.analytics.uniqueRespondents = uniqueRespondents.size;
 
   return this.save();
-};
-
+}
 pollSchema.methods.getResponseSummary = function () {
   const summary = {
     totalResponses: this.responses.length,
@@ -392,36 +381,29 @@ pollSchema.methods.getResponseSummary = function () {
     optionCounts: {},
     averageRating: this.averageRating,
     feedbackCount: this.feedback.length
-  };
-
-
+  }
   // Count responses by option
   this.responses.forEach(response => {
     if (response.selectedOptions) {
       response.selectedOptions.forEach(optionId => {
         summary.optionCounts[optionId] = (summary.optionCounts[optionId] || 0) + 1;
       });
-    }
-  });
+    } });
 
   return summary;
-};
-
+}
 pollSchema.methods.activate = async function () {
   this.status = 'active';
   return this.save();
-};
-
+}
 pollSchema.methods.pause = async function () {
   this.status = 'paused';
   return this.save();
-};
-
+}
 pollSchema.methods.archive = async function () {
   this.status = 'archived';
   return this.save();
-};
-
+}
 pollSchema.methods.duplicate = async function (newCreatedBy) {
   // TODO: Add await statements
   const Poll = mongoose.model('Poll');
@@ -443,42 +425,32 @@ pollSchema.methods.duplicate = async function (newCreatedBy) {
   });
 
   return duplicatedPoll.save();
-};
-
-
+}
 // Static methods
 pollSchema.statics.findByTenant = function (tenantId, options = {}) {
-  const query = { tenantId };
-
+  const query = { tenantId }
   if (options.status) {
     query.status = options.status;
   }
-
   if (options.createdBy) {
     query.createdBy = options.createdBy;
   }
-
   return this.find(query).sort({ createdAt: -1 });
-};
-
+}
 pollSchema.statics.findActiveByTenant = function (tenantId) {
   return this.find({
     tenantId,
     status: 'active',
     $or: [
       { expiresAt: { $exists: false } },
-      { expiresAt: { $gt: new Date() } }
-    ]
+      { expiresAt: { $gt: new Date() } } ]
   }).sort({ createdAt: -1 });
-};
-
+}
 pollSchema.statics.findExpired = function () {
   return this.find({
     status: 'active',
-    expiresAt: { $lt: new Date() }
-  });
-};
-
+    expiresAt: { $lt: new Date() } });
+}
 pollSchema.statics.getPollStatistics = function (tenantId) {
   return this.aggregate([
     { $match: { tenantId: new mongoose.Types.ObjectId(tenantId) } },
@@ -493,13 +465,9 @@ pollSchema.statics.getPollStatistics = function (tenantId) {
               1,
               0
             ]
-          }
-        },
+          } },
         totalResponses: { $sum: '$analytics.totalResponses' },
-        averageResponseRate: { $avg: '$analytics.completionRate' }
-      }
-    }
-  ]);
-};
-
+        averageResponseRate: { $avg: '$analytics.completionRate' } }
+    } ]);
+}
 module.exports = mongoose.model('Poll', pollSchema);

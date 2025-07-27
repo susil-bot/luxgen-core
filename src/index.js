@@ -61,7 +61,6 @@ app.use(compression({
     if (req.headers['x-no-compression']) {
       return false;
     }
-    
 // Use compression for all other requests
     return compression.filter(req, res);
   }
@@ -119,8 +118,7 @@ app.get('/health/detailed', async (req, res) => {
       readyState: dbStatus,
       host: mongoose.connection.host,
       name: mongoose.connection.name
-    };
-
+    }
     res.status(200).json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
@@ -131,8 +129,7 @@ app.get('/health/detailed', async (req, res) => {
       database: {
         status: dbHealth.status,
         health: dbHealth
-      }
-    });
+      } });
   } catch (error) {
     res.status(500).json({
       status: 'unhealthy',
@@ -141,8 +138,7 @@ app.get('/health/detailed', async (req, res) => {
       version: '1.0.0',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // Database status endpoint
@@ -156,8 +152,7 @@ app.get('/api/database/status', async (req, res) => {
       host: mongoose.connection.host,
       name: mongoose.connection.name,
       collections: Object.keys(mongoose.connection.collections)
-    };
-
+    }
     res.json({
       success: true,
       status,
@@ -170,8 +165,7 @@ app.get('/api/database/status', async (req, res) => {
       error: error.message,
       timestamp: new Date().toISOString()
     });
-  }
-});
+  } });
 
 
 // API information endpoint
@@ -232,8 +226,7 @@ app.use('*', (req, res) => {
       method: req.method,
       timestamp: new Date().toISOString(),
       requestId: req.requestId
-    }
-  });
+    } });
 });
 
 
@@ -290,16 +283,14 @@ const startServer = async () => {
         } catch (error) {
           console.error('❌ Error during graceful shutdown:', error);
           process.exit(1);
-        }
-      });
+        } });
 
       // Force shutdown after 30 seconds
       setTimeout(() => {
         console.error('💥 Could not close connections in time, forcefully shutting down');
         process.exit(1);
       }, 30000);
-    };
-
+    }
     // Handle shutdown signals
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
@@ -307,10 +298,7 @@ const startServer = async () => {
     console.error('\n💥 Failed to start server:', error.message);
     console.error('Stack trace:', error.stack);
     process.exit(1);
-  }
-};
-
-
+  } }
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   console.error('💥 Uncaught Exception:', error);

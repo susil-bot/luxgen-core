@@ -99,8 +99,7 @@ const trainingModuleSchema = new mongoose.Schema({
     },
     metadata: {
       type: mongoose.Schema.Types.Mixed,
-      default: {}
-    }
+      default: {} }
   }],
 
 
@@ -127,8 +126,7 @@ const trainingModuleSchema = new mongoose.Schema({
       type: String,
       trim: true,
       maxlength: 200
-    }
-  }],
+    } }],
 
 
   // Assessments within module
@@ -172,8 +170,7 @@ const trainingModuleSchema = new mongoose.Schema({
       // in minutes
       default: 0
       // 0 means no time limit
-    }
-  }],
+    } }],
 
 
   // Module settings
@@ -205,8 +202,7 @@ const trainingModuleSchema = new mongoose.Schema({
     autoProgress: {
       type: Boolean,
       default: false
-    }
-  },
+    } },
 
 
   // Module statistics
@@ -237,8 +233,7 @@ const trainingModuleSchema = new mongoose.Schema({
       min: 1,
       max: 5,
       default: 3
-    }
-  },
+    } },
 
 
   // Module metadata
@@ -287,8 +282,7 @@ const trainingModuleSchema = new mongoose.Schema({
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
-    }
-  }],
+    } }],
 
 
   // Audit fields
@@ -300,12 +294,10 @@ const trainingModuleSchema = new mongoose.Schema({
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
-  }
-}, {
+  } }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+  toObject: { virtuals: true } });
 
 
 // Indexes
@@ -334,15 +326,12 @@ trainingModuleSchema.pre('save', function (next) {
   if (!this.estimatedDuration || this.estimatedDuration === 0) {
     this.estimatedDuration = this.totalContentDuration;
   }
-
-
   // Update version if this is a new version
   if (this.isModified('content') || this.isModified('assessments')) {
     const currentVersion = this.version.split('.');
     const newPatch = parseInt(currentVersion[2]) + 1;
     this.version = `${currentVersion[0]}.${currentVersion[1]}.${newPatch}`;
   }
-
   next();
 });
 
@@ -350,16 +339,14 @@ trainingModuleSchema.pre('save', function (next) {
 // Static methods
 trainingModuleSchema.statics.findByTenant = function (tenantId, options = {}) {
   return this.find({ tenantId, ...options });
-};
-
+}
 trainingModuleSchema.statics.findActive = function (tenantId) {
   return this.find({
     tenantId,
     isActive: true,
     isPublished: true
   });
-};
-
+}
 trainingModuleSchema.statics.findByCategory = function (tenantId, category) {
   return this.find({
     tenantId,
@@ -367,38 +354,32 @@ trainingModuleSchema.statics.findByCategory = function (tenantId, category) {
     isActive: true,
     isPublished: true
   });
-};
-
-
+}
 // Instance methods
 trainingModuleSchema.methods.publish = function () {
   this.isPublished = true;
   this.publishedAt = new Date();
   return this.save();
-};
-
+}
 trainingModuleSchema.methods.unpublish = function () {
   this.isPublished = false;
   this.publishedAt = null;
   return this.save();
-};
-
+}
 trainingModuleSchema.methods.addContent = function (contentItem) {
   if (!contentItem.order) {
     contentItem.order = this.content.length;
   }
   this.content.push(contentItem);
   return this.save();
-};
-
+}
 trainingModuleSchema.methods.updateContent = function (contentIndex, updates) {
   if (contentIndex >= 0 && contentIndex < this.content.length) {
-    this.content[contentIndex] = { ...this.content[contentIndex], ...updates };
+    this.content[contentIndex] = { ...this.content[contentIndex], ...updates }
     return this.save();
   }
   throw new Error('Invalid content index');
-};
-
+}
 trainingModuleSchema.methods.removeContent = function (contentIndex) {
   if (contentIndex >= 0 && contentIndex < this.content.length) {
     this.content.splice(contentIndex, 1);
@@ -410,24 +391,21 @@ trainingModuleSchema.methods.removeContent = function (contentIndex) {
     return this.save();
   }
   throw new Error('Invalid content index');
-};
-
+}
 trainingModuleSchema.methods.addAssessment = function (assessment) {
   if (!assessment.order) {
     assessment.order = this.assessments.length;
   }
   this.assessments.push(assessment);
   return this.save();
-};
-
+}
 trainingModuleSchema.methods.updateAssessment = function (assessmentIndex, updates) {
   if (assessmentIndex >= 0 && assessmentIndex < this.assessments.length) {
-    this.assessments[assessmentIndex] = { ...this.assessments[assessmentIndex], ...updates };
+    this.assessments[assessmentIndex] = { ...this.assessments[assessmentIndex], ...updates }
     return this.save();
   }
   throw new Error('Invalid assessment index');
-};
-
+}
 trainingModuleSchema.methods.removeAssessment = function (assessmentIndex) {
   if (assessmentIndex >= 0 && assessmentIndex < this.assessments.length) {
     this.assessments.splice(assessmentIndex, 1);
@@ -439,8 +417,7 @@ trainingModuleSchema.methods.removeAssessment = function (assessmentIndex) {
     return this.save();
   }
   throw new Error('Invalid assessment index');
-};
-
+}
 trainingModuleSchema.methods.updateStatistics = function (completionData) {
 // Update completion statistics
   this.statistics.totalCompletions += 1;
@@ -449,18 +426,14 @@ trainingModuleSchema.methods.updateStatistics = function (completionData) {
     const currentTotal = this.statistics.averageCompletionTime * (this.statistics.totalCompletions - 1);
     this.statistics.averageCompletionTime = (currentTotal + completionData.completionTime) / this.statistics.totalCompletions;
   }
-
   if (completionData.score !== undefined) {
     const currentTotal = this.statistics.averageScore * (this.statistics.totalCompletions - 1);
     this.statistics.averageScore = (currentTotal + completionData.score) / this.statistics.totalCompletions;
   }
-
   if (completionData.passed) {
     const passedCount = Math.round((this.statistics.passRate / 100) * (this.statistics.totalCompletions - 1)) + 1;
     this.statistics.passRate = (passedCount / this.statistics.totalCompletions) * 100;
   }
-
   return this.save();
-};
-
+}
 module.exports = mongoose.model('TrainingModule', trainingModuleSchema);

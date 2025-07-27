@@ -17,9 +17,7 @@ const PATTERNS = {
 //=]*)$/,
   UUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
   OBJECT_ID: /^[0-9a-fA-F]{24}$/
-};
-
-
+}
 // Common validation messages
 const MESSAGES = {
   REQUIRED: 'This field is required',
@@ -38,9 +36,7 @@ const MESSAGES = {
   INVALID_DATE: 'Please enter a valid date',
   FUTURE_DATE: 'Date must be in the future',
   PAST_DATE: 'Date must be in the past'
-};
-
-
+}
 // Base schemas
 const baseSchemas = {
   id: Joi.string().pattern(PATTERNS.OBJECT_ID).messages({ 'string.pattern.base': MESSAGES.INVALID_OBJECT_ID }),
@@ -84,9 +80,7 @@ const baseSchemas = {
     sortBy: Joi.string().default('createdAt'),
     sortOrder: Joi.string().valid('asc', 'desc').default('desc')
   })
-};
-
-
+}
 // User validation schemas
 const userSchemas = {
   register: Joi.object({
@@ -157,9 +151,7 @@ const userSchemas = {
   forgotPassword: Joi.object({ email: baseSchemas.email.required() }),
 
   resetPassword: Joi.object({ newPassword: baseSchemas.strongPassword.required() })
-};
-
-
+}
 // Tenant validation schemas
 const tenantSchemas = {
   create: Joi.object({
@@ -237,9 +229,7 @@ const tenantSchemas = {
     companySize: Joi.string().valid('1-10', '11-50', '51-200', '201-500', '501-1000', '1000+').optional(),
     search: Joi.string().trim().optional()
   })
-};
-
-
+}
 // Poll validation schemas
 const pollSchemas = {
   create: Joi.object({
@@ -326,9 +316,7 @@ const pollSchemas = {
     }),
     name: Joi.string().trim().optional()
   })
-};
-
-
+}
 // Validation middleware
 const validate = (schema, options = {}) => {
   return (req, res, next) => {
@@ -337,8 +325,7 @@ const validate = (schema, options = {}) => {
         abortEarly: false,
         allowUnknown: options.allowUnknown || false,
         stripUnknown: options.stripUnknown || true,
-        context: { requireEmail: req.body?.settings?.requireEmail || false }
-      });
+        context: { requireEmail: req.body?.settings?.requireEmail || false } });
 
       if (error) {
         const details = error.details.map(detail => ({
@@ -349,18 +336,13 @@ const validate = (schema, options = {}) => {
 
         throw new ValidationError('Validation failed', details);
       }
-
-      
 // Replace request body with validated data
       req.body = value;
       next();
     } catch (error) {
       next(error);
-    }
-  };
-};
-
-
+    } }
+}
 // Query validation middleware
 const validateQuery = (schema, options = {}) => {
   return (req, res, next) => {
@@ -380,18 +362,13 @@ const validateQuery = (schema, options = {}) => {
 
         throw new ValidationError('Query validation failed', details);
       }
-
-      
 // Replace request query with validated data
       req.query = value;
       next();
     } catch (error) {
       next(error);
-    }
-  };
-};
-
-
+    } }
+}
 // Params validation middleware
 const validateParams = (schema, options = {}) => {
   return (req, res, next) => {
@@ -411,17 +388,13 @@ const validateParams = (schema, options = {}) => {
 
         throw new ValidationError('Parameter validation failed', details);
       }
-
-      
 // Replace request params with validated data
       req.params = value;
       next();
     } catch (error) {
       next(error);
-    }
-  };
-};
-
+    } }
+}
 module.exports = {
   PATTERNS,
   MESSAGES,
@@ -432,4 +405,4 @@ module.exports = {
   validate,
   validateQuery,
   validateParams
-};
+}

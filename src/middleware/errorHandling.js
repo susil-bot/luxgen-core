@@ -65,12 +65,9 @@ const requestLogger = (req, res, next) => {
     res.setHeader('X-Response-Time', `${duration}ms`);
 
     return originalJson.call(this, data);
-  };
-
+  }
   next();
-};
-
-
+}
 // Performance monitoring middleware
 const performanceMonitor = (req, res, next) => {
   const startTime = process.hrtime();
@@ -93,8 +90,6 @@ const performanceMonitor = (req, res, next) => {
         timestamp: new Date().toISOString()
       });
     }
-
-    
 // Log performance metrics
     logger.info('📊 Performance Metric', {
       requestId: req.requestId,
@@ -107,9 +102,7 @@ const performanceMonitor = (req, res, next) => {
   });
 
   next();
-};
-
-
+}
 // Error tracking middleware
 const errorTracker = (err, req, res, next) => {
   
@@ -134,9 +127,7 @@ const errorTracker = (err, req, res, next) => {
     requestQuery: req.query,
     requestParams: req.params,
     timestamp: new Date().toISOString()
-  };
-
-  
+  }
 // Log error with appropriate level
   if (err.statusCode >= 500) {
     logger.error('🚨 Server Error', errorContext);
@@ -145,15 +136,11 @@ const errorTracker = (err, req, res, next) => {
   } else {
     logger.info('ℹ️ Info Error', errorContext);
   }
-
-  
 // Add error ID to response
   res.setHeader('X-Error-ID', errorId);
 
   next(err);
-};
-
-
+}
 // Rate limiting error handler
 const rateLimitErrorHandler = (err, req, res, next) => {
   if (err.name === 'RateLimitError') {
@@ -172,13 +159,10 @@ const rateLimitErrorHandler = (err, req, res, next) => {
         statusCode: 429,
         retryAfter: err.retryAfter || 60,
         timestamp: new Date().toISOString()
-      }
-    });
+      } });
   }
   next(err);
-};
-
-
+}
 // Database error handler
 const databaseErrorHandler = (err, req, res, next) => {
   if (err.name === 'MongoNetworkError' ||
@@ -199,13 +183,10 @@ const databaseErrorHandler = (err, req, res, next) => {
         message: 'Database service temporarily unavailable. Please try again later.',
         statusCode: 503,
         timestamp: new Date().toISOString()
-      }
-    });
+      } });
   }
   next(err);
-};
-
-
+}
 // AI service error handler
 const aiServiceErrorHandler = (err, req, res, next) => {
   if (err.name === 'AIError' || err.name === 'ContentGenerationError') {
@@ -223,13 +204,10 @@ const aiServiceErrorHandler = (err, req, res, next) => {
         message: 'AI service temporarily unavailable. Please try again later.',
         statusCode: 502,
         timestamp: new Date().toISOString()
-      }
-    });
+      } });
   }
   next(err);
-};
-
-
+}
 // Training service error handler
 const trainingErrorHandler = (err, req, res, next) => {
   if (err.name === 'TrainingError' ||
@@ -250,13 +228,10 @@ const trainingErrorHandler = (err, req, res, next) => {
         message: err.message || 'Training operation failed',
         statusCode: 400,
         timestamp: new Date().toISOString()
-      }
-    });
+      } });
   }
   next(err);
-};
-
-
+}
 // Presentation service error handler
 const presentationErrorHandler = (err, req, res, next) => {
   if (err.name === 'PresentationError' || err.name === 'PollError') {
@@ -274,13 +249,10 @@ const presentationErrorHandler = (err, req, res, next) => {
         message: err.message || 'Presentation operation failed',
         statusCode: 400,
         timestamp: new Date().toISOString()
-      }
-    });
+      } });
   }
   next(err);
-};
-
-
+}
 // Tenant service error handler
 const tenantErrorHandler = (err, req, res, next) => {
   if (err.name === 'TenantError' || err.name === 'TenantAccessError') {
@@ -299,13 +271,10 @@ const tenantErrorHandler = (err, req, res, next) => {
         message: err.message || 'Tenant operation failed',
         statusCode: err.statusCode || 400,
         timestamp: new Date().toISOString()
-      }
-    });
+      } });
   }
   next(err);
-};
-
-
+}
 // Validation error handler
 const validationErrorHandler = (err, req, res, next) => {
   if (err.name === 'ValidationError') {
@@ -325,13 +294,10 @@ const validationErrorHandler = (err, req, res, next) => {
         statusCode: 400,
         details: err.details || [],
         timestamp: new Date().toISOString()
-      }
-    });
+      } });
   }
   next(err);
-};
-
-
+}
 // Authentication error handler
 const authenticationErrorHandler = (err, req, res, next) => {
   if (err.name === 'AuthenticationError' ||
@@ -352,13 +318,10 @@ const authenticationErrorHandler = (err, req, res, next) => {
         message: 'Authentication failed',
         statusCode: 401,
         timestamp: new Date().toISOString()
-      }
-    });
+      } });
   }
   next(err);
-};
-
-
+}
 // Authorization error handler
 const authorizationErrorHandler = (err, req, res, next) => {
   if (err.name === 'AuthorizationError') {
@@ -378,13 +341,10 @@ const authorizationErrorHandler = (err, req, res, next) => {
         message: 'Access denied',
         statusCode: 403,
         timestamp: new Date().toISOString()
-      }
-    });
+      } });
   }
   next(err);
-};
-
-
+}
 // Not found error handler
 const notFoundErrorHandler = (err, req, res, next) => {
   if (err.name === 'NotFoundError') {
@@ -402,13 +362,10 @@ const notFoundErrorHandler = (err, req, res, next) => {
         message: err.message || 'Resource not found',
         statusCode: 404,
         timestamp: new Date().toISOString()
-      }
-    });
+      } });
   }
   next(err);
-};
-
-
+}
 // Conflict error handler
 const conflictErrorHandler = (err, req, res, next) => {
   if (err.name === 'ConflictError' || err.code === 11000) {
@@ -426,13 +383,10 @@ const conflictErrorHandler = (err, req, res, next) => {
         message: err.message || 'Resource conflict',
         statusCode: 409,
         timestamp: new Date().toISOString()
-      }
-    });
+      } });
   }
   next(err);
-};
-
-
+}
 // Generic error handler (catch-all)
 const genericErrorHandler = (err, req, res, next) => {
   const statusCode = err.statusCode || 500;
@@ -462,11 +416,8 @@ const genericErrorHandler = (err, req, res, next) => {
         name: err.name,
         timestamp: new Date().toISOString(),
         requestId: req.requestId
-      }
-    });
+      } });
   }
-
-  
 // Production error response
   return res.status(statusCode).json({
     success: false,
@@ -475,40 +426,29 @@ const genericErrorHandler = (err, req, res, next) => {
       statusCode,
       timestamp: new Date().toISOString(),
       requestId: req.requestId
-    }
-  });
-};
-
-
+    } });
+}
 // Utility functions
 const generateRequestId = () => {
   return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-};
-
+}
 const generateErrorId = () => {
   return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-};
-
+}
 const sanitizeRequestBody = (body) => {
   if (!body) {
     return body;
   }
-
-  const sanitized = { ...body };
-
-  
+  const sanitized = { ...body }
 // Remove sensitive fields
   const sensitiveFields = ['password', 'token', 'secret', 'key', 'authorization'];
   sensitiveFields.forEach(field => {
     if (sanitized[field]) {
       sanitized[field] = '[REDACTED]';
-    }
-  });
+    } });
 
   return sanitized;
 }
-
-
 // Export middleware chain
 module.exports = {
   requestLogger,
@@ -526,4 +466,4 @@ module.exports = {
   notFoundErrorHandler,
   conflictErrorHandler,
   genericErrorHandler
-};
+}

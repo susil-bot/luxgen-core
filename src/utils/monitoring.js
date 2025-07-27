@@ -13,8 +13,7 @@ class MonitoringSystem {
       errors: {
         total: 0,
         byType: {},
-        byRoute: {}
-      },
+        byRoute: {} },
       performance: {
         slowQueries: [],
         memoryUsage: [],
@@ -29,9 +28,7 @@ class MonitoringSystem {
         connections: 0,
         queries: 0,
         slowQueries: 0
-      }
-    };
-
+      } }
     this.startTime = Date.now();
     this.uptime = 0;
 
@@ -39,7 +36,6 @@ class MonitoringSystem {
     // Start monitoring intervals
     this.startMonitoring();
   }
-
   /**
    * Start monitoring intervals
    */
@@ -67,7 +63,6 @@ class MonitoringSystem {
       this.cleanupOldMetrics();
     }, 60 * 60 * 1000);
   }
-
   /**
    * Record HTTP request
    */
@@ -103,8 +98,6 @@ class MonitoringSystem {
     if (this.metrics.requests.responseTimes.length > 1000) {
       this.metrics.requests.responseTimes.shift();
     }
-
-
     // Record slow requests (> 1 second)
     if (responseTime > 1000) {
       this.metrics.performance.slowQueries.push({
@@ -118,10 +111,8 @@ class MonitoringSystem {
       // Keep only last 100 slow queries
       if (this.metrics.performance.slowQueries.length > 100) {
         this.metrics.performance.slowQueries.shift();
-      }
-    }
+      } }
   }
-
   /**
    * Record error
    */
@@ -144,7 +135,6 @@ class MonitoringSystem {
       timestamp: new Date().toISOString()
     });
   }
-
   /**
    * Record cache hit/miss
    */
@@ -154,13 +144,10 @@ class MonitoringSystem {
     } else {
       this.metrics.cache.misses += 1;
     }
-
-
     // Calculate hit rate
     const total = this.metrics.cache.hits + this.metrics.cache.misses;
     this.metrics.cache.hitRate = total > 0 ? (this.metrics.cache.hits / total) * 100 : 0;
   }
-
   /**
    * Record database query
    */
@@ -177,9 +164,7 @@ class MonitoringSystem {
         duration,
         timestamp: new Date().toISOString()
       });
-    }
-  }
-
+    } }
   /**
    * Record memory usage
    */
@@ -199,16 +184,12 @@ class MonitoringSystem {
     if (this.metrics.performance.memoryUsage.length > 100) {
       this.metrics.performance.memoryUsage.shift();
     }
-
-
     // Log high memory usage
     const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
     if (heapUsedMB > 500) {
       // 500MB threshold
       logger.warn(`⚠️ High memory usage detected: ${heapUsedMB.toFixed(2)}MB`);
-    }
-  }
-
+    } }
   /**
    * Get current metrics
    */
@@ -251,9 +232,7 @@ class MonitoringSystem {
         // Last 10 slow queries
       },
       timestamp: new Date().toISOString()
-    };
-  }
-
+    } }
   /**
    * Get health status
    */
@@ -286,13 +265,10 @@ class MonitoringSystem {
           status: metrics.cache.hitRate > 80 ? 'healthy' : 'warning',
           value: `${metrics.cache.hitRate.toFixed(2)}%`,
           threshold: '80%'
-        }
-      },
+        } },
       uptime: this.uptime,
       timestamp: new Date().toISOString()
-    };
-
-
+    }
     // Determine overall status
     const criticalChecks = Object.values(health.checks).filter(check => check.status === 'critical');
     const warningChecks = Object.values(health.checks).filter(check => check.status === 'warning');
@@ -302,10 +278,8 @@ class MonitoringSystem {
     } else if (warningChecks.length > 0) {
       health.status = 'warning';
     }
-
     return health;
   }
-
   /**
    * Log performance metrics
    */
@@ -323,7 +297,6 @@ class MonitoringSystem {
         ? `${(metrics.performance.memoryUsage.heapUsed / 1024 / 1024).toFixed(2)}MB` : 'unknown'
     });
   }
-
   /**
    * Clean up old metrics
    */
@@ -348,7 +321,6 @@ class MonitoringSystem {
 
     logger.debug('🧹 Cleaned up old metrics');
   }
-
   /**
    * Reset metrics
    */
@@ -364,8 +336,7 @@ class MonitoringSystem {
       errors: {
         total: 0,
         byType: {},
-        byRoute: {}
-      },
+        byRoute: {} },
       performance: {
         slowQueries: [],
         memoryUsage: [],
@@ -380,14 +351,9 @@ class MonitoringSystem {
         connections: 0,
         queries: 0,
         slowQueries: 0
-      }
-    };
-
+      } }
     logger.info('🔄 Metrics reset');
-  }
-}
-
-
+  } }
 // Create singleton instance
 const monitoringSystem = new MonitoringSystem();
 

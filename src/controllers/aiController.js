@@ -55,9 +55,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate training materials for specific topics
    */
@@ -94,9 +92,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate assessment questions for training topics
    */
@@ -134,9 +130,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate presentation outlines and slides
    */
@@ -172,10 +166,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
-
+    } }
   // ==================== CONTENT IMPROVEMENT ====================
 
   /**
@@ -215,9 +206,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Translate content to different languages
    */
@@ -256,10 +245,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
-
+    } }
   // ==================== SPECIALIZED CONTENT GENERATION ====================
 
   /**
@@ -297,9 +283,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate social media content for different platforms
    */
@@ -337,9 +321,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate email content for different purposes
    */
@@ -377,9 +359,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate product descriptions and marketing copy
    */
@@ -419,10 +399,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
-
+    } }
   // ==================== MEDIA CONTENT GENERATION ====================
 
   /**
@@ -462,9 +439,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate video scripts and storyboards
    */
@@ -504,9 +479,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate audio content scripts
    */
@@ -546,10 +519,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
-
+    } }
   // ==================== AI CHATBOT ENDPOINTS ====================
 
   /**
@@ -589,9 +559,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Get user's conversations
    */
@@ -629,9 +597,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Get specific conversation with messages
    */
@@ -665,9 +631,7 @@ class AIController {
         error: error.message, userId, tenantId, conversationId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Delete a conversation
    */
@@ -700,9 +664,7 @@ class AIController {
         error: error.message, userId, tenantId, conversationId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Send a message in a conversation
    */
@@ -742,9 +704,7 @@ class AIController {
         error: error.message, userId, tenantId, conversationId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate AI response for chat messages
    */
@@ -781,10 +741,7 @@ class AIController {
         error: error.message, userId, tenantId, conversationId
       });
       throw error;
-    }
-  }
-
-
+    } }
   // ==================== ANALYTICS & INSIGHTS ====================
 
   /**
@@ -824,9 +781,7 @@ class AIController {
         error: error.message, userId, tenantId, contentId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Get insights from AI conversations
    */
@@ -862,9 +817,7 @@ class AIController {
         error: error.message, userId, tenantId, conversationId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Get AI usage statistics
    */
@@ -901,10 +854,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
-
+    } }
   // ==================== TRAINING-SPECIFIC AI ENDPOINTS ====================
 
   /**
@@ -942,9 +892,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate practical exercises and activities
    */
@@ -980,9 +928,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate case studies and scenarios
    */
@@ -1018,9 +964,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate quizzes and assessments
    */
@@ -1056,9 +1000,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Generate scenario-based assessments
    */
@@ -1094,10 +1036,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
-
+    } }
   // ==================== CONTENT MANAGEMENT ====================
 
   /**
@@ -1141,9 +1080,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Get saved content from library
    */
@@ -1187,9 +1124,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Update saved content
    */
@@ -1226,9 +1161,7 @@ class AIController {
         error: error.message, userId, tenantId, contentId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Delete content from library
    */
@@ -1261,9 +1194,7 @@ class AIController {
         error: error.message, userId, tenantId, contentId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Get available content templates
    */
@@ -1294,9 +1225,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Create custom content template
    */
@@ -1337,10 +1266,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
-
+    } }
   // ==================== PERSONALIZATION & PREFERENCES ====================
 
   /**
@@ -1373,9 +1299,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Update AI preferences
    */
@@ -1409,9 +1333,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Get available niches and suggestions
    */
@@ -1442,9 +1364,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Set user's primary niche
    */
@@ -1481,10 +1401,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
-
+    } }
   // ==================== PERFORMANCE & MONITORING ====================
 
   /**
@@ -1517,9 +1434,7 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
-
+    } }
   /**
    * Get current rate limit status
    */
@@ -1550,11 +1465,8 @@ class AIController {
         error: error.message, userId, tenantId
       });
       throw error;
-    }
-  }
+    } }
 }
-
-
 // Create controller instance
 const aiController = new AIController();
 
@@ -1629,4 +1541,4 @@ module.exports = {
   // Performance & Monitoring
   getHealth: asyncHandler(aiController.getHealth.bind(aiController)),
   getRateLimits: asyncHandler(aiController.getRateLimits.bind(aiController))
-};
+}

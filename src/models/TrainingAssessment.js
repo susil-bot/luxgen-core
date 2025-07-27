@@ -82,8 +82,7 @@ const trainingAssessmentSchema = new mongoose.Schema({
     allowPartialCredit: {
       type: Boolean,
       default: false
-    }
-  },
+    } },
 
 
   // Questions structure
@@ -150,8 +149,7 @@ const trainingAssessmentSchema = new mongoose.Schema({
         type: String,
         trim: true,
         maxlength: 500
-      }
-    }],
+      } }],
 
 
     // Correct answers for various question types
@@ -180,8 +178,7 @@ const trainingAssessmentSchema = new mongoose.Schema({
       caseSensitive: {
         type: Boolean,
         default: false
-      }
-    }],
+      } }],
 
 
     // For essay questions
@@ -211,8 +208,7 @@ const trainingAssessmentSchema = new mongoose.Schema({
           type: String,
           trim: true,
           maxlength: 200
-        }
-      }]
+        } }]
     },
 
 
@@ -230,20 +226,17 @@ const trainingAssessmentSchema = new mongoose.Schema({
       maxFiles: {
         type: Number,
         default: 1
-      }
-    },
+      } },
 
 
     // Question metadata
     metadata: {
       type: mongoose.Schema.Types.Mixed,
-      default: {}
-    },
+      default: {} },
     order: {
       type: Number,
       default: 0
-    }
-  }],
+    } }],
 
 
   // Assessment sections
@@ -276,8 +269,7 @@ const trainingAssessmentSchema = new mongoose.Schema({
     order: {
       type: Number,
       default: 0
-    }
-  }],
+    } }],
 
 
   // Assessment statistics
@@ -312,8 +304,7 @@ const trainingAssessmentSchema = new mongoose.Schema({
       min: 1,
       max: 5,
       default: 3
-    }
-  },
+    } },
 
 
   // Assessment status
@@ -344,12 +335,10 @@ const trainingAssessmentSchema = new mongoose.Schema({
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
-  }
-}, {
+  } }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+  toObject: { virtuals: true } });
 
 
 // Indexes
@@ -375,7 +364,6 @@ trainingAssessmentSchema.virtual('estimatedDuration').get(function () {
   if (this.settings.timeLimit > 0) {
     return this.settings.timeLimit;
   }
-
   // Estimate based on question count and type
   return this.questions.reduce((total, question) => {
     const baseTime = question.type === 'essay' ? 10 : 2;
@@ -393,14 +381,11 @@ trainingAssessmentSchema.pre('save', function (next) {
     const newPatch = parseInt(currentVersion[2]) + 1;
     this.version = `${currentVersion[0]}.${currentVersion[1]}.${newPatch}`;
   }
-
-
   // Ensure questions have proper order
   this.questions.forEach((question, index) => {
     if (!question.order) {
       question.order = index;
-    }
-  });
+    } });
 
   next();
 });
@@ -409,16 +394,14 @@ trainingAssessmentSchema.pre('save', function (next) {
 // Static methods
 trainingAssessmentSchema.statics.findByTenant = function (tenantId, options = {}) {
   return this.find({ tenantId, ...options });
-};
-
+}
 trainingAssessmentSchema.statics.findActive = function (tenantId) {
   return this.find({
     tenantId,
     isActive: true,
     isPublished: true
   });
-};
-
+}
 trainingAssessmentSchema.statics.findByType = function (tenantId, type) {
   return this.find({
     tenantId,
@@ -426,22 +409,18 @@ trainingAssessmentSchema.statics.findByType = function (tenantId, type) {
     isActive: true,
     isPublished: true
   });
-};
-
-
+}
 // Instance methods
 trainingAssessmentSchema.methods.publish = function () {
   this.isPublished = true;
   this.publishedAt = new Date();
   return this.save();
-};
-
+}
 trainingAssessmentSchema.methods.unpublish = function () {
   this.isPublished = false;
   this.publishedAt = null;
   return this.save();
-};
-
+}
 trainingAssessmentSchema.methods.addQuestion = function (question) {
   if (!question.order) {
     question.order = this.questions.length;
@@ -451,16 +430,14 @@ trainingAssessmentSchema.methods.addQuestion = function (question) {
   }
   this.questions.push(question);
   return this.save();
-};
-
+}
 trainingAssessmentSchema.methods.updateQuestion = function (questionIndex, updates) {
   if (questionIndex >= 0 && questionIndex < this.questions.length) {
-    this.questions[questionIndex] = { ...this.questions[questionIndex], ...updates };
+    this.questions[questionIndex] = { ...this.questions[questionIndex], ...updates }
     return this.save();
   }
   throw new Error('Invalid question index');
-};
-
+}
 trainingAssessmentSchema.methods.removeQuestion = function (questionIndex) {
   if (questionIndex >= 0 && questionIndex < this.questions.length) {
     this.questions.splice(questionIndex, 1);
@@ -472,8 +449,7 @@ trainingAssessmentSchema.methods.removeQuestion = function (questionIndex) {
     return this.save();
   }
   throw new Error('Invalid question index');
-};
-
+}
 trainingAssessmentSchema.methods.calculateScore = function (answers) {
   let totalScore = 0;
   let maxPossibleScore = 0;
@@ -516,8 +492,7 @@ trainingAssessmentSchema.methods.calculateScore = function (answers) {
               blank.caseSensitive ? userAnswer === alt : userAnswer.toLowerCase() === alt.toLowerCase()
             )) {
               blankScore += question.points / question.blanks.length;
-            }
-          });
+            } });
           questionScore = blankScore;
           break;
 
@@ -532,19 +507,15 @@ trainingAssessmentSchema.methods.calculateScore = function (answers) {
         default:
           questionScore = 0;
       }
-
       totalScore += questionScore;
-    }
-  });
+    } });
 
   return {
     score: totalScore,
     maxScore: maxPossibleScore,
     percentage: maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 : 0,
     passed: maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 >= this.settings.passingScore : false
-  };
-};
-
+  } }
 trainingAssessmentSchema.methods.updateStatistics = function (attemptData) {
 // Update attempt statistics
   this.statistics.totalAttempts += 1;
@@ -552,23 +523,18 @@ trainingAssessmentSchema.methods.updateStatistics = function (attemptData) {
   if (attemptData.completed) {
     this.statistics.totalCompletions += 1;
   }
-
   if (attemptData.score !== undefined) {
     const currentTotal = this.statistics.averageScore * (this.statistics.totalAttempts - 1);
     this.statistics.averageScore = (currentTotal + attemptData.score) / this.statistics.totalAttempts;
   }
-
   if (attemptData.passed) {
     const passedCount = Math.round((this.statistics.passRate / 100) * (this.statistics.totalAttempts - 1)) + 1;
     this.statistics.passRate = (passedCount / this.statistics.totalAttempts) * 100;
   }
-
   if (attemptData.completionTime) {
     const currentTotal = this.statistics.averageCompletionTime * (this.statistics.totalCompletions - 1);
     this.statistics.averageCompletionTime = (currentTotal + attemptData.completionTime) / this.statistics.totalCompletions;
   }
-
   return this.save();
-};
-
+}
 module.exports = mongoose.model('TrainingAssessment', trainingAssessmentSchema);

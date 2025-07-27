@@ -63,8 +63,7 @@ router.get('/health/db', async (req, res) => {
       timestamp: new Date().toISOString(),
       error: error.message
     });
-  }
-});
+  } });
 
 
 // API documentation endpoint
@@ -191,8 +190,7 @@ router.get('/docs', (req, res) => {
           'PUT /:id - Update schema',
           'DELETE /:id - Delete schema'
         ]
-      }
-    }
+      } }
   });
 });
 

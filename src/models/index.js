@@ -28,4 +28,4 @@ module.exports = {
   TrainingModule,
   TrainingAssessment,
   Presentation
-};
+}

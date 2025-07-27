@@ -7,7 +7,6 @@ class EnvironmentConfig {
   constructor () {
     this.config = this.loadConfiguration();
   }
-
   loadConfiguration () {
     try {
       
@@ -109,15 +108,11 @@ class EnvironmentConfig {
         REDIS_HOST: process.env.REDIS_HOST || '127.0.0.1',
         REDIS_PORT: parseInt(process.env.REDIS_PORT) || 6379,
         REDIS_PASSWORD: process.env.REDIS_PASSWORD
-      };
-
-      
+      }
 // Parse CORS origins
       if (config.CORS_ORIGIN) {
         config.CORS_ORIGINS = config.CORS_ORIGIN.split(',').map(origin => origin.trim());
       }
-
-      
 // Parse rate limit window
       config.RATE_LIMIT_WINDOW_MS = this.parseTimeString(config.RATE_LIMIT_WINDOW);
 
@@ -126,75 +121,57 @@ class EnvironmentConfig {
       if (config.NODE_ENV === 'development') {
         this.checkDevelopmentSecurity(config);
       }
-
       console.log('✅ Environment configuration loaded successfully');
       return config;
     } catch (error) {
       console.error('💥 Failed to load environment configuration:', error.message);
       process.exit(1);
-    }
-  }
-
+    } }
   checkDevelopmentSecurity (config) {
     const warnings = [];
 
     if (config.JWT_SECRET.includes('your_jwt_secret_key_here')) {
       warnings.push('⚠️  Using default JWT secret - change in production');
     }
-
     if (config.SESSION_SECRET.includes('your_session_secret_here')) {
       warnings.push('⚠️  Using default session secret - change in production');
     }
-
     if (config.MONGODB_URL.includes('127.0.0.1')) {
       warnings.push('⚠️  Using local MongoDB - ensure MongoDB is running locally');
     }
-
     if (warnings.length > 0) {
       console.log('\n🔒 Development Security Warnings:');
       warnings.forEach(warning => console.log(`   ${warning}`));
       console.log('');
-    }
-  }
-
+    } }
   parseTimeString (timeString) {
     const units = {
       s: 1000,
       m: 60 * 1000,
       h: 60 * 60 * 1000,
       d: 24 * 60 * 60 * 1000
-    };
-
+    }
     const match = timeString.match(/^(\d+)([smhd])$/);
     if (!match) {
       throw new Error(`Invalid time string: ${timeString}`);
     }
-
     const [, value, unit] = match;
     return parseInt(value) * units[unit];
   }
-
-  
 // Get configuration value
   get (key, defaultValue = undefined) {
     return this.config[key] !== undefined ? this.config[key] : defaultValue;
   }
-
-  
 // Environment checks
   isDevelopment () {
     return this.config.NODE_ENV === 'development';
   }
-
   isProduction () {
     return this.config.NODE_ENV === 'production';
   }
-
   isTest () {
     return this.config.NODE_ENV === 'test';
   }
-
-  
 // Database configuration
   getDatabaseConfig () {
     return {
@@ -217,8 +194,7 @@ class EnvironmentConfig {
             version: '1',
             strict: true,
             deprecationErrors: true
-          }
-        }
+          } }
       },
       redis: {
         url: this.config.REDIS_URL,
@@ -234,12 +210,8 @@ class EnvironmentConfig {
             return undefined;
           }
           return Math.min(options.attempt * 100, 3000);
-        }
-      }
-    };
-  }
-
-  
+        } }
+    } }
 // JWT configuration
   getJWTConfig () {
     return {
@@ -248,10 +220,7 @@ class EnvironmentConfig {
       refreshExpiresIn: this.config.JWT_REFRESH_EXPIRES_IN,
       issuer: 'trainer-platform',
       audience: 'trainer-platform-users'
-    };
-  }
-
-  
+    } }
 // CORS configuration
   getCORSConfig () {
     return {
@@ -268,10 +237,7 @@ class EnvironmentConfig {
       ],
       exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
       maxAge: 86400
-    };
-  }
-
-  
+    } }
 // Rate limiting configuration
   getRateLimitConfig () {
     return {
@@ -284,10 +250,7 @@ class EnvironmentConfig {
       },
       standardHeaders: true,
       legacyHeaders: false
-    };
-  }
-
-  
+    } }
 // Security configuration
   getSecurityConfig () {
     return {
@@ -303,8 +266,7 @@ class EnvironmentConfig {
             objectSrc: ["'none'"],
             mediaSrc: ["'self'"],
             frameSrc: ["'none'"]
-          }
-        } : false,
+          } } : false,
         hsts: this.config.ENABLE_HSTS ? {
           maxAge: 31536000,
           includeSubDomains: true,
@@ -316,12 +278,8 @@ class EnvironmentConfig {
         hidePoweredBy: true,
         ieNoOpen: true,
         noCache: false,
-        referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
-      }
-    };
-  }
-
-  
+        referrerPolicy: { policy: 'strict-origin-when-cross-origin' } }
+    } }
 // Email configuration
   getEmailConfig () {
     return {
@@ -332,10 +290,7 @@ class EnvironmentConfig {
       pass: this.config.SMTP_PASS,
       from: this.config.EMAIL_FROM,
       secure: this.config.SMTP_PORT === 465
-    };
-  }
-
-  
+    } }
 // Feature flags
   getFeatureFlags () {
     return {
@@ -346,10 +301,7 @@ class EnvironmentConfig {
       sso: this.config.ENABLE_SSO,
       swagger: this.config.ENABLE_SWAGGER,
       graphqlPlayground: this.config.ENABLE_GRAPHQL_PLAYGROUND
-    };
-  }
-
-  
+    } }
 // Logging configuration
   getLoggingConfig () {
     return {
@@ -360,10 +312,7 @@ class EnvironmentConfig {
       maxsize: 5242880, 
 // 5MB
       maxFiles: 5
-    };
-  }
-
-  
+    } }
 // Performance configuration
   getPerformanceConfig () {
     return {
@@ -371,14 +320,9 @@ class EnvironmentConfig {
       cacheMaxSize: this.config.CACHE_MAX_SIZE,
       enableCompression: this.config.ENABLE_COMPRESSION,
       uploadMaxSize: this.config.UPLOAD_MAX_SIZE
-    };
-  }
-
-  
+    } }
 // Get all configuration
   getAll () {
     return this.config;
-  }
-}
-
+  } }
 module.exports = new EnvironmentConfig();

@@ -95,8 +95,7 @@ const userSchema = new mongoose.Schema({
 // User preferences and metadata
   preferences: {
     type: mongoose.Schema.Types.Mixed,
-    default: {}
-  },
+    default: {} },
 
   
 // Profile information
@@ -157,13 +156,11 @@ const userSchema = new mongoose.Schema({
     sms: {
       type: Boolean,
       default: false
-    }
-  }
+    } }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+  toObject: { virtuals: true } });
 
 
 // Virtual for full name
@@ -193,23 +190,19 @@ userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     return next();
   }
-
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (error) {
     next(error);
-  }
-});
+  } });
 
 
 // Instance method to compare password
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
-};
-
-
+}
 // Instance method to increment login attempts
 userSchema.methods.incrementLoginAttempts = async function () {
   
@@ -221,40 +214,29 @@ userSchema.methods.incrementLoginAttempts = async function () {
   if (this.loginAttempts >= 5) {
     this.lockedUntil = new Date(Date.now() + 15 * 60 * 1000);
   }
-
   return this.save();
-};
-
-
+}
 // Instance method to reset login attempts
 userSchema.methods.resetLoginAttempts = async function () {
   this.loginAttempts = 0;
   this.lockedUntil = null;
   return this.save();
-};
-
-
+}
 // Instance method to update last login
 userSchema.methods.updateLastLogin = async function () {
   this.lastLoginAt = new Date();
   return this.save();
-};
-
-
+}
 // Static method to find by email and tenant
 userSchema.statics.findByEmailAndTenant = function (email, tenantId) {
   return this.findOne({
     email: email.toLowerCase(), tenantId, isActive: true
   });
-};
-
-
+}
 // Static method to find active users by tenant
 userSchema.statics.findActiveByTenant = function (tenantId) {
   return this.find({ tenantId, isActive: true });
-};
-
-
+}
 // Static method to get user statistics by tenant
 userSchema.statics.getUserStatistics = function (tenantId) {
   return this.aggregate([
@@ -272,11 +254,8 @@ userSchema.statics.getUserStatistics = function (tenantId) {
               1,
               0
             ]
-          }
-        }
-      }
-    }
+          } }
+      } }
   ]);
-};
-
+}
 module.exports = mongoose.model('User', userSchema);

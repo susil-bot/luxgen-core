@@ -62,8 +62,7 @@ const tenantSchemaSchema = new mongoose.Schema({
   validationRules: {
     type: Map,
     of: mongoose.Schema.Types.Mixed,
-    default: {}
-  },
+    default: {} },
 
 
   // UI Configuration
@@ -89,8 +88,7 @@ const tenantSchemaSchema = new mongoose.Schema({
     allowEdit: {
       type: Boolean,
       default: false
-    }
-  },
+    } },
 
 
   // Access Control
@@ -109,8 +107,7 @@ const tenantSchemaSchema = new mongoose.Schema({
       type: [String],
       enum: ['admin'],
       default: ['admin']
-    }
-  },
+    } },
 
 
   // Usage Statistics
@@ -131,8 +128,7 @@ const tenantSchemaSchema = new mongoose.Schema({
       type: Number,
       default: 0
       // in minutes
-    }
-  },
+    } },
 
 
   // Metadata
@@ -155,12 +151,10 @@ const tenantSchemaSchema = new mongoose.Schema({
     },
     source: String,
     notes: String
-  }
-}, {
+  } }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+  toObject: { virtuals: true } });
 
 
 // Indexes for performance
@@ -187,8 +181,7 @@ tenantSchemaSchema.virtual('isValid').get(function () {
            this.schema.properties;
   } catch (error) {
     return false;
-  }
-});
+  } });
 
 
 // Virtual for schema complexity
@@ -196,7 +189,6 @@ tenantSchemaSchema.virtual('complexity').get(function () {
   if (!this.schema || !this.schema.properties) {
     return 'unknown';
   }
-
   const propertyCount = Object.keys(this.schema.properties).length;
   const requiredCount = this.schema.required ? this.schema.required.length : 0;
 
@@ -216,16 +208,12 @@ tenantSchemaSchema.pre('save', function (next) {
   if (!this.schema || typeof this.schema !== 'object') {
     return next(new Error('Schema must be a valid object'));
   }
-
   if (!this.schema.type) {
     return next(new Error('Schema must have a type property'));
   }
-
   if (!this.schema.properties) {
     return next(new Error('Schema must have properties defined'));
   }
-
-
   // Update usage timestamp
   this.usage.lastUsed = new Date();
 
@@ -241,10 +229,8 @@ tenantSchemaSchema.pre('save', async function (next) {
       {
         tenantId: this.tenantId,
         schemaType: this.schemaType,
-        _id: { $ne: this._id }
-      },
-      { isDefault: false }
-    );
+        _id: { $ne: this._id } },
+      { isDefault: false } );
   }
   next();
 });
@@ -257,20 +243,14 @@ tenantSchemaSchema.methods.validateData = function (data) {
 
   if (!this.schema || !this.schema.properties) {
     errors.push('Invalid schema definition');
-    return { isValid: false, errors };
-  }
-
-
+    return { isValid: false, errors } }
   // Check required fields
   if (this.schema.required) {
     this.schema.required.forEach(field => {
       if (!data.hasOwnProperty(field)) {
         errors.push(`Required field '${field}' is missing`);
-      }
-    });
+      } });
   }
-
-
   // Check field types (simplified)
   Object.entries(this.schema.properties).forEach(([field, config]) => {
     if (data.hasOwnProperty(field)) {
@@ -302,25 +282,19 @@ tenantSchemaSchema.methods.validateData = function (data) {
             errors.push(`Field '${field}' must be an object`);
           }
           break;
-      }
-    }
+      } }
   });
 
   return {
     isValid: errors.length === 0,
     errors
-  };
-};
-
-
+  } }
 // Instance method to increment usage
 tenantSchemaSchema.methods.incrementUsage = function () {
   this.usage.timesUsed += 1;
   this.usage.lastUsed = new Date();
   return this.save();
-};
-
-
+}
 // Instance method to update response statistics
 tenantSchemaSchema.methods.updateResponseStats = function (completionTime) {
   this.usage.totalResponses += 1;
@@ -332,15 +306,12 @@ tenantSchemaSchema.methods.updateResponseStats = function (completionTime) {
   this.usage.averageCompletionTime = ((currentAvg * (totalResponses - 1)) + completionTime) / totalResponses;
 
   return this.save();
-};
-
-
+}
 // Instance method to get schema as form fields
 tenantSchemaSchema.methods.getFormFields = function () {
   if (!this.schema || !this.schema.properties) {
     return [];
   }
-
   return Object.entries(this.schema.properties).map(([name, config]) => ({
     name,
     type: config.type || 'text',
@@ -351,13 +322,10 @@ tenantSchemaSchema.methods.getFormFields = function () {
     validation: config.pattern ? new RegExp(config.pattern) : null,
     ...config
   }));
-};
-
-
+}
 // Static method to find schemas by tenant
 tenantSchemaSchema.statics.findByTenant = function (tenantId, options = {}) {
-  const query = { tenantId };
-
+  const query = { tenantId }
   if (options.schemaType) {
     query.schemaType = options.schemaType;
   }
@@ -367,11 +335,8 @@ tenantSchemaSchema.statics.findByTenant = function (tenantId, options = {}) {
   if (options.isDefault !== undefined) {
     query.isDefault = options.isDefault;
   }
-
   return this.find(query).sort({ createdAt: -1 });
-};
-
-
+}
 // Static method to find default schema for a type
 tenantSchemaSchema.statics.findDefault = function (tenantId, schemaType) {
   return this.findOne({
@@ -380,15 +345,11 @@ tenantSchemaSchema.statics.findDefault = function (tenantId, schemaType) {
     isDefault: true,
     isActive: true
   });
-};
-
-
+}
 // Static method to find active schemas
 tenantSchemaSchema.statics.findActive = function (tenantId) {
   return this.find({ tenantId, isActive: true });
-};
-
-
+}
 // Static method to find schemas by tags
 tenantSchemaSchema.statics.findByTags = function (tenantId, tags) {
   return this.find({
@@ -396,6 +357,5 @@ tenantSchemaSchema.statics.findByTags = function (tenantId, tags) {
     'metadata.tags': { $in: tags },
     isActive: true
   });
-};
-
+}
 module.exports = mongoose.model('TenantSchema', tenantSchemaSchema);

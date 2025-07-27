@@ -21,7 +21,6 @@ exports.getTenantConfig = async (req, res) => {
         message: 'Tenant slug is required'
       });
     }
-
     const config = getTenantConfig(slug);
 
     if (!config) {
@@ -30,18 +29,14 @@ exports.getTenantConfig = async (req, res) => {
         message: 'Tenant configuration not found'
       });
     }
-
-
     // Remove sensitive information
     const safeConfig = {
       ...config,
       integrations: {
         email: { provider: config.integrations.email.provider },
         storage: { provider: config.integrations.storage.provider },
-        analytics: { provider: config.integrations.analytics.provider }
-      }
-    };
-
+        analytics: { provider: config.integrations.analytics.provider } }
+    }
     res.json({
       success: true,
       data: safeConfig
@@ -53,9 +48,7 @@ exports.getTenantConfig = async (req, res) => {
       message: 'Failed to get tenant configuration',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get all active tenant configurations
  */
@@ -65,7 +58,7 @@ exports.getAllTenantConfigs = async (req, res) => {
 
 
     // Remove sensitive information from all configs
-    const safeConfigs = {};
+    const safeConfigs = {}
     Object.keys(activeConfigs).forEach(slug => {
       const config = activeConfigs[slug];
       safeConfigs[slug] = {
@@ -73,10 +66,8 @@ exports.getAllTenantConfigs = async (req, res) => {
         integrations: {
           email: { provider: config.integrations.email.provider },
           storage: { provider: config.integrations.storage.provider },
-          analytics: { provider: config.integrations.analytics.provider }
-        }
-      };
-    });
+          analytics: { provider: config.integrations.analytics.provider } }
+      } });
 
     res.json({
       success: true,
@@ -89,9 +80,7 @@ exports.getAllTenantConfigs = async (req, res) => {
       message: 'Failed to get tenant configurations',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Check if tenant feature is enabled
  */
@@ -105,7 +94,6 @@ exports.checkFeature = async (req, res) => {
         message: 'Tenant slug and feature name are required'
       });
     }
-
     const isEnabled = isFeatureEnabled(slug, feature);
     const featureConfig = getTenantFeature(slug, feature);
 
@@ -116,8 +104,7 @@ exports.checkFeature = async (req, res) => {
         feature,
         enabled: isEnabled,
         config: featureConfig
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error checking feature:', error);
     res.status(500).json({
@@ -125,9 +112,7 @@ exports.checkFeature = async (req, res) => {
       message: 'Failed to check feature',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get tenant limits
  */
@@ -141,7 +126,6 @@ exports.getTenantLimits = async (req, res) => {
         message: 'Tenant slug is required'
       });
     }
-
     const limits = getTenantLimits(slug);
 
     res.json({
@@ -149,8 +133,7 @@ exports.getTenantLimits = async (req, res) => {
       data: {
         tenant: slug,
         limits
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error getting tenant limits:', error);
     res.status(500).json({
@@ -158,9 +141,7 @@ exports.getTenantLimits = async (req, res) => {
       message: 'Failed to get tenant limits',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Validate tenant configuration
  */
@@ -174,7 +155,6 @@ exports.validateConfig = async (req, res) => {
         message: 'Configuration data is required'
       });
     }
-
     const validation = validateTenantConfig(config);
 
     res.json({
@@ -188,9 +168,7 @@ exports.validateConfig = async (req, res) => {
       message: 'Failed to validate configuration',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get tenant branding information
  */
@@ -204,7 +182,6 @@ exports.getTenantBranding = async (req, res) => {
         message: 'Tenant slug is required'
       });
     }
-
     const config = getTenantConfig(slug);
 
     if (!config) {
@@ -213,16 +190,13 @@ exports.getTenantBranding = async (req, res) => {
         message: 'Tenant configuration not found'
       });
     }
-
-    const branding = config.branding || {};
-
+    const branding = config.branding || {}
     res.json({
       success: true,
       data: {
         tenant: slug,
         branding
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error getting tenant branding:', error);
     res.status(500).json({
@@ -230,9 +204,7 @@ exports.getTenantBranding = async (req, res) => {
       message: 'Failed to get tenant branding',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get tenant settings
  */
@@ -246,7 +218,6 @@ exports.getTenantSettings = async (req, res) => {
         message: 'Tenant slug is required'
       });
     }
-
     const config = getTenantConfig(slug);
 
     if (!config) {
@@ -255,16 +226,13 @@ exports.getTenantSettings = async (req, res) => {
         message: 'Tenant configuration not found'
       });
     }
-
-    const settings = config.settings || {};
-
+    const settings = config.settings || {}
     res.json({
       success: true,
       data: {
         tenant: slug,
         settings
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error getting tenant settings:', error);
     res.status(500).json({
@@ -272,7 +240,5 @@ exports.getTenantSettings = async (req, res) => {
       message: 'Failed to get tenant settings',
       error: error.message
     });
-  }
-};
-
+  } }
 module.exports = exports;

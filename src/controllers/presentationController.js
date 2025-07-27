@@ -22,8 +22,7 @@ class PresentationController {
         search
       } = req.query;
 
-      const query = { tenantId };
-
+      const query = { tenantId }
       if (category) {
         query.category = category;
       }
@@ -37,10 +36,8 @@ class PresentationController {
         query.$or = [
           { title: { $regex: search, $options: 'i' } },
           { description: { $regex: search, $options: 'i' } },
-          { presentationCode: { $regex: search, $options: 'i' } }
-        ];
+          { presentationCode: { $regex: search, $options: 'i' } } ];
       }
-
       const skip = (page - 1) * limit;
 
       const presentations = await Presentation.find(query)
@@ -67,8 +64,7 @@ class PresentationController {
           limit: parseInt(limit),
           total,
           pages: Math.ceil(total / limit)
-        }
-      });
+        } });
     } catch (error) {
       logger.error('Error retrieving presentations', { error: error.message, tenantId: req.tenantId });
       res.status(500).json({
@@ -76,9 +72,7 @@ class PresentationController {
         message: 'Failed to retrieve presentations',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Get a specific presentation by ID
    */
@@ -98,7 +92,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       logger.info('Presentation retrieved', { presentationId, tenantId });
 
       res.json({
@@ -112,9 +105,7 @@ class PresentationController {
         message: 'Failed to retrieve presentation',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Create a new presentation
    */
@@ -126,8 +117,7 @@ class PresentationController {
         ...req.body,
         tenantId,
         createdBy: req.user.id
-      };
-
+      }
       const presentation = new Presentation(presentationData);
       await presentation.save();
 
@@ -149,9 +139,7 @@ class PresentationController {
         message: 'Failed to create presentation',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Update a presentation
    */
@@ -163,13 +151,11 @@ class PresentationController {
       const updateData = {
         ...req.body,
         updatedBy: req.user.id
-      };
-
+      }
       const presentation = await Presentation.findOneAndUpdate(
         { _id: presentationId, tenantId },
         updateData,
-        { new: true, runValidators: true }
-      );
+        { new: true, runValidators: true } );
 
       if (!presentation) {
         return res.status(404).json({
@@ -177,7 +163,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       logger.info('Presentation updated', { presentationId, tenantId });
 
       res.json({
@@ -192,9 +177,7 @@ class PresentationController {
         message: 'Failed to update presentation',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Delete a presentation
    */
@@ -212,7 +195,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       logger.info('Presentation deleted', { presentationId, tenantId });
 
       res.json({
@@ -226,10 +208,7 @@ class PresentationController {
         message: 'Failed to delete presentation',
         error: error.message
       });
-    }
-  }
-
-
+    } }
   // ==================== PRESENTATION SESSIONS ====================
 
   /**
@@ -249,7 +228,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       const session = await presentation.createSession(sessionData);
 
       logger.info('Presentation session started', {
@@ -270,9 +248,7 @@ class PresentationController {
         message: 'Failed to start presentation session',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * End a presentation session
    */
@@ -289,7 +265,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       await presentation.endSession(sessionId);
 
       logger.info('Presentation session ended', {
@@ -308,9 +283,7 @@ class PresentationController {
         success: false,
         message: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Add participant to presentation session
    */
@@ -328,7 +301,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       await presentation.addParticipant(sessionId, userId, role);
 
       logger.info('Participant added to presentation session', {
@@ -349,9 +321,7 @@ class PresentationController {
         success: false,
         message: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Remove participant from presentation session
    */
@@ -368,7 +338,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       await presentation.removeParticipant(sessionId, userId);
 
       logger.info('Participant removed from presentation session', {
@@ -388,9 +357,7 @@ class PresentationController {
         success: false,
         message: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Advance to next slide
    */
@@ -408,7 +375,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       await presentation.advanceSlide(sessionId, slideIndex);
 
       logger.info('Slide advanced', {
@@ -428,10 +394,7 @@ class PresentationController {
         success: false,
         message: error.message
       });
-    }
-  }
-
-
+    } }
   // ==================== PRESENTATION POLLS ====================
 
   /**
@@ -451,8 +414,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
-
       // Verify poll exists
       const poll = await Poll.findOne({ _id: pollId, tenantId });
       if (!poll) {
@@ -461,8 +422,6 @@ class PresentationController {
           message: 'Poll not found'
         });
       }
-
-
       // Add poll to slide
       const slide = presentation.slides.find(s => s.slideId === slideId);
       if (!slide) {
@@ -471,7 +430,6 @@ class PresentationController {
           message: 'Slide not found'
         });
       }
-
       slide.pollId = pollId;
       await presentation.save();
 
@@ -493,9 +451,7 @@ class PresentationController {
         message: 'Failed to add poll to presentation',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Activate poll in presentation session
    */
@@ -513,7 +469,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       await presentation.activatePoll(sessionId, pollId, slideId);
 
       logger.info('Poll activated in presentation session', {
@@ -534,9 +489,7 @@ class PresentationController {
         success: false,
         message: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Deactivate poll in presentation session
    */
@@ -553,7 +506,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       await presentation.deactivatePoll(sessionId, pollId);
 
       logger.info('Poll deactivated in presentation session', {
@@ -573,9 +525,7 @@ class PresentationController {
         success: false,
         message: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Submit poll response in presentation session
    */
@@ -593,7 +543,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       await presentation.submitPollResponse(sessionId, pollId, userId, response);
 
       logger.info('Poll response submitted in presentation session', {
@@ -614,9 +563,7 @@ class PresentationController {
         success: false,
         message: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Get poll results from presentation session
    */
@@ -633,7 +580,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       const session = presentation.sessions.find(s => s.sessionId === sessionId);
       if (!session) {
         return res.status(404).json({
@@ -641,7 +587,6 @@ class PresentationController {
           message: 'Session not found'
         });
       }
-
       const activePoll = session.activePolls.find(p => p.pollId.toString() === pollId && !p.deactivatedAt);
       if (!activePoll) {
         return res.status(404).json({
@@ -649,8 +594,6 @@ class PresentationController {
           message: 'Active poll not found'
         });
       }
-
-
       // Get the actual poll to calculate results
       const poll = await Poll.findOne({ _id: pollId, tenantId });
       if (!poll) {
@@ -659,8 +602,6 @@ class PresentationController {
           message: 'Poll not found'
         });
       }
-
-
       // Calculate results
       const results = {
         totalResponses: activePoll.responses.length,
@@ -669,9 +610,7 @@ class PresentationController {
           title: poll.title,
           question: poll.question,
           options: poll.options
-        }
-      };
-
+        } }
       logger.info('Poll results retrieved from presentation session', {
         presentationId,
         sessionId,
@@ -690,10 +629,7 @@ class PresentationController {
         message: 'Failed to retrieve poll results',
         error: error.message
       });
-    }
-  }
-
-
+    } }
   // ==================== PRESENTATION SLIDES ====================
 
   /**
@@ -713,7 +649,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       await presentation.addSlide(slideData);
 
       logger.info('Slide added to presentation', {
@@ -732,9 +667,7 @@ class PresentationController {
         message: 'Failed to add slide',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Update slide in presentation
    */
@@ -752,7 +685,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       await presentation.updateSlide(parseInt(slideIndex), updateData);
 
       logger.info('Slide updated in presentation', {
@@ -771,9 +703,7 @@ class PresentationController {
         success: false,
         message: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Remove slide from presentation
    */
@@ -790,7 +720,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       await presentation.removeSlide(parseInt(slideIndex));
 
       logger.info('Slide removed from presentation', {
@@ -809,10 +738,7 @@ class PresentationController {
         success: false,
         message: error.message
       });
-    }
-  }
-
-
+    } }
   // ==================== PRESENTATION STATISTICS ====================
 
   /**
@@ -831,7 +757,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       const stats = {
         totalSessions: presentation.statistics.totalSessions,
         totalParticipants: presentation.statistics.totalParticipants,
@@ -840,8 +765,7 @@ class PresentationController {
         totalViews: presentation.statistics.totalViews,
         slideCount: presentation.slides.length,
         activeSessions: presentation.sessions.filter(s => s.status === 'in-progress').length
-      };
-
+      }
       logger.info('Presentation statistics retrieved', { presentationId, tenantId });
 
       res.json({
@@ -855,9 +779,7 @@ class PresentationController {
         message: 'Failed to retrieve presentation statistics',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Get session statistics
    */
@@ -874,7 +796,6 @@ class PresentationController {
           message: 'Presentation not found'
         });
       }
-
       const session = presentation.sessions.find(s => s.sessionId === sessionId);
       if (!session) {
         return res.status(404).json({
@@ -882,7 +803,6 @@ class PresentationController {
           message: 'Session not found'
         });
       }
-
       const stats = {
         sessionId: session.sessionId,
         title: session.title,
@@ -896,8 +816,7 @@ class PresentationController {
         totalComments: session.comments.length,
         activePolls: session.activePolls.filter(p => !p.deactivatedAt).length,
         totalPollResponses: session.activePolls.reduce((total, poll) => total + poll.responses.length, 0)
-      };
-
+      }
       logger.info('Session statistics retrieved', {
         presentationId, sessionId, tenantId
       });
@@ -913,8 +832,6 @@ class PresentationController {
         message: 'Failed to retrieve session statistics',
         error: error.message
       });
-    }
-  }
+    } }
 }
-
 module.exports = new PresentationController();

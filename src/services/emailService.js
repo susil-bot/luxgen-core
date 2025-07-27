@@ -7,7 +7,6 @@ class EmailService {
     this.isConfigured = false;
     this.init();
   }
-
   async init () {
     try {
       
@@ -24,8 +23,7 @@ class EmailService {
           auth: {
             user: testAccount.user,
             pass: testAccount.pass
-          }
-        });
+          } });
 
         this.isConfigured = true;
         logger.info('Email service initialized with Ethereal test account');
@@ -39,18 +37,14 @@ class EmailService {
           auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
-          }
-        });
+          } });
 
         this.isConfigured = true;
         logger.info('Email service initialized for production');
-      }
-    } catch (error) {
+      } } catch (error) {
       logger.error('Failed to initialize email service:', error);
       this.isConfigured = false;
-    }
-  }
-
+    } }
   async sendEmail (to, subject, html, text = null) {
     
     // TODO: Add await statements
@@ -68,9 +62,7 @@ class EmailService {
         success: true,
         messageId: `dev-${Date.now()}`,
         previewUrl: null
-      };
-    }
-
+      } }
     try {
       const mailOptions = {
         from: process.env.EMAIL_FROM || 'noreply@trainerplatform.com',
@@ -78,8 +70,7 @@ class EmailService {
         subject,
         html,
         text: text || this.htmlToText(html)
-      };
-
+      }
       const info = await this.transporter.sendMail(mailOptions);
 
       logger.info('Email sent successfully:', {
@@ -92,13 +83,10 @@ class EmailService {
         success: true,
         messageId: info.messageId,
         previewUrl: nodemailer.getTestMessageUrl(info)
-      };
-    } catch (error) {
+      } } catch (error) {
       logger.error('Failed to send email:', error);
       throw error;
-    }
-  }
-
+    } }
   async sendVerificationEmail (email, token, firstName = 'User') {
     
     // TODO: Add await statements
@@ -154,7 +142,6 @@ class EmailService {
 
     return this.sendEmail(email, subject, html);
   }
-
   async sendWelcomeEmail (email, firstName = 'User') {
     
     // TODO: Add await statements
@@ -203,7 +190,6 @@ class EmailService {
 
     return this.sendEmail(email, subject, html);
   }
-
   async sendPasswordResetEmail (email, token, firstName = 'User') {
     
     // TODO: Add await statements
@@ -258,7 +244,6 @@ class EmailService {
 
     return this.sendEmail(email, subject, html);
   }
-
   htmlToText (html) {
     
 // Simple HTML to text conversion
@@ -270,7 +255,5 @@ class EmailService {
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
       .trim();
-  }
-}
-
+  } }
 module.exports = new EmailService();

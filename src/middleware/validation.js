@@ -16,9 +16,7 @@ const validateRequest = (req, res, next) => {
     throw new ValidationError('Validation failed', errorDetails);
   }
   next();
-};
-
-
+}
 // Custom validation middleware for AI routes
 const validateRequestCustom = (validationRules) => {
   return (req, res, next) => {
@@ -39,14 +37,10 @@ const validateRequestCustom = (validationRules) => {
           });
           continue;
         }
-
-
         // Skip validation if value is not provided and not required
         if (value === undefined || value === null || value === '') {
           continue;
         }
-
-
         // Type validation
         if (type === 'string' && typeof value !== 'string') {
           errors.push({
@@ -79,8 +73,6 @@ const validateRequestCustom = (validationRules) => {
             type: 'type'
           });
         }
-
-
         // String-specific validations
         if (type === 'string' && typeof value === 'string') {
           if (minLength && value.length < minLength) {
@@ -90,17 +82,13 @@ const validateRequestCustom = (validationRules) => {
               type: 'minLength'
             });
           }
-
           if (maxLength && value.length > maxLength) {
             errors.push({
               field,
               message: `${field} cannot exceed ${maxLength} characters`,
               type: 'maxLength'
             });
-          }
-        }
-
-
+          } }
         // Number-specific validations
         if (type === 'number' && typeof value === 'number') {
           if (min !== undefined && value < min) {
@@ -110,17 +98,13 @@ const validateRequestCustom = (validationRules) => {
               type: 'min'
             });
           }
-
           if (max !== undefined && value > max) {
             errors.push({
               field,
               message: `${field} cannot exceed ${max}`,
               type: 'max'
             });
-          }
-        }
-
-
+          } }
         // Enum validation
         if (enumValues && !enumValues.includes(value)) {
           errors.push({
@@ -128,21 +112,15 @@ const validateRequestCustom = (validationRules) => {
             message: `${field} must be one of: ${enumValues.join(', ')}`,
             type: 'enum'
           });
-        }
-      }
-
+        } }
       if (errors.length > 0) {
         throw new ValidationError('Validation failed', errors);
       }
-
       next();
     } catch (error) {
       next(error);
-    }
-  };
-};
-
-
+    } }
+}
 // Enhanced password validation with strong requirements
 const strongPasswordValidation = [
   body('password')
@@ -192,9 +170,7 @@ const commonValidations = {
     query('sortBy').optional().isString().withMessage('SortBy must be a string'),
     query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('SortOrder must be asc or desc')
   ]
-};
-
-
+}
 // User validation schemas
 const userValidations = {
   register: [
@@ -263,9 +239,7 @@ const userValidations = {
       }),
     validateRequest
   ]
-};
-
-
+}
 // Group validation schemas
 const groupValidations = {
   create: [
@@ -287,9 +261,7 @@ const groupValidations = {
     body('role').optional().isIn(['member', 'leader', 'admin']).withMessage('Invalid member role'),
     validateRequest
   ]
-};
-
-
+}
 // Poll validation schemas
 const pollValidations = {
   create: [
@@ -319,9 +291,7 @@ const pollValidations = {
     body('name').optional().trim().isLength({ max: 100 }).withMessage('Name must be less than 100 characters'),
     validateRequest
   ]
-};
-
-
+}
 // Training validation schemas
 const trainingValidations = {
   session: {
@@ -402,10 +372,7 @@ const trainingValidations = {
       body('answers.*.answer').notEmpty().withMessage('Answer is required'),
       validateRequest
     ]
-  }
-};
-
-
+  } }
 // Presentation validation schemas
 const presentationValidations = {
   create: [
@@ -445,9 +412,7 @@ const presentationValidations = {
     body('response').notEmpty().withMessage('Poll response is required'),
     validateRequest
   ]
-};
-
-
+}
 // AI validation schemas
 const aiValidations = {
   generate: [
@@ -514,9 +479,7 @@ const aiValidations = {
     body('preserveFormatting').optional().isBoolean().withMessage('Preserve formatting must be boolean'),
     validateRequest
   ]
-};
-
-
+}
 // Tenant validation schemas
 const tenantValidations = {
   create: [
@@ -565,9 +528,7 @@ const tenantValidations = {
     query('search').optional().trim().isLength({ max: 100 }).withMessage('Search must be less than 100 characters'),
     validateRequest
   ]
-};
-
-
+}
 // Knowledge base validation schemas
 const knowledgeBaseValidations = {
   add: [
@@ -583,8 +544,7 @@ const knowledgeBaseValidations = {
     body('filters').optional().isObject().withMessage('Filters must be an object'),
     validateRequest
   ]
-};
-
+}
 module.exports = {
   validateRequest,
   validateRequestCustom,
@@ -597,4 +557,4 @@ module.exports = {
   aiValidations,
   tenantValidations,
   knowledgeBaseValidations
-};
+}

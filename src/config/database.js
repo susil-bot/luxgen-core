@@ -30,8 +30,7 @@ const databaseConfig = {
       { email: 1, tenantId: 1 },
       { tenantId: 1, role: 1 },
       { tenantId: 1, status: 1 },
-      { createdAt: -1 }
-    ],
+      { createdAt: -1 } ],
 
 
     // Training indexes
@@ -39,35 +38,28 @@ const databaseConfig = {
       { tenantId: 1, scheduledAt: 1 },
       { tenantId: 1, status: 1 },
       { trainerId: 1, tenantId: 1 },
-      { participants: 1, tenantId: 1 }
-    ],
+      { participants: 1, tenantId: 1 } ],
 
     trainingCourseIndexes: [
       { tenantId: 1, status: 1 },
       { instructorId: 1, tenantId: 1 },
       { category: 1, tenantId: 1 },
-      { tags: 1, tenantId: 1 }
-    ],
+      { tags: 1, tenantId: 1 } ],
 
 
     // Poll indexes
     pollIndexes: [
       { tenantId: 1, status: 1 },
       { createdBy: 1, tenantId: 1 },
-      { createdAt: -1 }
-    ],
+      { createdAt: -1 } ],
 
 
     // Presentation indexes
     presentationIndexes: [
       { tenantId: 1, status: 1 },
       { createdBy: 1, tenantId: 1 },
-      { tags: 1, tenantId: 1 }
-    ]
-  }
-};
-
-
+      { tags: 1, tenantId: 1 } ]
+  } }
 // Enhanced connection function with retry logic
 const connectToDatabase = async (uri) => {
   const maxRetries = 5;
@@ -108,17 +100,12 @@ const connectToDatabase = async (uri) => {
         logger.error('💥 Maximum database connection retries reached');
         throw error;
       }
-
-
       // Exponential backoff
       const delay = Math.pow(2, retryCount) * 1000;
       logger.info(`⏳ Waiting ${delay}ms before retry...`);
       await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-};
-
-
+    } }
+}
 // Create database indexes for performance
 const createIndexes = async () => {
   try {
@@ -134,40 +121,32 @@ const createIndexes = async () => {
       await User.collection.createIndex({ tenantId: 1, status: 1 });
       await User.collection.createIndex({ createdAt: -1 });
     }
-
     if (TrainingSession && TrainingSession.collection) {
       await TrainingSession.collection.createIndex({ tenantId: 1, scheduledAt: 1 });
       await TrainingSession.collection.createIndex({ tenantId: 1, status: 1 });
       await TrainingSession.collection.createIndex({ trainerId: 1, tenantId: 1 });
     }
-
     if (TrainingCourse && TrainingCourse.collection) {
       await TrainingCourse.collection.createIndex({ tenantId: 1, status: 1 });
       await TrainingCourse.collection.createIndex({ instructorId: 1, tenantId: 1 });
       await TrainingCourse.collection.createIndex({ category: 1, tenantId: 1 });
     }
-
     if (Poll && Poll.collection) {
       await Poll.collection.createIndex({ tenantId: 1, status: 1 });
       await Poll.collection.createIndex({ createdBy: 1, tenantId: 1 });
       await Poll.collection.createIndex({ createdAt: -1 });
     }
-
     if (Presentation && Presentation.collection) {
       await Presentation.collection.createIndex({ tenantId: 1, status: 1 });
       await Presentation.collection.createIndex({ createdBy: 1, tenantId: 1 });
       await Presentation.collection.createIndex({ tags: 1, tenantId: 1 });
     }
-
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.error('❌ Error creating database indexes:', error);
 
     // Don't throw error as indexes are optional for functionality
-  }
-};
-
-
+  } }
 // Enhanced query optimization helper
 const optimizeQuery = (query, options = {}) => {
   const {
@@ -186,27 +165,20 @@ const optimizeQuery = (query, options = {}) => {
   if (lean) {
     query.lean();
   }
-
   if (limit) {
     query.limit(limit);
   }
-
   if (select) {
     query.select(select);
   }
-
   if (populate) {
     query.populate(populate);
   }
-
   if (sort) {
     query.sort(sort);
   }
-
   return query;
-};
-
-
+}
 // Pagination helper
 const createPaginationOptions = (req) => {
   const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -217,14 +189,12 @@ const createPaginationOptions = (req) => {
     page,
     limit,
     skip,
-    sort: req.query.sort || { createdAt: -1 }
-  };
-};
-
+    sort: req.query.sort || { createdAt: -1 } }
+}
 module.exports = {
   connectToDatabase,
   createIndexes,
   optimizeQuery,
   createPaginationOptions,
   databaseConfig
-};
+}

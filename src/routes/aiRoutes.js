@@ -51,8 +51,7 @@ router.post('/generate/content',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateContent
 );
 
@@ -72,8 +71,7 @@ router.post('/(generate/training-material)',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateTrainingMaterial
 );
 
@@ -93,8 +91,7 @@ router.post('/(generate/assessment-questions)',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateAssessmentQuestions
 );
 
@@ -111,8 +108,7 @@ router.post('/(generate/presentation-outline)',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generatePresentationOutline
 );
 
@@ -134,8 +130,7 @@ router.post('/improve/content',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.improveContent
 );
 
@@ -157,8 +152,7 @@ router.post('/translate/content',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.translateContent
 );
 
@@ -177,8 +171,7 @@ router.post('/(generate/blog-post)',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateBlogPost
 );
 
@@ -197,8 +190,7 @@ router.post('/(generate/social-media)',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateSocialMedia
 );
 
@@ -217,8 +209,7 @@ router.post('/generate/email',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateEmail
 );
 
@@ -240,8 +231,7 @@ router.post('/(generate/product-description)',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateProductDescription
 );
 
@@ -263,8 +253,7 @@ router.post('/(generate/image-prompt)',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateImagePrompt
 );
 
@@ -286,8 +275,7 @@ router.post('/(generate/video-script)',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateVideoScript
 );
 
@@ -309,8 +297,7 @@ router.post('/(generate/audio-script)',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateAudioScript
 );
 
@@ -332,8 +319,7 @@ router.post('/chat/conversations',
     },
     {
       field: 'initialMessage', type: 'string', required: false, maxLength: 1000
-    }
-  ]),
+    } ]),
   aiController.createConversation
 );
 
@@ -379,8 +365,7 @@ router.post('/chat/conversations/:conversationId/messages',
     },
     {
       field: 'metadata', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.sendMessage
 );
 
@@ -399,8 +384,7 @@ router.post('/(chat/generate-response)',
     },
     {
       field: 'context', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateResponse
 );
 
@@ -451,8 +435,7 @@ router.post('/(training/generate-module)',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateTrainingModule
 );
 
@@ -469,8 +452,7 @@ router.post('/(training/generate-exercises)',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateExercises
 );
 
@@ -487,8 +469,7 @@ router.post('/(training/generate-case)-studies',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateCaseStudies
 );
 
@@ -505,8 +486,7 @@ router.post('/(training/generate-quiz)',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateQuiz
 );
 
@@ -523,8 +503,7 @@ router.post('/(training/generate-scenarios)',
     },
     {
       field: 'options', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.generateScenarios
 );
 
@@ -555,8 +534,7 @@ router.post('/content/save',
     },
     {
       field: 'metadata', type: 'object', required: false
-    }
-  ]),
+    } ]),
   aiController.saveContent
 );
 
@@ -621,8 +599,7 @@ router.post('/templates',
     },
     {
       field: 'variables', type: 'array', required: false
-    }
-  ]),
+    } ]),
   aiController.createTemplate
 );
 
@@ -671,8 +648,7 @@ router.post('/niches',
     },
     {
       field: 'keywords', type: 'array', required: false
-    }
-  ]),
+    } ]),
   aiController.setNiche
 );
 

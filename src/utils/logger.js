@@ -14,9 +14,7 @@ const levels = {
   info: 2,
   http: 3,
   debug: 4
-};
-
-
+}
 // Define colors for each level
 const colors = {
   error: 'red',
@@ -24,9 +22,7 @@ const colors = {
   info: 'green',
   http: 'magenta',
   debug: 'white'
-};
-
-
+}
 // Tell winston that you want to link the colors
 winston.addColors(colors);
 
@@ -36,9 +32,7 @@ const level = () => {
   const env = process.env.NODE_ENV || 'development';
   const isDevelopment = env === 'development';
   return isDevelopment ? 'debug' : 'warn';
-};
-
-
+}
 // Define format for logs
 const format = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
@@ -96,7 +90,5 @@ const logger = winston.createLogger({
 logger.stream = {
   write: (message) => {
     logger.http(message.trim());
-  }
-};
-
+  } }
 module.exports = logger;

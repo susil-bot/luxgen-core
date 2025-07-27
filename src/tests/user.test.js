@@ -28,8 +28,7 @@ describe('User Model', () => {
         email: 'john.doe@example.com',
         password: 'password123',
         role: 'user'
-      };
-
+      }
       const user = await User.create(userData);
 
       expect(user).toBeDefined();
@@ -50,8 +49,7 @@ describe('User Model', () => {
         email: 'jane.smith@example.com',
         password: 'password123',
         role: 'user'
-      };
-
+      }
       const user = await User.create(userData);
 
       expect(user.password).not.toBe(userData.password);
@@ -63,8 +61,7 @@ describe('User Model', () => {
 
         // Missing required fields
         tenantId: testTenant._id
-      };
-
+      }
       try {
         await User.create(userData);
         fail('Should have thrown validation error');
@@ -74,8 +71,7 @@ describe('User Model', () => {
         expect(error.errors.lastName).toBeDefined();
         expect(error.errors.email).toBeDefined();
         expect(error.errors.password).toBeDefined();
-      }
-    });
+      } });
 
     it('should validate email format', async () => {
       const userData = {
@@ -84,16 +80,14 @@ describe('User Model', () => {
         lastName: 'User',
         email: 'invalid-email',
         password: 'password123'
-      };
-
+      }
       try {
         await User.create(userData);
         fail('Should have thrown validation error');
       } catch (error) {
         expect(error.name).toBe('ValidationError');
         expect(error.errors.email).toBeDefined();
-      }
-    });
+      } });
 
     it('should validate password length', async () => {
       const userData = {
@@ -103,16 +97,14 @@ describe('User Model', () => {
         email: 'test@example.com',
         password: '123'
         // Too short
-      };
-
+      }
       try {
         await User.create(userData);
         fail('Should have thrown validation error');
       } catch (error) {
         expect(error.name).toBe('ValidationError');
         expect(error.errors.password).toBeDefined();
-      }
-    });
+      } });
   });
 
   describe('User Virtuals', () => {
@@ -255,8 +247,7 @@ describe('User Model', () => {
           role: 'user',
           isActive: true,
           isVerified: true
-        }
-      ]);
+        } ]);
     });
 
     it('should find user by email', async () => {
@@ -303,8 +294,7 @@ describe('User Model', () => {
         lastName: 'User',
         email: 'duplicate@example.com',
         password: 'password123'
-      };
-
+      }
       await User.create(userData);
 
       try {
@@ -313,7 +303,6 @@ describe('User Model', () => {
       } catch (error) {
         expect(error.code).toBe(11000);
         expect(error.keyPattern.email).toBeDefined();
-      }
-    });
+      } });
   });
 });

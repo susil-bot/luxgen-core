@@ -62,8 +62,7 @@ module.exports = {
       multiLanguage: { enabled: true, languages: ['en', 'es', 'fr'] },
       sso: { enabled: true, provider: 'saml' },
       auditLog: { enabled: true, retention: '1year' },
-      dataExport: { enabled: true, formats: ['csv', 'json', 'xlsx'] }
-    }
+      dataExport: { enabled: true, formats: ['csv', 'json', 'xlsx'] } }
   },
 
 
@@ -90,8 +89,7 @@ module.exports = {
       ipWhitelist: ['192.168.1.0/24', '10.0.0.0/8'],
       sessionConcurrency: 3,
       passwordHistory: 5
-    }
-  },
+    } },
 
 
   // Branding configuration
@@ -119,8 +117,7 @@ module.exports = {
         templates: {
           welcome: 'd-1234567890',
           resetPassword: 'd-0987654321'
-        }
-      }
+        } }
     },
     storage: {
       provider: 'aws-s3',
@@ -129,32 +126,28 @@ module.exports = {
         region: 'us-east-1',
         accessKeyId: process.env.ACME_AWS_ACCESS_KEY,
         secretAccessKey: process.env.ACME_AWS_SECRET_KEY
-      }
-    },
+      } },
     analytics: {
       provider: 'google-analytics',
       config: {
         trackingId: 'GA-ACME-123',
         anonymizeData: false,
         enhancedEcommerce: true
-      }
-    },
+      } },
     payment: {
       provider: 'stripe',
       config: {
         publishableKey: process.env.ACME_STRIPE_PUBLISHABLE_KEY,
         secretKey: process.env.ACME_STRIPE_SECRET_KEY,
         webhookSecret: process.env.ACME_STRIPE_WEBHOOK_SECRET
-      }
-    },
+      } },
     sso: {
       provider: 'saml',
       config: {
         entryPoint: process.env.ACME_SAML_ENTRY_POINT,
         issuer: 'acme-corporation',
         cert: process.env.ACME_SAML_CERT
-      }
-    }
+      } }
   },
 
 
@@ -192,5 +185,4 @@ module.exports = {
     lastUpdated: '2024-01-01T00:00:00Z',
     version: '2.0.0',
     tags: ['enterprise', 'technology', 'saml', 'advanced']
-  }
-};
+  } }

@@ -19,7 +19,6 @@ class DatabaseSetup {
   constructor () {
     this.connection = null;
   }
-
   async initialize () {
     try {
       console.log('🚀 Initializing comprehensive database setup...');
@@ -44,9 +43,7 @@ class DatabaseSetup {
     } catch (error) {
       console.error('❌ Database setup failed:', error);
       throw error;
-    }
-  }
-
+    } }
   async connectToDatabase () {
     try {
       
@@ -55,7 +52,6 @@ class DatabaseSetup {
         console.log('ℹ️ MongoDB already connected, skipping connection');
         return;
       }
-
       console.log('🔌 Connecting to MongoDB...');
 
       const mongoUri = process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017/luxgen_trainer_platform';
@@ -73,9 +69,7 @@ class DatabaseSetup {
     } catch (error) {
       console.error('❌ Failed to connect to MongoDB:', error.message);
       throw error;
-    }
-  }
-
+    } }
   async createIndexes () {
     
     // TODO: Add await statements
@@ -91,9 +85,7 @@ class DatabaseSetup {
     } catch (error) {
       console.error('❌ Failed to create indexes:', error.message);
       throw error;
-    }
-  }
-
+    } }
   async createSystemTenant () {
     try {
       console.log('🏢 Creating system tenant...');
@@ -137,22 +129,18 @@ class DatabaseSetup {
             requireEmailVerification: false,
             allowUserRegistration: false,
             sessionTimeout: 24
-          }
-        });
+          } });
 
         await systemTenant.save();
         console.log('✅ System tenant created successfully');
       } else {
         console.log('ℹ️ System tenant already exists');
       }
-
       return systemTenant;
     } catch (error) {
       console.error('❌ Failed to create system tenant:', error.message);
       throw error;
-    }
-  }
-
+    } }
   async createSuperAdmin (systemTenant) {
     try {
       console.log('👑 Creating super admin user...');
@@ -198,22 +186,18 @@ class DatabaseSetup {
             email: true,
             push: true,
             sms: false
-          }
-        });
+          } });
 
         await superAdmin.save();
         console.log('✅ Super admin user created successfully');
       } else {
         console.log('ℹ️ Super admin user already exists');
       }
-
       return superAdmin;
     } catch (error) {
       console.error('❌ Failed to create super admin:', error.message);
       throw error;
-    }
-  }
-
+    } }
   async createDemoTenant () {
     try {
       console.log('🎭 Creating demo tenant...');
@@ -282,22 +266,18 @@ class DatabaseSetup {
             requireEmailVerification: true,
             allowUserRegistration: true,
             sessionTimeout: 8
-          }
-        });
+          } });
 
         await demoTenant.save();
         console.log('✅ Demo tenant created successfully');
       } else {
         console.log('ℹ️ Demo tenant already exists');
       }
-
       return demoTenant;
     } catch (error) {
       console.error('❌ Failed to create demo tenant:', error.message);
       throw error;
-    }
-  }
-
+    } }
   async createDemoUsers (demoTenant) {
     
     // TODO: Add await statements
@@ -334,8 +314,7 @@ class DatabaseSetup {
           phone: '+1555123458',
           jobTitle: 'Employee',
           department: 'Operations'
-        }
-      ];
+        } ];
 
       for (const userData of demoUsers) {
         const existingUser = await User.findOne({
@@ -363,21 +342,17 @@ class DatabaseSetup {
               theme: 'light',
               language: 'en',
               timezone: 'America/New_York'
-            }
-          });
+            } });
 
           await user.save();
           console.log(`✅ Created demo user: ${userData.email}`);
         } else {
           console.log(`ℹ️ Demo user already exists: ${userData.email}`);
-        }
-      }
+        } }
     } catch (error) {
       console.error('❌ Failed to create demo users:', error.message);
       throw error;
-    }
-  }
-
+    } }
   async createDemoPolls (demoTenant) {
     
     // TODO: Add await statements
@@ -405,8 +380,7 @@ class DatabaseSetup {
             },
             {
               id: '5', text: 'Very Satisfied', value: 5
-            }
-          ],
+            } ],
           status: 'active',
           isAnonymous: true,
           settings: {
@@ -437,8 +411,7 @@ class DatabaseSetup {
             },
             {
               id: '5', text: 'Customer Service', value: 'customer_service'
-            }
-          ],
+            } ],
           status: 'active',
           allowMultipleResponses: true,
           settings: {
@@ -472,8 +445,7 @@ class DatabaseSetup {
             },
             {
               id: '6', text: 'Technology upgrades', value: 'technology_upgrades'
-            }
-          ],
+            } ],
           status: 'draft',
           settings: {
             showResults: true,
@@ -482,8 +454,7 @@ class DatabaseSetup {
           },
           tags: ['office', 'environment', 'productivity'],
           category: 'Facilities'
-        }
-      ];
+        } ];
 
       for (const pollData of demoPolls) {
         const existingPoll = await Poll.findOne({
@@ -509,14 +480,11 @@ class DatabaseSetup {
           console.log(`✅ Created demo poll: ${pollData.title}`);
         } else {
           console.log(`ℹ️ Demo poll already exists: ${pollData.title}`);
-        }
-      }
+        } }
     } catch (error) {
       console.error('❌ Failed to create demo polls:', error.message);
       throw error;
-    }
-  }
-
+    } }
   async createSeedData () {
     try {
       console.log('🌱 Creating seed data...');
@@ -536,22 +504,16 @@ class DatabaseSetup {
     } catch (error) {
       console.error('❌ Failed to create seed data:', error.message);
       throw error;
-    }
-  }
-
+    } }
   async cleanup () {
     try {
       if (this.connection) {
         await mongoose.connection.close();
         console.log('🔌 Database connection closed');
-      }
-    } catch (error) {
+      } } catch (error) {
       console.error('❌ Error closing database connection:', error.message);
-    }
-  }
+    } }
 }
-
-
 // Run setup if called directly
 if (require.main === module) {
   const setup = new DatabaseSetup();
@@ -569,5 +531,4 @@ if (require.main === module) {
       setup.cleanup();
     });
 }
-
 module.exports = DatabaseSetup;

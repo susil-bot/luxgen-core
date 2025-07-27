@@ -90,8 +90,7 @@ const auditLogSchema = new mongoose.Schema({
       message: String,
       code: String,
       stack: String
-    }
-  },
+    } },
 
 
   // Security context
@@ -123,8 +122,7 @@ const auditLogSchema = new mongoose.Schema({
     coordinates: {
       latitude: Number,
       longitude: Number
-    }
-  },
+    } },
   device: {
     type: {
       type: String,
@@ -166,20 +164,17 @@ const auditLogSchema = new mongoose.Schema({
     requiresReview: {
       type: Boolean,
       default: false
-    }
-  },
+    } },
 
 
   // Metadata
   metadata: {
     type: mongoose.Schema.Types.Mixed,
-    default: {}
-  }
+    default: {} }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+  toObject: { virtuals: true } });
 
 
 // Virtual for severity level
@@ -189,7 +184,7 @@ auditLogSchema.virtual('severity').get(function () {
     medium: 2,
     high: 3,
     critical: 4
-  };
+  }
   return severityMap[this.security.riskLevel] || 1;
 });
 
@@ -216,8 +211,7 @@ auditLogSchema.index({ createdAt: -1 });
 auditLogSchema.index({ createdAt: 1 }, {
   expireAfterSeconds: 90 * 24 * 60 * 60,
   // 90 days default
-  partialFilterExpression: { 'compliance.dataRetention': '90_days' }
-});
+  partialFilterExpression: { 'compliance.dataRetention': '90_days' } });
 
 
 // Pre-save middleware
@@ -230,26 +224,18 @@ auditLogSchema.pre('save', function (next) {
   if (['DELETE', 'PATCH'].includes(this.request.method)) {
     riskScore += 20;
   }
-
-
   // Authentication failures
   if (this.action.includes('failed') || this.action.includes('invalid')) {
     riskScore += 30;
   }
-
-
   // Data access patterns
   if (this.category === 'data_access' && this.resourceType === 'user') {
     riskScore += 15;
   }
-
-
   // Unusual activity patterns
   if (this.security.flags && this.security.flags.length > 0) {
     riskScore += 25;
   }
-
-
   // Set risk level based on score
   if (riskScore >= 80) {
     this.security.riskLevel = 'critical';
@@ -260,7 +246,6 @@ auditLogSchema.pre('save', function (next) {
   } else {
     this.security.riskLevel = 'low';
   }
-
   this.security.riskScore = Math.min(riskScore, 100);
 
   next();
@@ -274,50 +259,38 @@ auditLogSchema.methods.addFlag = async function (flag) {
     this.security.flags.push(flag);
   }
   return this.save();
-};
-
+}
 auditLogSchema.methods.updateRiskLevel = async function (level) {
   this.security.riskLevel = level;
   return this.save();
-};
-
-
+}
 // Static methods
 auditLogSchema.statics.logAction = async function (data) {
   const AuditLog = mongoose.model('AuditLog');
   const auditLog = new AuditLog(data);
   return auditLog.save();
-};
-
+}
 auditLogSchema.statics.findByTenant = function (tenantId, options = {}) {
-  const query = { tenantId };
-
+  const query = { tenantId }
   if (options.action) {
     query.action = options.action;
   }
-
   if (options.category) {
     query.category = options.category;
   }
-
   if (options.userId) {
     query.userId = options.userId;
   }
-
   if (options.riskLevel) {
     query['security.riskLevel'] = options.riskLevel;
   }
-
   if (options.startDate && options.endDate) {
     query.createdAt = {
       $gte: new Date(options.startDate),
       $lte: new Date(options.endDate)
-    };
-  }
-
+    } }
   return this.find(query).sort({ createdAt: -1 });
-};
-
+}
 auditLogSchema.statics.findSuspiciousActivity = function (tenantId, hours = 24) {
   const cutoffDate = new Date(Date.now() - hours * 60 * 60 * 1000);
 
@@ -326,21 +299,16 @@ auditLogSchema.statics.findSuspiciousActivity = function (tenantId, hours = 24) 
     createdAt: { $gte: cutoffDate },
     $or: [
       { 'security.riskLevel': { $in: ['high', 'critical'] } },
-      { 'security.flags': { $exists: true, $ne: [] } }
-    ]
+      { 'security.flags': { $exists: true, $ne: [] } } ]
   }).sort({ createdAt: -1 });
-};
-
+}
 auditLogSchema.statics.getAuditStatistics = function (tenantId, options = {}) {
-  const matchStage = { tenantId: new mongoose.Types.ObjectId(tenantId) };
-
+  const matchStage = { tenantId: new mongoose.Types.ObjectId(tenantId) }
   if (options.startDate && options.endDate) {
     matchStage.createdAt = {
       $gte: new Date(options.startDate),
       $lte: new Date(options.endDate)
-    };
-  }
-
+    } }
   return this.aggregate([
     { $match: matchStage },
     {
@@ -355,11 +323,9 @@ auditLogSchema.statics.getAuditStatistics = function (tenantId, options = {}) {
               1,
               0
             ]
-          }
-        },
+          } },
         averageResponseTime: { $avg: '$response.responseTime' },
-        actionsByCategory: { $push: '$category' }
-      }
+        actionsByCategory: { $push: '$category' } }
     },
     {
       $project: {
@@ -374,23 +340,16 @@ auditLogSchema.statics.getAuditStatistics = function (tenantId, options = {}) {
             in: {
               $mergeObjects: [
                 '$$value',
-                { $literal: { $$this: { $add: [{ $ifNull: ['$$value.$$this', 0] }, 1] } } }
-              ]
-            }
-          }
-        }
-      }
-    }
-  ]);
-};
-
+                { $literal: { $$this: { $add: [{ $ifNull: ['$$value.$$this', 0] }, 1] } } } ]
+            } }
+        } }
+    } ]);
+}
 auditLogSchema.statics.cleanupOldLogs = async function (retentionDays = 90) {
   const cutoffDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
 
   return this.deleteMany({
     createdAt: { $lt: cutoffDate },
-    'compliance.dataRetention': { $ne: 'permanent' }
-  });
-};
-
+    'compliance.dataRetention': { $ne: 'permanent' } });
+}
 module.exports = mongoose.model('AuditLog', auditLogSchema);

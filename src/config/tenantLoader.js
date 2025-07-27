@@ -12,8 +12,7 @@ const path = require('path');
  */
 const loadAllTenants = () => {
   const tenantsDir = path.join(__dirname, '..', 'tenants');
-  const tenants = {};
-
+  const tenants = {}
   try {
     
 // Check if tenants directory exists
@@ -21,8 +20,6 @@ const loadAllTenants = () => {
       console.warn('Tenants directory not found:', tenantsDir);
       return tenants;
     }
-
-    
 // Read all tenant directories
     const tenantDirs = fs.readdirSync(tenantsDir, { withFileTypes: true })
       .filter(dirent => dirent.isDirectory())
@@ -44,23 +41,18 @@ const loadAllTenants = () => {
             console.log(`✅ Loaded tenant: ${tenantConfig.name} (${tenantConfig.slug})`);
           } else {
             console.error(`❌ Invalid configuration for tenant: ${tenantDir}`);
-          }
-        } else {
+          } } else {
           console.warn(`⚠️  No config.js found for tenant: ${tenantDir}`);
-        }
-      } catch (error) {
+        } } catch (error) {
         console.error(`❌ Error loading tenant ${tenantDir}:`, error.message);
-      }
-    });
+      } });
 
     console.log(`📊 Loaded ${Object.keys(tenants).length} tenant(s)`);
     return tenants;
   } catch (error) {
     console.error('❌ Error loading tenants:', error.message);
     return tenants;
-  }
-}
-
+  } }
 /**
  * Load a specific tenant configuration
  * @param {string} tenantSlug - The tenant slug to load
@@ -86,9 +78,7 @@ const loadTenant = (tenantSlug) => {
   } catch (error) {
     console.error(`❌ Error loading tenant ${tenantSlug}:`, error.message);
     return null;
-  }
-}
-
+  } }
 /**
  * Get tenant branding assets
  * @param {string} tenantSlug - The tenant slug
@@ -103,14 +93,12 @@ const getTenantAsset = (tenantSlug, assetType) => {
     logo: 'logo.png',
     favicon: 'favicon.ico',
     css: 'custom.css'
-  };
-
+  }
   const assetFile = assetMap[assetType];
   if (!assetFile) {
     console.warn(`⚠️  Unknown asset type: ${assetType}`);
     return null;
   }
-
   const assetPath = path.join(brandingDir, assetFile);
 
   if (fs.existsSync(assetPath)) {
@@ -119,73 +107,61 @@ const getTenantAsset = (tenantSlug, assetType) => {
   console.warn(`⚠️  Asset not found: ${assetPath}`);
   return null;
 }
-
 /**
  * Get all available tenant slugs
  * @returns {Array} Array of tenant slugs
  */
-const getAvailableTenants = () {
+const getAvailableTenants = () => {
   const tenantsDir = path.join(__dirname, '..', 'tenants');
 
   try {
     if (!fs.existsSync(tenantsDir)) {
       return [];
     }
-
     return fs.readdirSync(tenantsDir, { withFileTypes: true })
       .filter(dirent => dirent.isDirectory())
       .map(dirent => dirent.name);
   } catch (error) {
     console.error('❌ Error getting available tenants:', error.message);
     return [];
-  }
-}
-
+  } }
 /**
  * Validate tenant configuration
  * @param {Object} config - Tenant configuration to validate
  * @returns {boolean} True if valid, false otherwise
  */
-const validateTenantConfig = (config) {
+const validateTenantConfig = (config) => {
   const requiredFields = ['name', 'slug', 'status'];
 
   for (const field of requiredFields) {
     if (!config[field]) {
       console.error(`❌ Missing required field: ${field}`);
       return false;
-    }
-  }
-
-  
+    } }
 // Validate slug format
   if (!(/^[a-z0-9-]+$/).test(config.slug)) {
     console.error(`❌ Invalid slug format: ${config.slug}`);
     return false;
   }
-
-  
 // Validate status
   const validStatuses = ['active', 'inactive', 'pending', 'suspended'];
   if (!validStatuses.includes(config.status)) {
     console.error(`❌ Invalid status: ${config.status}`);
     return false;
   }
-
   return true;
 }
-
 /**
  * Watch for tenant configuration changes
  * @param {Function} callback - Callback function to execute when changes detected
  */
-const watchTenants = (callback) {
+const watchTenants = (callback) => {
   const tenantsDir = path.join(__dirname, '..', 'tenants');
 
   if (!fs.existsSync(tenantsDir)) {
     console.warn('Tenants directory not found for watching');
     return;
   }
-
   console.log('👀 Watching for tenant configuration changes...');
 
   fs.watch(tenantsDir, { recursive: true }, (eventType, filename) => {
@@ -193,32 +169,27 @@ const watchTenants = (callback) {
       console.log(`🔄 Tenant configuration changed: ${filename}`);
       if (typeof callback === 'function') {
         callback();
-      }
-    }
+      } }
   });
 }
-
 /**
  * Get tenant directory structure
  * @param {string} tenantSlug - The tenant slug
  * @returns {Object} Directory structure information
  */
-const getTenantStructure = (tenantSlug) {
+const getTenantStructure = (tenantSlug) => {
   const tenantsDir = path.join(__dirname, '..', 'tenants');
   const tenantDir = path.join(tenantsDir, tenantSlug);
 
   if (!fs.existsSync(tenantDir)) {
     return null;
   }
-
   const structure = {
     slug: tenantSlug,
     path: tenantDir,
     exists: true,
     files: {},
-    directories: {}
-  };
-
+    directories: {} }
   try {
     const items = fs.readdirSync(tenantDir, { withFileTypes: true });
 
@@ -231,22 +202,18 @@ const getTenantStructure = (tenantSlug) {
           files: fs.readdirSync(itemPath).filter(file =>
             fs.statSync(path.join(itemPath, file)).isFile()
           )
-        };
-      } else {
+        } } else {
         structure.files[item.name] = {
           path: itemPath,
           size: fs.statSync(itemPath).size
-        };
-      }
+        } }
     });
 
     return structure;
   } catch (error) {
     console.error(`❌ Error reading tenant structure for ${tenantSlug}:`, error.message);
     return null;
-  }
-}
-
+  } }
 module.exports = {
   loadAllTenants,
   loadTenant,
@@ -255,4 +222,4 @@ module.exports = {
   validateTenantConfig,
   watchTenants,
   getTenantStructure
-};
+}

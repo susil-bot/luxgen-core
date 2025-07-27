@@ -15,9 +15,7 @@ app.use(express.json());
 const mockAuthMiddleware = (req, res, next) => {
   req.user = testUtils.testConfig.testUsers[0];
   next();
-};
-
-
+}
 // Apply middleware and routes
 app.use(mockAuthMiddleware);
 
@@ -72,8 +70,7 @@ describe('TrainingController', () => {
           participants: [testUtils.testConfig.testUsers[2]._id],
           capacity: 15,
           tenantId: testUtils.testConfig.testUsers[0].tenantId
-        }
-      ];
+        } ];
 
       await TrainingSession.insertMany(testSessions);
 
@@ -113,8 +110,7 @@ describe('TrainingController', () => {
           participants: [],
           capacity: 15,
           tenantId: testUtils.testConfig.testUsers[0].tenantId
-        }
-      ];
+        } ];
 
       await TrainingSession.insertMany(testSessions);
 
@@ -165,8 +161,7 @@ describe('TrainingController', () => {
           enrollmentCount: 3,
           status: 'active',
           tenantId: testUtils.testConfig.testUsers[0].tenantId
-        }
-      ];
+        } ];
 
       await TrainingCourse.insertMany(testCourses);
 
@@ -205,8 +200,7 @@ describe('TrainingController', () => {
           enrollmentCount: 3,
           status: 'active',
           tenantId: testUtils.testConfig.testUsers[0].tenantId
-        }
-      ];
+        } ];
 
       await TrainingCourse.insertMany(testCourses);
 
@@ -240,8 +234,7 @@ describe('TrainingController', () => {
             {
               participantId: testUtils.testConfig.testUsers[2]._id,
               attended: true
-            }
-          ],
+            } ],
           capacity: 20,
           tenantId: testUtils.testConfig.testUsers[0].tenantId
         },
@@ -256,8 +249,7 @@ describe('TrainingController', () => {
           participants: [testUtils.testConfig.testUsers[2]._id],
           capacity: 15,
           tenantId: testUtils.testConfig.testUsers[0].tenantId
-        }
-      ];
+        } ];
 
       await TrainingSession.insertMany(testSessions);
 
@@ -313,8 +305,7 @@ describe('TrainingController', () => {
             {
               participantId,
               attended: true
-            }
-          ],
+            } ],
           capacity: 20,
           tenantId: testUtils.testConfig.testUsers[0].tenantId
         },
@@ -330,12 +321,10 @@ describe('TrainingController', () => {
             {
               participantId,
               attended: false
-            }
-          ],
+            } ],
           capacity: 15,
           tenantId: testUtils.testConfig.testUsers[0].tenantId
-        }
-      ];
+        } ];
 
       await TrainingSession.insertMany(testSessions);
 
@@ -355,12 +344,10 @@ describe('TrainingController', () => {
               participantId,
               completed: true,
               progress: 100
-            }
-          ],
+            } ],
           status: 'active',
           tenantId: testUtils.testConfig.testUsers[0].tenantId
-        }
-      ];
+        } ];
 
       await TrainingCourse.insertMany(testCourses);
 

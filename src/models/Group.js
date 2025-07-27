@@ -62,8 +62,7 @@ const groupSchema = new mongoose.Schema({
       type: String,
       enum: ['active', 'inactive', 'suspended'],
       default: 'active'
-    }
-  }],
+    } }],
   isActive: {
     type: Boolean,
     default: true
@@ -93,8 +92,7 @@ const groupSchema = new mongoose.Schema({
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
-  }
-}, { timestamps: true });
+  } }, { timestamps: true });
 
 
 // Indexes
@@ -133,11 +131,9 @@ groupSchema.methods.addMember = function (userId, role = 'member') {
   if (existingMember) {
     throw new Error('User is already a member of this group');
   }
-
   if (this.currentSize >= this.maxSize) {
     throw new Error('Group is at maximum capacity');
   }
-
   this.members.push({
     userId,
     role,
@@ -146,8 +142,7 @@ groupSchema.methods.addMember = function (userId, role = 'member') {
   });
 
   return this.save();
-};
-
+}
 groupSchema.methods.removeMember = function (userId) {
   const memberIndex = this.members.findIndex(member =>
     member.userId.toString() === userId.toString()
@@ -156,11 +151,9 @@ groupSchema.methods.removeMember = function (userId) {
   if (memberIndex === -1) {
     throw new Error('User is not a member of this group');
   }
-
   this.members.splice(memberIndex, 1);
   return this.save();
-};
-
+}
 groupSchema.methods.updateMemberRole = function (userId, newRole) {
   const member = this.members.find(member =>
     member.userId.toString() === userId.toString()
@@ -169,11 +162,9 @@ groupSchema.methods.updateMemberRole = function (userId, newRole) {
   if (!member) {
     throw new Error('User is not a member of this group');
   }
-
   member.role = newRole;
   return this.save();
-};
-
+}
 groupSchema.methods.suspendMember = function (userId) {
   const member = this.members.find(member =>
     member.userId.toString() === userId.toString()
@@ -182,11 +173,9 @@ groupSchema.methods.suspendMember = function (userId) {
   if (!member) {
     throw new Error('User is not a member of this group');
   }
-
   member.status = 'suspended';
   return this.save();
-};
-
+}
 groupSchema.methods.activateMember = function (userId) {
   const member = this.members.find(member =>
     member.userId.toString() === userId.toString()
@@ -195,34 +184,26 @@ groupSchema.methods.activateMember = function (userId) {
   if (!member) {
     throw new Error('User is not a member of this group');
   }
-
   member.status = 'active';
   return this.save();
-};
-
-
+}
 // Static methods
 groupSchema.statics.findByTenant = function (tenantId, options = {}) {
-  const query = { tenantId, isDeleted: false };
-
+  const query = { tenantId, isDeleted: false }
   if (options.isActive !== undefined) {
     query.isActive = options.isActive;
   }
-
   if (options.category) {
     query.category = options.category;
   }
-
   if (options.trainerId) {
     query.trainerId = options.trainerId;
   }
-
   return this.find(query)
     .populate('trainerId', 'firstName lastName email')
     .populate('members.userId', 'firstName lastName email role')
     .sort({ createdAt: -1 });
-};
-
+}
 groupSchema.statics.findByMember = function (userId) {
   return this.find({
     'members.userId': userId,
@@ -232,8 +213,7 @@ groupSchema.statics.findByMember = function (userId) {
     .populate('trainerId', 'firstName lastName email')
     .populate('members.userId', 'firstName lastName email role')
     .sort({ createdAt: -1 });
-};
-
+}
 groupSchema.statics.getGroupStats = function (groupId) {
   return this.aggregate([
     { $match: { _id: new mongoose.Types.ObjectId(groupId) } },
@@ -243,8 +223,7 @@ groupSchema.statics.getGroupStats = function (groupId) {
         localField: 'members.userId',
         foreignField: '_id',
         as: 'memberDetails'
-      }
-    },
+      } },
     {
       $project: {
         name: 1,
@@ -256,22 +235,16 @@ groupSchema.statics.getGroupStats = function (groupId) {
           $size: {
             $filter: {
               input: '$members',
-              cond: { $eq: ['$$this.status', 'active'] }
-            }
-          }
-        },
+              cond: { $eq: ['$$this.status', 'active'] } }
+          } },
         averageMemberRole: {
           $avg: {
             $map: {
               input: '$memberDetails',
               as: 'member',
-              in: { $cond: [{ $eq: ['$$member.role', 'admin'] }, 3, { $cond: [{ $eq: ['$$member.role', 'trainer'] }, 2, 1] }] }
-            }
-          }
-        }
-      }
-    }
+              in: { $cond: [{ $eq: ['$$member.role', 'admin'] }, 3, { $cond: [{ $eq: ['$$member.role', 'trainer'] }, 2, 1] }] } }
+          } }
+      } }
   ]);
-};
-
+}
 module.exports = mongoose.model('Group', groupSchema);

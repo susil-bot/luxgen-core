@@ -16,7 +16,6 @@ class EnhancedCacheManager {
     this.maxMemorySize = 100;
     // Maximum items in memory cache
   }
-
   /**
    * Initialize cache with Redis connection
    */
@@ -42,8 +41,7 @@ class EnhancedCacheManager {
             return undefined;
           }
           return Math.min(options.attempt * 100, 3000);
-        }
-      });
+        } });
 
       await this.redisClient.connect();
       this.isConnected = true;
@@ -72,9 +70,7 @@ class EnhancedCacheManager {
       logger.warn('⚠️ Redis cache connection failed, falling back to memory cache:', error.message);
       this.isConnected = false;
       return false;
-    }
-  }
-
+    } }
   /**
    * Get value from cache
    */
@@ -85,8 +81,7 @@ class EnhancedCacheManager {
         if (value) {
           logger.debug(`📥 Cache hit (Redis): ${key}`);
           return JSON.parse(value);
-        }
-      } else {
+        } } else {
         // Fallback to memory cache
         const item = this.memoryCache.get(key);
         if (item && item.expiresAt > Date.now()) {
@@ -95,17 +90,13 @@ class EnhancedCacheManager {
         } else if (item) {
           // Remove expired item
           this.memoryCache.delete(key);
-        }
-      }
-
+        } }
       logger.debug(`📤 Cache miss: ${key}`);
       return null;
     } catch (error) {
       logger.error('❌ Cache get error:', error);
       return null;
-    }
-  }
-
+    } }
   /**
    * Set value in cache
    */
@@ -123,9 +114,7 @@ class EnhancedCacheManager {
     } catch (error) {
       logger.error('❌ Cache set error:', error);
       return false;
-    }
-  }
-
+    } }
   /**
    * Set value in memory cache with TTL
    */
@@ -138,11 +127,9 @@ class EnhancedCacheManager {
     if (this.memoryCache.size >= this.maxMemorySize) {
       this.evictOldestItem();
     }
-
     const expiresAt = Date.now() + (ttl * 1000);
     this.memoryCache.set(key, { value, expiresAt });
   }
-
   /**
    * Delete value from cache
    */
@@ -159,9 +146,7 @@ class EnhancedCacheManager {
     } catch (error) {
       logger.error('❌ Cache delete error:', error);
       return false;
-    }
-  }
-
+    } }
   /**
    * Invalidate cache by pattern
    */
@@ -172,8 +157,7 @@ class EnhancedCacheManager {
         if (keys.length > 0) {
           await this.redisClient.del(keys);
           logger.info(`🗑️ Cache invalidated (Redis): ${pattern}, ${keys.length} keys`);
-        }
-      } else {
+        } } else {
         // Fallback to memory cache pattern matching
         this.invalidateMemoryCache(pattern);
       }
@@ -181,9 +165,7 @@ class EnhancedCacheManager {
     } catch (error) {
       logger.error('❌ Cache invalidate error:', error);
       return false;
-    }
-  }
-
+    } }
   /**
    * Invalidate memory cache by pattern
    */
@@ -195,14 +177,10 @@ class EnhancedCacheManager {
       if (regex.test(key)) {
         this.memoryCache.delete(key);
         deletedCount += 1;
-      }
-    }
-
+      } }
     if (deletedCount > 0) {
       logger.info(`🗑️ Cache invalidated (Memory): ${pattern}, ${deletedCount} keys`);
-    }
-  }
-
+    } }
   /**
    * Get cache statistics
    */
@@ -213,20 +191,16 @@ class EnhancedCacheManager {
         isConnected: this.isConnected,
         memoryCacheSize: this.memoryCache.size,
         timestamp: new Date().toISOString()
-      };
-
+      }
       if (this.isConnected && this.redisClient) {
         const info = await this.redisClient.info();
         stats.redisInfo = info;
       }
-
       return stats;
     } catch (error) {
       logger.error('❌ Cache stats error:', error);
-      return { error: error.message };
-    }
+      return { error: error.message } }
   }
-
   /**
    * Clean up expired items from memory cache
    */
@@ -235,10 +209,8 @@ class EnhancedCacheManager {
     for (const [key, item] of this.memoryCache.entries()) {
       if (item.expiresAt <= now) {
         this.memoryCache.delete(key);
-      }
-    }
+      } }
   }
-
   /**
    * Evict oldest item from memory cache
    */
@@ -250,15 +222,11 @@ class EnhancedCacheManager {
       if (item.expiresAt < oldestTime) {
         oldestTime = item.expiresAt;
         oldestKey = key;
-      }
-    }
-
+      } }
     if (oldestKey) {
       this.memoryCache.delete(oldestKey);
       logger.debug(`🗑️ Evicted oldest cache item: ${oldestKey}`);
-    }
-  }
-
+    } }
   /**
    * Clear all cache
    */
@@ -275,9 +243,7 @@ class EnhancedCacheManager {
     } catch (error) {
       logger.error('❌ Cache clear error:', error);
       return false;
-    }
-  }
-
+    } }
   /**
    * Disconnect from Redis
    */
@@ -287,12 +253,9 @@ class EnhancedCacheManager {
         await this.redisClient.quit();
         this.isConnected = false;
         logger.info('✅ Redis cache disconnected');
-      }
-    } catch (error) {
+      } } catch (error) {
       logger.error('❌ Cache disconnect error:', error);
-    }
-  }
-
+    } }
   /**
    * Cache middleware for Express routes
    */
@@ -308,8 +271,6 @@ class EnhancedCacheManager {
         if (cachedResponse) {
           return res.json(cachedResponse);
         }
-
-
         // Store original send method
         const originalSend = res.json;
 
@@ -328,12 +289,8 @@ class EnhancedCacheManager {
       } catch (error) {
         logger.error('❌ Cache middleware error:', error);
         next();
-      }
-    };
-  }
-}
-
-
+      } }
+  } }
 // Create singleton instance
 const cacheManager = new EnhancedCacheManager();
 

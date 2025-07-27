@@ -16,7 +16,6 @@ exports.getTenantSchema = async (req, res) => {
         message: 'Access denied to this tenant'
       });
     }
-
     const tenant = await TenantSchema.findById(tenantId);
     if (!tenant) {
       return res.status(404).json({
@@ -24,7 +23,6 @@ exports.getTenantSchema = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     res.json({
       success: true,
       data: tenant
@@ -36,9 +34,7 @@ exports.getTenantSchema = async (req, res) => {
       message: 'Failed to get tenant schema',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Create tenant schema
  */
@@ -55,14 +51,12 @@ exports.createTenantSchema = async (req, res) => {
         message: 'Tenant with this slug already exists'
       });
     }
-
     const tenant = new TenantSchema({
       ...tenantData,
       metadata: {
         ...tenantData.metadata,
         createdBy: req.user.userId
-      }
-    });
+      } });
 
     await tenant.save();
 
@@ -78,9 +72,7 @@ exports.createTenantSchema = async (req, res) => {
       message: 'Failed to create tenant',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Update tenant schema
  */
@@ -97,7 +89,6 @@ exports.updateTenantSchema = async (req, res) => {
         message: 'Access denied to this tenant'
       });
     }
-
     const tenant = await TenantSchema.findById(tenantId);
     if (!tenant) {
       return res.status(404).json({
@@ -105,7 +96,6 @@ exports.updateTenantSchema = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     Object.assign(tenant, updateData);
     await tenant.save();
 
@@ -121,9 +111,7 @@ exports.updateTenantSchema = async (req, res) => {
       message: 'Failed to update tenant',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Update tenant styling
  */
@@ -140,7 +128,6 @@ exports.updateTenantStyling = async (req, res) => {
         message: 'Access denied to this tenant'
       });
     }
-
     const tenant = await TenantSchema.findById(tenantId);
     if (!tenant) {
       return res.status(404).json({
@@ -148,7 +135,6 @@ exports.updateTenantStyling = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     await tenant.updateStyling(stylingUpdates);
 
     res.json({
@@ -163,9 +149,7 @@ exports.updateTenantStyling = async (req, res) => {
       message: 'Failed to update tenant styling',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get tenant CSS variables
  */
@@ -180,7 +164,6 @@ exports.getTenantCSS = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     const css = tenant.generateCSSVariables();
 
     res.setHeader('Content-Type', 'text/css');
@@ -193,9 +176,7 @@ exports.getTenantCSS = async (req, res) => {
       message: 'Failed to generate tenant CSS',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get tenant styling configuration
  */
@@ -211,7 +192,6 @@ exports.getTenantStyling = async (req, res) => {
         message: 'Access denied to this tenant'
       });
     }
-
     const tenant = await TenantSchema.findById(tenantId);
     if (!tenant) {
       return res.status(404).json({
@@ -219,7 +199,6 @@ exports.getTenantStyling = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     res.json({
       success: true,
       data: tenant.stylingConfig
@@ -231,9 +210,7 @@ exports.getTenantStyling = async (req, res) => {
       message: 'Failed to get tenant styling',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Reset tenant styling to defaults
  */
@@ -249,7 +226,6 @@ exports.resetTenantStyling = async (req, res) => {
         message: 'Access denied to this tenant'
       });
     }
-
     const tenant = await TenantSchema.findById(tenantId);
     if (!tenant) {
       return res.status(404).json({
@@ -257,8 +233,6 @@ exports.resetTenantStyling = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
-
     // Reset styling to defaults
     tenant.styling = {
       branding: {
@@ -295,8 +269,7 @@ exports.resetTenantStyling = async (req, res) => {
           medium: '500',
           semibold: '600',
           bold: '700'
-        }
-      },
+        } },
       spacing: {
         xs: '0.25rem',
         sm: '0.5rem',
@@ -336,8 +309,7 @@ exports.resetTenantStyling = async (req, res) => {
             borderColor: '#D1D5DB',
             hoverBackgroundColor: '#E5E7EB',
             hoverTextColor: '#374151'
-          }
-        },
+          } },
         input: {
           backgroundColor: '#FFFFFF',
           borderColor: '#D1D5DB',
@@ -350,10 +322,8 @@ exports.resetTenantStyling = async (req, res) => {
           backgroundColor: '#FFFFFF',
           borderColor: '#E5E7EB',
           shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
-        }
-      }
-    };
-
+        } }
+    }
     await tenant.save();
 
     res.json({
@@ -368,9 +338,7 @@ exports.resetTenantStyling = async (req, res) => {
       message: 'Failed to reset tenant styling',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get all tenants (admin only)
  */
@@ -378,14 +346,13 @@ exports.getAllTenants = async (req, res) => {
   try {
     const { page = 1, limit = 10, status, subscriptionStatus } = req.query;
 
-    const query = {};
+    const query = {}
     if (status) {
       query.status = status;
     }
     if (subscriptionStatus) {
       query['subscription.status'] = subscriptionStatus;
     }
-
     const tenants = await TenantSchema.find(query)
       .sort({ createdAt: -1 })
       .limit(limit * 1)
@@ -400,8 +367,7 @@ exports.getAllTenants = async (req, res) => {
         totalPages: Math.ceil(total / limit),
         currentPage: page,
         total
-      }
-    });
+      } });
   } catch (error) {
     console.error('Get all tenants error:', error);
     res.status(500).json({
@@ -409,9 +375,7 @@ exports.getAllTenants = async (req, res) => {
       message: 'Failed to get tenants',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get tenant by slug
  */
@@ -426,7 +390,6 @@ exports.getTenantBySlug = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     res.json({
       success: true,
       data: tenant
@@ -438,9 +401,7 @@ exports.getTenantBySlug = async (req, res) => {
       message: 'Failed to get tenant',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Update tenant usage statistics
  */
@@ -456,7 +417,6 @@ exports.updateTenantUsage = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     await tenant.updateUsage(type, count);
 
     res.json({
@@ -471,9 +431,7 @@ exports.updateTenantUsage = async (req, res) => {
       message: 'Failed to update usage statistics',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get tenants expiring soon
  */
@@ -494,9 +452,7 @@ exports.getExpiringTenants = async (req, res) => {
       message: 'Failed to get expiring tenants',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get tenants by primary color
  */
@@ -517,7 +473,5 @@ exports.getTenantsByColor = async (req, res) => {
       message: 'Failed to get tenants by color',
       error: error.message
     });
-  }
-};
-
+  } }
 module.exports = exports;

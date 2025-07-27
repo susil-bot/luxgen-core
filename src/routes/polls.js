@@ -8,9 +8,7 @@ const User = require('../models/User');
 const extractTenant = (req, res, next) => {
   req.tenantId = req.params.tenantId;
   next();
-};
-
-
+}
 // Apply tenant middleware to all routes
 router.use('/:tenantId', extractTenant);
 
@@ -31,7 +29,7 @@ router.get('/:tenantId', async (req, res) => {
 
 
     // Build filter object
-    const filters = { tenantId: req.tenantId };
+    const filters = { tenantId: req.tenantId }
     if (status && status !== 'all') {
       filters.status = status;
     }
@@ -45,13 +43,10 @@ router.get('/:tenantId', async (req, res) => {
       filters.$or = [
         { title: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } }
-      ];
+        { tags: { $in: [new RegExp(search, 'i')] } } ];
     }
-
-
     // Build sort object
-    const sort = {};
+    const sort = {}
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
 
@@ -88,8 +83,7 @@ router.get('/:tenantId', async (req, res) => {
         limit: parseInt(limit),
         total,
         pages: Math.ceil(total / parseInt(limit))
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error fetching polls:', error);
     res.status(500).json({
@@ -97,8 +91,7 @@ router.get('/:tenantId', async (req, res) => {
       message: 'Failed to fetch polls',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // GET /api/polls/:(tenantId/stats - Get) poll statistics
@@ -113,30 +106,24 @@ router.get('/:tenantId/stats', async (req, res) => {
           totalRecipients: { $sum: '$analytics.totalRecipients' },
           totalResponses: { $sum: '$analytics.totalResponses' },
           avgResponseRate: { $avg: '$analytics.responseRate' },
-          avgRating: { $avg: '$analytics.averageRating' }
-        }
-      }
-    ]);
+          avgRating: { $avg: '$analytics.averageRating' } }
+      } ]);
 
     const statusStats = await Poll.aggregate([
       { $match: { tenantId: req.tenantId } },
       {
         $group: {
           _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
+          count: { $sum: 1 } }
+      } ]);
 
     const nicheStats = await Poll.aggregate([
       { $match: { tenantId: req.tenantId } },
       {
         $group: {
           _id: '$niche',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
+          count: { $sum: 1 } }
+      } ]);
 
     res.json({
       success: true,
@@ -150,8 +137,7 @@ router.get('/:tenantId/stats', async (req, res) => {
         },
         byStatus: statusStats,
         byNiche: nicheStats
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error fetching poll stats:', error);
     res.status(500).json({
@@ -159,8 +145,7 @@ router.get('/:tenantId/stats', async (req, res) => {
       message: 'Failed to fetch poll statistics',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // GET /api/polls/:(tenantId/notifications - Get) notifications
@@ -191,8 +176,6 @@ router.get('/:tenantId/notifications', async (req, res) => {
     if (unreadOnly === 'true') {
       allNotifications = allNotifications.filter(n => !n.read);
     }
-
-
     // Sort by creation date (newest first)
     allNotifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -203,8 +186,7 @@ router.get('/:tenantId/notifications', async (req, res) => {
         page: parseInt(page),
         limit: parseInt(limit),
         total: allNotifications.length
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error fetching notifications:', error);
     res.status(500).json({
@@ -212,8 +194,7 @@ router.get('/:tenantId/notifications', async (req, res) => {
       message: 'Failed to fetch notifications',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // PUT /api/polls/:tenantId/notifications/:(notificationId/read - Mark) notification as read
@@ -234,8 +215,6 @@ router.put('/:tenantId/notifications/:notificationId/read', async (req, res) => 
         message: 'Notification not found'
       });
     }
-
-
     // Mark notification as read
     const notification = poll.notifications.id(notificationId);
     notification.read = true;
@@ -252,8 +231,7 @@ router.put('/:tenantId/notifications/:notificationId/read', async (req, res) => 
       message: 'Failed to mark notification as read',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // GET /api/polls/:tenantId/:id - Get single poll
@@ -270,7 +248,6 @@ router.get('/:tenantId/:id', async (req, res) => {
         message: 'Poll not found'
       });
     }
-
     res.json({
       success: true,
       data: poll
@@ -282,8 +259,7 @@ router.get('/:tenantId/:id', async (req, res) => {
       message: 'Failed to fetch poll',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // POST /api/polls/:tenantId - Create new poll
@@ -345,8 +321,7 @@ router.post('/:tenantId', async (req, res) => {
       message: 'Failed to create poll',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // PUT /api/polls/:tenantId/:id - Update poll
@@ -363,14 +338,11 @@ router.put('/:tenantId/:id', async (req, res) => {
         message: 'Poll not found'
       });
     }
-
-
     // Update poll fields
     Object.keys(req.body).forEach(key => {
       if (key !== '_id' && key !== 'tenantId' && key !== 'createdBy') {
         poll[key] = req.body[key];
-      }
-    });
+      } });
 
     poll.updatedBy = req.user?.id || 'system';
     await poll.save();
@@ -387,8 +359,7 @@ router.put('/:tenantId/:id', async (req, res) => {
       message: 'Failed to update poll',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // DELETE /api/polls/:tenantId/:id - Delete poll
@@ -405,7 +376,6 @@ router.delete('/:tenantId/:id', async (req, res) => {
         message: 'Poll not found'
       });
     }
-
     res.json({
       success: true,
       message: 'Poll deleted successfully'
@@ -417,8 +387,7 @@ router.delete('/:tenantId/:id', async (req, res) => {
       message: 'Failed to delete poll',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // POST /api/polls/:tenantId/:(id/recipients - Add) recipients
@@ -436,8 +405,6 @@ router.post('/:tenantId/:id/recipients', async (req, res) => {
         message: 'Poll not found'
       });
     }
-
-
     // Add recipients
     for (const recipient of recipients) {
       await poll.addRecipient(
@@ -446,7 +413,6 @@ router.post('/:tenantId/:id/recipients', async (req, res) => {
         recipient.name
       );
     }
-
     res.json({
       success: true,
       message: 'Recipients added successfully',
@@ -459,8 +425,7 @@ router.post('/:tenantId/:id/recipients', async (req, res) => {
       message: 'Failed to add recipients',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // POST /api/polls/:tenantId/:(id/responses - Submit) poll response
@@ -478,8 +443,6 @@ router.post('/:tenantId/:id/responses', async (req, res) => {
         message: 'Poll not found'
       });
     }
-
-
     // Check if poll is active
     if (poll.status !== 'sent' && poll.status !== 'scheduled') {
       return res.status(400).json({
@@ -487,8 +450,6 @@ router.post('/:tenantId/:id/responses', async (req, res) => {
         message: 'Poll is not accepting responses'
       });
     }
-
-
     // Check if user already responded
     const existingResponse = poll.responses.find(r => r.userEmail === userEmail);
     if (existingResponse) {
@@ -497,8 +458,6 @@ router.post('/:tenantId/:id/responses', async (req, res) => {
         message: 'You have already responded to this poll'
       });
     }
-
-
     // Add response
     await poll.addResponse(userId, userName, userEmail, answers);
 
@@ -523,8 +482,7 @@ router.post('/:tenantId/:id/responses', async (req, res) => {
       message: 'Failed to submit response',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // POST /api/polls/:tenantId/:(id/feedback - Submit) feedback
@@ -542,8 +500,6 @@ router.post('/:tenantId/:id/feedback', async (req, res) => {
         message: 'Poll not found'
       });
     }
-
-
     // Add feedback
     await poll.addFeedback(userId, userName, userEmail, rating, comment);
 
@@ -568,8 +524,7 @@ router.post('/:tenantId/:id/feedback', async (req, res) => {
       message: 'Failed to submit feedback',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // GET /api/polls/:tenantId/:(id/responses - Get) poll responses
@@ -586,7 +541,6 @@ router.get('/:tenantId/:id/responses', async (req, res) => {
         message: 'Poll not found'
       });
     }
-
     res.json({
       success: true,
       data: poll.responses
@@ -598,8 +552,7 @@ router.get('/:tenantId/:id/responses', async (req, res) => {
       message: 'Failed to fetch responses',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // GET /api/polls/:tenantId/:(id/feedback - Get) poll feedback
@@ -616,7 +569,6 @@ router.get('/:tenantId/:id/feedback', async (req, res) => {
         message: 'Poll not found'
       });
     }
-
     res.json({
       success: true,
       data: poll.feedback
@@ -628,8 +580,7 @@ router.get('/:tenantId/:id/feedback', async (req, res) => {
       message: 'Failed to fetch feedback',
       error: error.message
     });
-  }
-});
+  } });
 
 
 // POST /api/polls/:tenantId/:(id/send - Send) poll to recipients
@@ -646,15 +597,12 @@ router.post('/:tenantId/:id/send', async (req, res) => {
         message: 'Poll not found'
       });
     }
-
     if (poll.status !== 'draft' && poll.status !== 'scheduled') {
       return res.status(400).json({
         success: false,
         message: 'Poll cannot be sent in current status'
       });
     }
-
-
     // Update poll status
     poll.status = 'sent';
     poll.sentDate = new Date();
@@ -675,8 +623,7 @@ router.post('/:tenantId/:id/send', async (req, res) => {
       data: {
         sentTo: poll.recipients.length,
         sentAt: poll.sentDate
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error sending poll:', error);
     res.status(500).json({
@@ -684,7 +631,6 @@ router.post('/:tenantId/:id/send', async (req, res) => {
       message: 'Failed to send poll',
       error: error.message
     });
-  }
-});
+  } });
 
 module.exports = router;

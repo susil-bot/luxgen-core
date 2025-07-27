@@ -96,8 +96,7 @@ const notificationSchema = new mongoose.Schema({
       type: Number,
       default: 3,
       min: 0
-    }
-  },
+    } },
 
 
   // Action and navigation
@@ -114,8 +113,7 @@ const notificationSchema = new mongoose.Schema({
       type: String,
       enum: ['GET', 'POST', 'PUT', 'DELETE'],
       default: 'GET'
-    }
-  },
+    } },
 
 
   // Related resources
@@ -136,8 +134,7 @@ const notificationSchema = new mongoose.Schema({
   // Data payload
   data: {
     type: mongoose.Schema.Types.Mixed,
-    default: {}
-  },
+    default: {} },
 
 
   // Expiration and cleanup
@@ -172,13 +169,11 @@ const notificationSchema = new mongoose.Schema({
   // Metadata
   metadata: {
     type: mongoose.Schema.Types.Mixed,
-    default: {}
-  }
+    default: {} }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+  toObject: { virtuals: true } });
 
 
 // Virtual for is expired
@@ -231,8 +226,7 @@ notificationSchema.index({ groupId: 1, createdAt: -1 });
 notificationSchema.index({ createdAt: 1 }, {
   expireAfterSeconds: 30 * 24 * 60 * 60,
   // 30 days default
-  partialFilterExpression: { autoDelete: true }
-});
+  partialFilterExpression: { autoDelete: true } });
 
 
 // Pre-save middleware
@@ -241,19 +235,14 @@ notificationSchema.pre('save', function (next) {
   if (this.isModified('isRead') && this.isRead && !this.readAt) {
     this.readAt = new Date();
   }
-
-
   // Auto-set archivedAt when marked as archived
   if (this.isModified('isArchived') && this.isArchived && !this.archivedAt) {
     this.archivedAt = new Date();
   }
-
-
   // Auto-set expiresAt if not provided
   if (!this.expiresAt && this.autoDelete) {
     this.expiresAt = new Date(Date.now() + this.deleteAfterDays * 24 * 60 * 60 * 1000);
   }
-
   next();
 });
 
@@ -263,26 +252,22 @@ notificationSchema.methods.markAsRead = async function () {
   this.isRead = true;
   this.readAt = new Date();
   return this.save();
-};
-
+}
 notificationSchema.methods.markAsUnread = async function () {
   this.isRead = false;
   this.readAt = null;
   return this.save();
-};
-
+}
 notificationSchema.methods.archive = async function () {
   this.isArchived = true;
   this.archivedAt = new Date();
   return this.save();
-};
-
+}
 notificationSchema.methods.unarchive = async function () {
   this.isArchived = false;
   this.archivedAt = null;
   return this.save();
-};
-
+}
 notificationSchema.methods.retryDelivery = async function () {
   if (this.canRetry) {
     this.delivery.retryCount += 1;
@@ -292,93 +277,70 @@ notificationSchema.methods.retryDelivery = async function () {
     return this.save();
   }
   throw new Error('Max retries exceeded');
-};
-
+}
 notificationSchema.methods.markAsDelivered = async function () {
   this.delivery.deliveredAt = new Date();
   return this.save();
-};
-
+}
 notificationSchema.methods.markAsFailed = async function () {
   this.delivery.failedAt = new Date();
   return this.save();
-};
-
-
+}
 // Static methods
 notificationSchema.statics.createNotification = async function (data) {
   const Notification = mongoose.model('Notification');
   const notification = new Notification(data);
   return notification.save();
-};
-
+}
 notificationSchema.statics.findByUser = function (userId, options = {}) {
-  const query = { userId, isArchived: false };
-
+  const query = { userId, isArchived: false }
   if (options.isRead !== undefined) {
     query.isRead = options.isRead;
   }
-
   if (options.type) {
     query.type = options.type;
   }
-
   if (options.priority) {
     query.priority = options.priority;
   }
-
   return this.find(query).sort({ createdAt: -1 });
-};
-
+}
 notificationSchema.statics.findUnreadByUser = function (userId) {
   return this.find({
     userId, isRead: false, isArchived: false
   }).sort({ createdAt: -1 });
-};
-
+}
 notificationSchema.statics.findByTenant = function (tenantId, options = {}) {
-  const query = { tenantId };
-
+  const query = { tenantId }
   if (options.type) {
     query.type = options.type;
   }
-
   if (options.priority) {
     query.priority = options.priority;
   }
-
   if (options.isRead !== undefined) {
     query.isRead = options.isRead;
   }
-
   return this.find(query).sort({ createdAt: -1 });
-};
-
+}
 notificationSchema.statics.findPendingDelivery = function () {
   return this.find({
     'delivery.scheduledAt': { $lte: new Date() },
     'delivery.sentAt': { $exists: false },
-    'delivery.failedAt': { $exists: false }
-  });
-};
-
+    'delivery.failedAt': { $exists: false } });
+}
 notificationSchema.statics.markAllAsRead = async function (userId) {
   return this.updateMany(
     { userId, isRead: false },
-    { isRead: true, readAt: new Date() }
-  );
-};
-
+    { isRead: true, readAt: new Date() } );
+}
 notificationSchema.statics.getNotificationStatistics = function (tenantId, options = {}) {
-  const matchStage = { tenantId: new mongoose.Types.ObjectId(tenantId) };
-
+  const matchStage = { tenantId: new mongoose.Types.ObjectId(tenantId) }
   if (options.startDate && options.endDate) {
     matchStage.createdAt = {
       $gte: new Date(options.startDate),
       $lte: new Date(options.endDate)
-    };
-  }
-
+    } }
   return this.aggregate([
     { $match: matchStage },
     {
@@ -395,10 +357,8 @@ notificationSchema.statics.getNotificationStatistics = function (tenantId, optio
               { $subtract: ['$readAt', '$createdAt'] },
               null
             ]
-          }
-        }
-      }
-    },
+          } }
+      } },
     {
       $project: {
         totalNotifications: 1,
@@ -411,10 +371,8 @@ notificationSchema.statics.getNotificationStatistics = function (tenantId, optio
             in: {
               $mergeObjects: [
                 '$$value',
-                { $literal: { $$this: { $add: [{ $ifNull: ['$$value.$$this', 0] }, 1] } } }
-              ]
-            }
-          }
+                { $literal: { $$this: { $add: [{ $ifNull: ['$$value.$$this', 0] }, 1] } } } ]
+            } }
         },
         priorityBreakdown: {
           $reduce: {
@@ -423,21 +381,15 @@ notificationSchema.statics.getNotificationStatistics = function (tenantId, optio
             in: {
               $mergeObjects: [
                 '$$value',
-                { $literal: { $$this: { $add: [{ $ifNull: ['$$value.$$this', 0] }, 1] } } }
-              ]
-            }
-          }
-        }
-      }
-    }
-  ]);
-};
-
+                { $literal: { $$this: { $add: [{ $ifNull: ['$$value.$$this', 0] }, 1] } } } ]
+            } }
+        } }
+    } ]);
+}
 notificationSchema.statics.cleanupExpired = async function () {
   return this.deleteMany({
     expiresAt: { $lt: new Date() },
     autoDelete: true
   });
-};
-
+}
 module.exports = mongoose.model('Notification', notificationSchema);

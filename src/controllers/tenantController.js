@@ -25,14 +25,11 @@ const createTenant = async (req, res) => {
         errors: validation.errors
       });
     }
-
-
     // Check if tenant with same email or slug already exists
     const existingTenant = await Tenant.findOne({
       $or: [
         { contactEmail: tenantData.contactEmail },
-        { slug: tenantData.slug || generateSlug(tenantData.name) }
-      ]
+        { slug: tenantData.slug || generateSlug(tenantData.name) } ]
     });
 
     if (existingTenant) {
@@ -41,23 +38,17 @@ const createTenant = async (req, res) => {
         message: 'Tenant with this email or slug already exists'
       });
     }
-
-
     // Generate slug if not provided
     if (!tenantData.slug) {
       tenantData.slug = generateSlug(tenantData.name);
     }
-
-
     // Set default values
     tenantData.status = 'pending';
     tenantData.isVerified = false;
     tenantData.metadata = {
       ...tenantData.metadata,
       source: req.body.source || 'api'
-    };
-
-
+    }
     // Create tenant
     const tenant = new Tenant(tenantData);
     await tenant.save();
@@ -81,8 +72,7 @@ const createTenant = async (req, res) => {
         status: tenant.status,
         isVerified: tenant.isVerified,
         subscription: tenant.subscription
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error creating tenant:', error);
     res.status(500).json({
@@ -90,10 +80,7 @@ const createTenant = async (req, res) => {
       message: 'Failed to create tenant',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Get all tenants (with pagination and filtering)
 const getTenants = async (req, res) => {
   try {
@@ -112,14 +99,11 @@ const getTenants = async (req, res) => {
 
 
     // Build filter object
-    const filter = {};
-
-
+    const filter = {}
     // By default, exclude deleted tenants unless explicitly requested
     if (includeDeleted !== 'true') {
       filter.isDeleted = false;
     }
-
     if (status) {
       filter.status = status;
     }
@@ -132,18 +116,14 @@ const getTenants = async (req, res) => {
     if (companySize) {
       filter.companySize = companySize;
     }
-
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
         { contactEmail: { $regex: search, $options: 'i' } },
-        { slug: { $regex: search, $options: 'i' } }
-      ];
+        { slug: { $regex: search, $options: 'i' } } ];
     }
-
-
     // Build sort object
-    const sort = {};
+    const sort = {}
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
 
@@ -172,8 +152,7 @@ const getTenants = async (req, res) => {
         totalPages,
         hasNext: page < totalPages,
         hasPrev: page > 1
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error fetching tenants:', error);
     res.status(500).json({
@@ -181,21 +160,17 @@ const getTenants = async (req, res) => {
       message: 'Failed to fetch tenants',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Get tenant by ID
 const getTenantById = async (req, res) => {
   try {
     const { id } = req.params;
     const { includeDeleted = false } = req.query;
 
-    const filter = { _id: id };
+    const filter = { _id: id }
     if (includeDeleted !== 'true') {
       filter.isDeleted = false;
     }
-
     const tenant = await Tenant.findOne(filter)
       .select('-verificationToken -verificationExpires')
       .populate('deletedBy', 'name email');
@@ -206,7 +181,6 @@ const getTenantById = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     res.json({
       success: true,
       data: tenant
@@ -218,10 +192,7 @@ const getTenantById = async (req, res) => {
       message: 'Failed to fetch tenant',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Get tenant by slug
 const getTenantBySlug = async (req, res) => {
   try {
@@ -236,7 +207,6 @@ const getTenantBySlug = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     res.json({
       success: true,
       data: tenant
@@ -248,10 +218,7 @@ const getTenantBySlug = async (req, res) => {
       message: 'Failed to fetch tenant',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Update tenant
 const updateTenant = async (req, res) => {
   try {
@@ -268,28 +235,22 @@ const updateTenant = async (req, res) => {
         errors: validation.errors
       });
     }
-
-
     // Check if slug is being updated and if it's unique
     if (updateData.slug) {
       const existingTenant = await Tenant.findOne({
         slug: updateData.slug,
-        _id: { $ne: id }
-      });
+        _id: { $ne: id } });
 
       if (existingTenant) {
         return res.status(409).json({
           success: false,
           message: 'Tenant with this slug already exists'
         });
-      }
-    }
-
+      } }
     const tenant = await Tenant.findByIdAndUpdate(
       id,
       updateData,
-      { new: true, runValidators: true }
-    ).select('-verificationToken -verificationExpires');
+      { new: true, runValidators: true } ).select('-verificationToken -verificationExpires');
 
     if (!tenant) {
       return res.status(404).json({
@@ -297,7 +258,6 @@ const updateTenant = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     res.json({
       success: true,
       message: 'Tenant updated successfully',
@@ -310,10 +270,7 @@ const updateTenant = async (req, res) => {
       message: 'Failed to update tenant',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Soft delete tenant
 const deleteTenant = async (req, res) => {
   try {
@@ -328,14 +285,12 @@ const deleteTenant = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     if (tenant.isDeleted) {
       return res.status(400).json({
         success: false,
         message: 'Tenant is already deleted'
       });
     }
-
     if (permanent === 'true') {
       // Permanent deletion
       await tenant.permanentDelete();
@@ -353,20 +308,15 @@ const deleteTenant = async (req, res) => {
           id: tenant._id,
           name: tenant.name,
           deletedAt: tenant.deletedAt
-        }
-      });
-    }
-  } catch (error) {
+        } });
+    } } catch (error) {
     console.error('Error deleting tenant:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete tenant',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Verify tenant
 const verifyTenant = async (req, res) => {
   try {
@@ -374,8 +324,7 @@ const verifyTenant = async (req, res) => {
 
     const tenant = await Tenant.findOne({
       verificationToken: token,
-      verificationExpires: { $gt: new Date() }
-    });
+      verificationExpires: { $gt: new Date() } });
 
     if (!tenant) {
       return res.status(400).json({
@@ -383,7 +332,6 @@ const verifyTenant = async (req, res) => {
         message: 'Invalid or expired verification token'
       });
     }
-
     await tenant.verify();
 
     res.json({
@@ -394,8 +342,7 @@ const verifyTenant = async (req, res) => {
         name: tenant.name,
         slug: tenant.slug,
         isVerified: tenant.isVerified
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error verifying tenant:', error);
     res.status(500).json({
@@ -403,10 +350,7 @@ const verifyTenant = async (req, res) => {
       message: 'Failed to verify tenant',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Resend verification email
 const resendVerification = async (req, res) => {
   try {
@@ -420,14 +364,12 @@ const resendVerification = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     if (tenant.isVerified) {
       return res.status(400).json({
         success: false,
         message: 'Tenant is already verified'
       });
     }
-
     await tenant.generateVerificationToken();
 
     // Temporarily disabled email sending for testing
@@ -445,10 +387,7 @@ const resendVerification = async (req, res) => {
       message: 'Failed to resend verification email',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Update subscription
 const updateSubscription = async (req, res) => {
   try {
@@ -463,15 +402,11 @@ const updateSubscription = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
-
     // Update subscription data
     tenant.subscription = {
       ...tenant.subscription,
       ...subscriptionData
-    };
-
-
+    }
     // If changing to active plan, set end date
     if (subscriptionData.status === 'active' && subscriptionData.billingCycle) {
       const endDate = new Date();
@@ -482,7 +417,6 @@ const updateSubscription = async (req, res) => {
       }
       tenant.subscription.endDate = endDate;
     }
-
     await tenant.save();
 
     res.json({
@@ -491,8 +425,7 @@ const updateSubscription = async (req, res) => {
       data: {
         id: tenant._id,
         subscription: tenant.subscription
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error updating subscription:', error);
     res.status(500).json({
@@ -500,10 +433,7 @@ const updateSubscription = async (req, res) => {
       message: 'Failed to update subscription',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Update features
 const updateFeatures = async (req, res) => {
   try {
@@ -518,14 +448,11 @@ const updateFeatures = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
-
     // Update features
     tenant.features = {
       ...tenant.features,
       ...featuresData
-    };
-
+    }
     await tenant.save();
 
     res.json({
@@ -534,8 +461,7 @@ const updateFeatures = async (req, res) => {
       data: {
         id: tenant._id,
         features: tenant.features
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error updating features:', error);
     res.status(500).json({
@@ -543,10 +469,7 @@ const updateFeatures = async (req, res) => {
       message: 'Failed to update features',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Get tenant statistics
 const getTenantStats = async (req, res) => {
   try {
@@ -560,8 +483,6 @@ const getTenantStats = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
-
     // Calculate additional statistics
     const stats = {
       basic: {
@@ -587,9 +508,7 @@ const getTenantStats = async (req, res) => {
         analytics: tenant.features.analytics,
         integrations: tenant.features.integrations,
         branding: tenant.features.branding
-      }
-    };
-
+      } }
     res.json({
       success: true,
       data: stats
@@ -601,10 +520,7 @@ const getTenantStats = async (req, res) => {
       message: 'Failed to fetch tenant statistics',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Get all tenant statistics (admin)
 const getAllTenantStats = async (req, res) => {
   try {
@@ -626,10 +542,8 @@ const getAllTenantStats = async (req, res) => {
                 { $divide: ['$usage.totalResponses', '$usage.totalRecipients'] },
                 0
               ]
-            }
-          }
-        }
-      }
+            } }
+        } }
     ]);
 
     const subscriptionStats = await Tenant.aggregate([
@@ -637,27 +551,22 @@ const getAllTenantStats = async (req, res) => {
       {
         $group: {
           _id: '$subscription.plan',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
+          count: { $sum: 1 } }
+      } ]);
 
     const industryStats = await Tenant.aggregate([
       {
         $match: {
           industry: { $exists: true, $ne: '' },
           isDeleted: false
-        }
-      },
+        } },
       {
         $group: {
           _id: '$industry',
-          count: { $sum: 1 }
-        }
+          count: { $sum: 1 } }
       },
       { $sort: { count: -1 } },
-      { $limit: 10 }
-    ]);
+      { $limit: 10 } ]);
 
 
     // Get deleted tenants count
@@ -666,10 +575,8 @@ const getAllTenantStats = async (req, res) => {
       {
         $group: {
           _id: null,
-          deletedTenants: { $sum: 1 }
-        }
-      }
-    ]);
+          deletedTenants: { $sum: 1 } }
+      } ]);
 
     res.json({
       success: true,
@@ -677,8 +584,7 @@ const getAllTenantStats = async (req, res) => {
         overview: { ...stats[0], deletedTenants: deletedStats[0]?.deletedTenants || 0 } || {},
         subscriptions: subscriptionStats,
         industries: industryStats
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error fetching all tenant stats:', error);
     res.status(500).json({
@@ -686,10 +592,7 @@ const getAllTenantStats = async (req, res) => {
       message: 'Failed to fetch tenant statistics',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Get deleted tenants
 const getDeletedTenants = async (req, res) => {
   try {
@@ -702,7 +605,7 @@ const getDeletedTenants = async (req, res) => {
 
 
     // Build sort object
-    const sort = {};
+    const sort = {}
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
 
@@ -731,8 +634,7 @@ const getDeletedTenants = async (req, res) => {
         totalPages,
         hasNext: page < totalPages,
         hasPrev: page > 1
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error fetching deleted tenants:', error);
     res.status(500).json({
@@ -740,10 +642,7 @@ const getDeletedTenants = async (req, res) => {
       message: 'Failed to fetch deleted tenants',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Restore deleted tenant
 const restoreTenant = async (req, res) => {
   try {
@@ -757,14 +656,12 @@ const restoreTenant = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
     if (!tenant.isDeleted) {
       return res.status(400).json({
         success: false,
         message: 'Tenant is not deleted'
       });
     }
-
     await tenant.restore();
 
     res.json({
@@ -775,8 +672,7 @@ const restoreTenant = async (req, res) => {
         name: tenant.name,
         slug: tenant.slug,
         isDeleted: tenant.isDeleted
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error restoring tenant:', error);
     res.status(500).json({
@@ -784,10 +680,7 @@ const restoreTenant = async (req, res) => {
       message: 'Failed to restore tenant',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Get tenant analytics
 const getTenantAnalytics = async (req, res) => {
   try {
@@ -802,8 +695,6 @@ const getTenantAnalytics = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
-
     // Calculate date range based on period
     const now = new Date();
     let startDate;
@@ -823,8 +714,6 @@ const getTenantAnalytics = async (req, res) => {
       default:
         startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     }
-
-
     // Get analytics data from various collections
     const [
       userStats,
@@ -848,12 +737,9 @@ const getTenantAnalytics = async (req, res) => {
                   1,
                   0
                 ]
-              }
-            }
-          }
-        },
-        { $sort: { _id: 1 } }
-      ]),
+              } }
+          } },
+        { $sort: { _id: 1 } } ]),
 
 
       // Poll analytics
@@ -864,11 +750,9 @@ const getTenantAnalytics = async (req, res) => {
             _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
             pollsCreated: { $sum: 1 },
             totalResponses: { $sum: '$responseCount' },
-            avgResponseRate: { $avg: '$responseRate' }
-          }
+            avgResponseRate: { $avg: '$responseRate' } }
         },
-        { $sort: { _id: 1 } }
-      ]),
+        { $sort: { _id: 1 } } ]),
 
 
       // Training analytics
@@ -885,13 +769,10 @@ const getTenantAnalytics = async (req, res) => {
                   1,
                   0
                 ]
-              }
-            },
-            avgAttendance: { $avg: '$attendanceRate' }
-          }
+              } },
+            avgAttendance: { $avg: '$attendanceRate' } }
         },
-        { $sort: { _id: 1 } }
-      ]),
+        { $sort: { _id: 1 } } ]),
 
 
       // Presentation analytics
@@ -902,11 +783,9 @@ const getTenantAnalytics = async (req, res) => {
             _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
             presentationsCreated: { $sum: 1 },
             sessionsHeld: { $sum: { $size: '$sessions' } },
-            avgSessionDuration: { $avg: '$estimatedDuration' }
-          }
+            avgSessionDuration: { $avg: '$estimatedDuration' } }
         },
-        { $sort: { _id: 1 } }
-      ]),
+        { $sort: { _id: 1 } } ]),
 
 
       // AI usage analytics
@@ -923,16 +802,14 @@ const getTenantAnalytics = async (req, res) => {
       totalUsers: await User.countDocuments({ tenantId: tenant._id }),
       activeUsers: await User.countDocuments({
         tenantId: tenant._id,
-        lastLogin: { $gte: startDate }
-      }),
+        lastLogin: { $gte: startDate } }),
       totalPolls: await Poll.countDocuments({ tenantId: tenant._id }),
       totalTrainingSessions: await TrainingSession.countDocuments({ tenantId: tenant._id }),
       totalPresentations: await Presentation.countDocuments({ tenantId: tenant._id }),
       period,
       startDate,
       endDate: now
-    };
-
+    }
     res.json({
       success: true,
       data: {
@@ -948,8 +825,7 @@ const getTenantAnalytics = async (req, res) => {
           training: trainingStats,
           presentations: presentationStats,
           aiUsage: aiUsageStats
-        }
-      }
+        } }
     });
   } catch (error) {
     console.error('Error fetching tenant analytics:', error);
@@ -958,10 +834,7 @@ const getTenantAnalytics = async (req, res) => {
       message: 'Failed to fetch tenant analytics',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Get tenant users
 const getTenantUsers = async (req, res) => {
   try {
@@ -983,29 +856,22 @@ const getTenantUsers = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
-
     // Build filter object
-    const filter = { tenantId: tenant._id };
-
+    const filter = { tenantId: tenant._id }
     if (role) {
       filter.role = role;
     }
     if (status) {
       filter.status = status;
     }
-
     if (search) {
       filter.$or = [
         { firstName: { $regex: search, $options: 'i' } },
         { lastName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
-      ];
+        { email: { $regex: search, $options: 'i' } } ];
     }
-
-
     // Build sort object
-    const sort = {};
+    const sort = {}
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
 
@@ -1038,8 +904,7 @@ const getTenantUsers = async (req, res) => {
                 1,
                 0
               ]
-            }
-          },
+            } },
           verifiedUsers: {
             $sum: {
               $cond: [
@@ -1047,8 +912,7 @@ const getTenantUsers = async (req, res) => {
                 1,
                 0
               ]
-            }
-          },
+            } },
           adminUsers: {
             $sum: {
               $cond: [
@@ -1056,8 +920,7 @@ const getTenantUsers = async (req, res) => {
                 1,
                 0
               ]
-            }
-          },
+            } },
           trainerUsers: {
             $sum: {
               $cond: [
@@ -1065,10 +928,8 @@ const getTenantUsers = async (req, res) => {
                 1,
                 0
               ]
-            }
-          }
-        }
-      }
+            } }
+        } }
     ]);
 
     res.json({
@@ -1094,8 +955,7 @@ const getTenantUsers = async (req, res) => {
           totalPages,
           hasNext: page < totalPages,
           hasPrev: page > 1
-        }
-      }
+        } }
     });
   } catch (error) {
     console.error('Error fetching tenant users:', error);
@@ -1104,10 +964,7 @@ const getTenantUsers = async (req, res) => {
       message: 'Failed to fetch tenant users',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Get tenant settings
 const getTenantSettings = async (req, res) => {
   try {
@@ -1120,8 +977,6 @@ const getTenantSettings = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
-
     // Extract settings from tenant document
     const settings = {
       general: {
@@ -1138,8 +993,7 @@ const getTenantSettings = async (req, res) => {
       notifications: tenant.notifications,
       integrations: tenant.integrations,
       customizations: tenant.customizations
-    };
-
+    }
     res.json({
       success: true,
       data: {
@@ -1149,8 +1003,7 @@ const getTenantSettings = async (req, res) => {
           slug: tenant.slug
         },
         settings
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error fetching tenant settings:', error);
     res.status(500).json({
@@ -1158,10 +1011,7 @@ const getTenantSettings = async (req, res) => {
       message: 'Failed to fetch tenant settings',
       error: error.message
     });
-  }
-};
-
-
+  } }
 // Update tenant settings
 const updateTenantSettings = async (req, res) => {
   try {
@@ -1175,8 +1025,6 @@ const updateTenantSettings = async (req, res) => {
         message: 'Tenant not found'
       });
     }
-
-
     // Validate update data
     const allowedSettings = [
       'name', 'description', 'contact', 'address', 'business',
@@ -1184,27 +1032,22 @@ const updateTenantSettings = async (req, res) => {
       'integrations', 'customizations'
     ];
 
-    const validUpdates = {};
+    const validUpdates = {}
     for (const [key, value] of Object.entries(updateData)) {
       if (allowedSettings.includes(key)) {
         validUpdates[key] = value;
-      }
-    }
-
+      } }
     if (Object.keys(validUpdates).length === 0) {
       return res.status(400).json({
         success: false,
         message: 'No valid settings provided for update'
       });
     }
-
-
     // Update tenant with new settings
     const updatedTenant = await Tenant.findByIdAndUpdate(
       id,
       validUpdates,
-      { new: true, runValidators: true }
-    ).select('-verificationToken -verificationExpires');
+      { new: true, runValidators: true } ).select('-verificationToken -verificationExpires');
 
     res.json({
       success: true,
@@ -1216,8 +1059,7 @@ const updateTenantSettings = async (req, res) => {
           slug: updatedTenant.slug
         },
         updatedSettings: validUpdates
-      }
-    });
+      } });
   } catch (error) {
     console.error('Error updating tenant settings:', error);
     res.status(500).json({
@@ -1225,9 +1067,7 @@ const updateTenantSettings = async (req, res) => {
       message: 'Failed to update tenant settings',
       error: error.message
     });
-  }
-};
-
+  } }
 module.exports = {
   createTenant,
   getTenants,
@@ -1247,4 +1087,4 @@ module.exports = {
   getTenantUsers,
   getTenantSettings,
   updateTenantSettings
-};
+}

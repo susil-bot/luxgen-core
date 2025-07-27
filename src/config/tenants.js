@@ -18,8 +18,7 @@ const defaultConfig = {
     customFields: { enabled: false },
     apiAccess: { enabled: true, rateLimit: 1000 },
     fileUpload: { enabled: true, maxSize: '10MB' },
-    notifications: { enabled: true, channels: ['email', 'in-app'] }
-  },
+    notifications: { enabled: true, channels: ['email', 'in-app'] } },
   settings: {
     allowPublicPolls: true,
     requireEmailVerification: true,
@@ -33,8 +32,7 @@ const defaultConfig = {
       requireLowercase: true,
       requireNumbers: true,
       requireSpecialChars: false
-    }
-  },
+    } },
   branding: {
     logo: null,
     primaryColor: '#007bff',
@@ -45,8 +43,7 @@ const defaultConfig = {
   integrations: {
     email: { provider: 'smtp', config: {} },
     storage: { provider: 'local', config: {} },
-    analytics: { provider: 'internal', config: {} }
-  },
+    analytics: { provider: 'internal', config: {} } },
   limits: {
     maxPollsPerUser: 50,
     maxResponsesPerPoll: 1000,
@@ -54,10 +51,7 @@ const defaultConfig = {
 // 10MB
     maxStoragePerUser: 1073741824 
 // 1GB
-  }
-};
-
-
+  } }
 // Load all tenant configurations dynamically
 let tenantConfigs = null;
 
@@ -66,8 +60,7 @@ const getTenantConfigs = () => {
     tenantConfigs = loadAllTenants();
   }
   return tenantConfigs;
-};
-
+}
 /**
  * Get tenant configuration by slug
  * @param {string} slug - Tenant slug
@@ -79,26 +72,22 @@ const getTenantConfig = (slug) => {
   if (!config) {
     
 // Return default config if tenant not found
-    return { ...defaultConfig, slug };
-  }
+    return { ...defaultConfig, slug } }
   return config;
 }
-
 /**
  * Get all active tenant configurations
  * @returns {Object} All active tenant configs
  */
 const getActiveTenantConfigs = () => {
   const configs = getTenantConfigs();
-  const activeConfigs = {};
+  const activeConfigs = {}
   Object.keys(configs).forEach(slug => {
     if (slug !== 'default' && configs[slug].status === 'active') {
       activeConfigs[slug] = configs[slug];
-    }
-  });
+    } });
   return activeConfigs;
-};
-
+}
 /**
  * Check if tenant exists and is active
  * @param {string} slug - Tenant slug
@@ -107,8 +96,7 @@ const getActiveTenantConfigs = () => {
 const isTenantActive = (slug) => {
   const config = getTenantConfig(slug);
   return config && config.status === 'active';
-};
-
+}
 /**
  * Get tenant feature configuration
  * @param {string} slug - Tenant slug
@@ -118,8 +106,7 @@ const isTenantActive = (slug) => {
 const getTenantFeature = (slug, feature) => {
   const config = getTenantConfig(slug);
   return config.features[feature] || null;
-};
-
+}
 /**
  * Check if tenant has feature enabled
  * @param {string} slug - Tenant slug
@@ -129,8 +116,7 @@ const getTenantFeature = (slug, feature) => {
 const isFeatureEnabled = (slug, feature) => {
   const featureConfig = getTenantFeature(slug, feature);
   return featureConfig && featureConfig.enabled;
-};
-
+}
 /**
  * Get tenant limits
  * @param {string} slug - Tenant slug
@@ -139,8 +125,7 @@ const isFeatureEnabled = (slug, feature) => {
 const getTenantLimits = (slug) => {
   const config = getTenantConfig(slug);
   return config.limits || defaultConfig.limits;
-};
-
+}
 /**
  * Validate tenant configuration
  * @param {Object} config - Tenant configuration
@@ -158,21 +143,16 @@ const validateTenantConfig = (config) => {
   if (!config.status) {
     errors.push('Status is required');
   }
-
   if (config.features) {
     Object.keys(config.features).forEach(feature => {
       if (typeof config.features[feature].enabled !== 'boolean') {
         errors.push(`Feature ${feature} must have enabled property`);
-      }
-    });
+      } });
   }
-
   return {
     isValid: errors.length === 0,
     errors
-  };
-}
-
+  } }
 module.exports = {
   getTenantConfigs,
   getTenantConfig,
@@ -184,4 +164,4 @@ module.exports = {
   validateTenantConfig,
   getTenantAsset,
   getAvailableTenants
-};
+}

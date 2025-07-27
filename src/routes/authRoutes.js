@@ -27,13 +27,10 @@ const logRouteCall = (req, res, next) => {
     const { email } = req.body;
     console.log(`🔐 Auth Login request for email: ${email || 'not provided'}`);
   }
-
   console.log('---');
 
   next();
-};
-
-
+}
 // Apply logging middleware to all routes
 router.use(logRouteCall);
 

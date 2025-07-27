@@ -9,7 +9,6 @@ class DatabaseInitializer {
   constructor () {
     this.setup = new DatabaseSetup();
   }
-
   async initialize () {
     try {
       console.log('🚀 Initializing comprehensive database setup...');
@@ -22,12 +21,9 @@ class DatabaseInitializer {
     } catch (error) {
       console.error('❌ Database initialization failed:', error.message);
       throw error;
-    }
-  }
+    } }
 }
-
 const createDatabaseInitializer = () => {
   return new DatabaseInitializer();
-};
-
-module.exports = { createDatabaseInitializer };
+}
+module.exports = { createDatabaseInitializer }

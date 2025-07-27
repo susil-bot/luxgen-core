@@ -24,8 +24,6 @@ class TrainingController {
       if (cachedResult) {
         return res.json(cachedResult);
       }
-
-
       // Build optimized query
       const query = TrainingSession.find({ tenantId });
 
@@ -40,8 +38,6 @@ class TrainingController {
       if (req.query.sessionType) {
         query.where('sessionType', req.query.sessionType);
       }
-
-
       // Optimize query with pagination
       const optimizedQuery = optimizeQuery(query, {
         lean: true,
@@ -62,12 +58,9 @@ class TrainingController {
             limit: pagination.limit,
             total,
             pages: Math.ceil(total / pagination.limit)
-          }
-        },
+          } },
         message: 'Training sessions retrieved successfully'
-      };
-
-
+      }
       // Cache the result for 5 minutes
       await cacheManager.set(cacheKey, result, 300);
 
@@ -79,9 +72,7 @@ class TrainingController {
         error: error.message,
         message: 'Failed to retrieve training sessions'
       });
-    }
-  }
-
+    } }
   /**
    * Get a specific training session by ID
    */
@@ -103,7 +94,6 @@ class TrainingController {
           message: 'Training session not found'
         });
       }
-
       logger.info('Training session retrieved', { sessionId, tenantId });
 
       res.json({
@@ -117,9 +107,7 @@ class TrainingController {
         message: 'Failed to retrieve training session',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Create a new training session
    */
@@ -131,8 +119,7 @@ class TrainingController {
         ...req.body,
         tenantId,
         createdBy: req.user.id
-      };
-
+      }
       const session = new TrainingSession(sessionData);
       await session.save();
 
@@ -158,9 +145,7 @@ class TrainingController {
         message: 'Failed to create training session',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Update a training session
    */
@@ -172,13 +157,11 @@ class TrainingController {
       const updateData = {
         ...req.body,
         updatedBy: req.user.id
-      };
-
+      }
       const session = await TrainingSession.findOneAndUpdate(
         { _id: sessionId, tenantId },
         updateData,
-        { new: true, runValidators: true }
-      ).populate('trainers.trainerId', 'firstName lastName email')
+        { new: true, runValidators: true } ).populate('trainers.trainerId', 'firstName lastName email')
         .populate('participants.userId', 'firstName lastName email')
         .populate('courseId', 'title courseCode');
 
@@ -188,7 +171,6 @@ class TrainingController {
           message: 'Training session not found'
         });
       }
-
       logger.info('Training session updated', { sessionId, tenantId });
 
       res.json({
@@ -203,9 +185,7 @@ class TrainingController {
         message: 'Failed to update training session',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Delete a training session
    */
@@ -223,7 +203,6 @@ class TrainingController {
           message: 'Training session not found'
         });
       }
-
       logger.info('Training session deleted', { sessionId, tenantId });
 
       res.json({
@@ -237,9 +216,7 @@ class TrainingController {
         message: 'Failed to delete training session',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Add participant to training session
    */
@@ -257,7 +234,6 @@ class TrainingController {
           message: 'Training session not found'
         });
       }
-
       await session.addParticipant(userId);
 
       logger.info('Participant added to training session', {
@@ -274,9 +250,7 @@ class TrainingController {
         success: false,
         message: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Remove participant from training session
    */
@@ -293,7 +267,6 @@ class TrainingController {
           message: 'Training session not found'
         });
       }
-
       await session.removeParticipant(userId);
 
       logger.info('Participant removed from training session', {
@@ -310,9 +283,7 @@ class TrainingController {
         success: false,
         message: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Mark attendance for a participant
    */
@@ -329,7 +300,6 @@ class TrainingController {
           message: 'Training session not found'
         });
       }
-
       await session.markAttendance(userId);
 
       logger.info('Attendance marked for participant', {
@@ -346,9 +316,7 @@ class TrainingController {
         success: false,
         message: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Complete a training session
    */
@@ -365,7 +333,6 @@ class TrainingController {
           message: 'Training session not found'
         });
       }
-
       await session.completeSession();
 
       logger.info('Training session completed', { sessionId, tenantId });
@@ -380,9 +347,7 @@ class TrainingController {
         success: false,
         message: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Get all training courses with pagination and optimization
    */
@@ -399,8 +364,6 @@ class TrainingController {
       if (cachedResult) {
         return res.json(cachedResult);
       }
-
-
       // Build optimized query
       const query = TrainingCourse.find({ tenantId });
 
@@ -415,8 +378,6 @@ class TrainingController {
       if (req.query.instructorId) {
         query.where('instructorId', req.query.instructorId);
       }
-
-
       // Optimize query with pagination
       const optimizedQuery = optimizeQuery(query, {
         lean: true,
@@ -437,12 +398,9 @@ class TrainingController {
             limit: pagination.limit,
             total,
             pages: Math.ceil(total / pagination.limit)
-          }
-        },
+          } },
         message: 'Training courses retrieved successfully'
-      };
-
-
+      }
       // Cache the result for 5 minutes
       await cacheManager.set(cacheKey, result, 300);
 
@@ -454,9 +412,7 @@ class TrainingController {
         error: error.message,
         message: 'Failed to retrieve training courses'
       });
-    }
-  }
-
+    } }
   /**
    * Get a specific training course by ID
    */
@@ -479,7 +435,6 @@ class TrainingController {
           message: 'Training course not found'
         });
       }
-
       logger.info('Training course retrieved', { courseId, tenantId });
 
       res.json({
@@ -493,9 +448,7 @@ class TrainingController {
         message: 'Failed to retrieve training course',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Create a new training course
    */
@@ -507,8 +460,7 @@ class TrainingController {
         ...req.body,
         tenantId,
         createdBy: req.user.id
-      };
-
+      }
       const course = new TrainingCourse(courseData);
       await course.save();
 
@@ -534,9 +486,7 @@ class TrainingController {
         message: 'Failed to create training course',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Update a training course
    */
@@ -548,13 +498,11 @@ class TrainingController {
       const updateData = {
         ...req.body,
         updatedBy: req.user.id
-      };
-
+      }
       const course = await TrainingCourse.findOneAndUpdate(
         { _id: courseId, tenantId },
         updateData,
-        { new: true, runValidators: true }
-      ).populate('instructors.instructorId', 'firstName lastName email')
+        { new: true, runValidators: true } ).populate('instructors.instructorId', 'firstName lastName email')
         .populate('modules.moduleId', 'title moduleCode')
         .populate('assessments.assessmentId', 'title type');
 
@@ -564,7 +512,6 @@ class TrainingController {
           message: 'Training course not found'
         });
       }
-
       logger.info('Training course updated', { courseId, tenantId });
 
       res.json({
@@ -579,9 +526,7 @@ class TrainingController {
         message: 'Failed to update training course',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Delete a training course
    */
@@ -599,7 +544,6 @@ class TrainingController {
           message: 'Training course not found'
         });
       }
-
       logger.info('Training course deleted', { courseId, tenantId });
 
       res.json({
@@ -613,9 +557,7 @@ class TrainingController {
         message: 'Failed to delete training course',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Enroll user in a course
    */
@@ -633,7 +575,6 @@ class TrainingController {
           message: 'Training course not found'
         });
       }
-
       await course.enrollUser(userId);
 
       logger.info('User enrolled in course', {
@@ -650,9 +591,7 @@ class TrainingController {
         success: false,
         message: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Get participant progress
    */
@@ -669,7 +608,6 @@ class TrainingController {
           message: 'Training course not found'
         });
       }
-
       const enrollment = course.enrollments.find(e => e.userId.toString() === participantId);
       if (!enrollment) {
         return res.status(404).json({
@@ -677,7 +615,6 @@ class TrainingController {
           message: 'Participant not enrolled in this course'
         });
       }
-
       logger.info('Participant progress retrieved', {
         courseId, participantId, tenantId
       });
@@ -693,9 +630,7 @@ class TrainingController {
         message: 'Failed to retrieve participant progress',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Complete a module
    */
@@ -713,7 +648,6 @@ class TrainingController {
           message: 'Training course not found'
         });
       }
-
       await course.updateUserProgress(userId, moduleId, score);
 
       logger.info('Module completed', {
@@ -730,10 +664,7 @@ class TrainingController {
         success: false,
         message: error.message
       });
-    }
-  }
-
-
+    } }
   // ==================== TRAINING MODULES ====================
 
   /**
@@ -754,8 +685,7 @@ class TrainingController {
         search
       } = req.query;
 
-      const query = { tenantId };
-
+      const query = { tenantId }
       if (category) {
         query.category = category;
       }
@@ -775,10 +705,8 @@ class TrainingController {
         query.$or = [
           { title: { $regex: search, $options: 'i' } },
           { description: { $regex: search, $options: 'i' } },
-          { moduleCode: { $regex: search, $options: 'i' } }
-        ];
+          { moduleCode: { $regex: search, $options: 'i' } } ];
       }
-
       const skip = (page - 1) * limit;
 
       const modules = await TrainingModule.find(query)
@@ -805,8 +733,7 @@ class TrainingController {
           limit: parseInt(limit),
           total,
           pages: Math.ceil(total / limit)
-        }
-      });
+        } });
     } catch (error) {
       logger.error('Error retrieving training modules', { error: error.message, tenantId: req.tenantId });
       res.status(500).json({
@@ -814,9 +741,7 @@ class TrainingController {
         message: 'Failed to retrieve training modules',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Get a specific training module by ID
    */
@@ -836,7 +761,6 @@ class TrainingController {
           message: 'Training module not found'
         });
       }
-
       logger.info('Training module retrieved', { moduleId, tenantId });
 
       res.json({
@@ -850,9 +774,7 @@ class TrainingController {
         message: 'Failed to retrieve training module',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Create a new training module
    */
@@ -864,8 +786,7 @@ class TrainingController {
         ...req.body,
         tenantId,
         createdBy: req.user.id
-      };
-
+      }
       const module = new TrainingModule(moduleData);
       await module.save();
 
@@ -887,9 +808,7 @@ class TrainingController {
         message: 'Failed to create training module',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Update a training module
    */
@@ -901,13 +820,11 @@ class TrainingController {
       const updateData = {
         ...req.body,
         updatedBy: req.user.id
-      };
-
+      }
       const module = await TrainingModule.findOneAndUpdate(
         { _id: moduleId, tenantId },
         updateData,
-        { new: true, runValidators: true }
-      );
+        { new: true, runValidators: true } );
 
       if (!module) {
         return res.status(404).json({
@@ -915,7 +832,6 @@ class TrainingController {
           message: 'Training module not found'
         });
       }
-
       logger.info('Training module updated', { moduleId, tenantId });
 
       res.json({
@@ -930,9 +846,7 @@ class TrainingController {
         message: 'Failed to update training module',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Delete a training module
    */
@@ -950,7 +864,6 @@ class TrainingController {
           message: 'Training module not found'
         });
       }
-
       logger.info('Training module deleted', { moduleId, tenantId });
 
       res.json({
@@ -964,10 +877,7 @@ class TrainingController {
         message: 'Failed to delete training module',
         error: error.message
       });
-    }
-  }
-
-
+    } }
   // ==================== TRAINING ASSESSMENTS ====================
 
   /**
@@ -987,8 +897,7 @@ class TrainingController {
         search
       } = req.query;
 
-      const query = { tenantId };
-
+      const query = { tenantId }
       if (type) {
         query.type = type;
       }
@@ -1005,10 +914,8 @@ class TrainingController {
         query.$or = [
           { title: { $regex: search, $options: 'i' } },
           { description: { $regex: search, $options: 'i' } },
-          { assessmentCode: { $regex: search, $options: 'i' } }
-        ];
+          { assessmentCode: { $regex: search, $options: 'i' } } ];
       }
-
       const skip = (page - 1) * limit;
 
       const assessments = await TrainingAssessment.find(query)
@@ -1034,8 +941,7 @@ class TrainingController {
           limit: parseInt(limit),
           total,
           pages: Math.ceil(total / limit)
-        }
-      });
+        } });
     } catch (error) {
       logger.error('Error retrieving training assessments', { error: error.message, tenantId: req.tenantId });
       res.status(500).json({
@@ -1043,9 +949,7 @@ class TrainingController {
         message: 'Failed to retrieve training assessments',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Get a specific training assessment by ID
    */
@@ -1064,7 +968,6 @@ class TrainingController {
           message: 'Training assessment not found'
         });
       }
-
       logger.info('Training assessment retrieved', { assessmentId, tenantId });
 
       res.json({
@@ -1078,9 +981,7 @@ class TrainingController {
         message: 'Failed to retrieve training assessment',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Create a new training assessment
    */
@@ -1092,8 +993,7 @@ class TrainingController {
         ...req.body,
         tenantId,
         createdBy: req.user.id
-      };
-
+      }
       const assessment = new TrainingAssessment(assessmentData);
       await assessment.save();
 
@@ -1115,9 +1015,7 @@ class TrainingController {
         message: 'Failed to create training assessment',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Update a training assessment
    */
@@ -1129,13 +1027,11 @@ class TrainingController {
       const updateData = {
         ...req.body,
         updatedBy: req.user.id
-      };
-
+      }
       const assessment = await TrainingAssessment.findOneAndUpdate(
         { _id: assessmentId, tenantId },
         updateData,
-        { new: true, runValidators: true }
-      );
+        { new: true, runValidators: true } );
 
       if (!assessment) {
         return res.status(404).json({
@@ -1143,7 +1039,6 @@ class TrainingController {
           message: 'Training assessment not found'
         });
       }
-
       logger.info('Training assessment updated', { assessmentId, tenantId });
 
       res.json({
@@ -1158,9 +1053,7 @@ class TrainingController {
         message: 'Failed to update training assessment',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Delete a training assessment
    */
@@ -1178,7 +1071,6 @@ class TrainingController {
           message: 'Training assessment not found'
         });
       }
-
       logger.info('Training assessment deleted', { assessmentId, tenantId });
 
       res.json({
@@ -1192,9 +1084,7 @@ class TrainingController {
         message: 'Failed to delete training assessment',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Submit assessment answers
    */
@@ -1212,7 +1102,6 @@ class TrainingController {
           message: 'Training assessment not found'
         });
       }
-
       const result = assessment.calculateScore(answers);
 
 
@@ -1239,8 +1128,7 @@ class TrainingController {
           maxScore: result.maxScore,
           percentage: result.percentage,
           passed: result.passed
-        }
-      });
+        } });
     } catch (error) {
       logger.error('Error submitting assessment', { error: error.message, assessmentId: req.params.assessmentId });
       res.status(400).json({
@@ -1248,9 +1136,7 @@ class TrainingController {
         message: 'Failed to submit assessment',
         error: error.message
       });
-    }
-  }
-
+    } }
   /**
    * Get trainer statistics with optimization
    */
@@ -1267,8 +1153,6 @@ class TrainingController {
       if (cachedResult) {
         return res.json(cachedResult);
       }
-
-
       // Get trainer sessions with optimization
       const sessionsQuery = TrainingSession.find({
         trainerId,
@@ -1290,8 +1174,7 @@ class TrainingController {
         averageAttendance: sessions.length > 0
           ? sessions.reduce((sum, s) => sum + (s.attendance?.length || 0), 0) / sessions.length : 0,
         totalParticipants: sessions.reduce((sum, s) => sum + (s.participants?.length || 0), 0)
-      };
-
+      }
       const result = {
         success: true,
         data: {
@@ -1301,9 +1184,7 @@ class TrainingController {
           // Last 5 sessions
         },
         message: 'Trainer statistics retrieved successfully'
-      };
-
-
+      }
       // Cache the result for 10 minutes
       await cacheManager.set(cacheKey, result, 600);
 
@@ -1315,9 +1196,7 @@ class TrainingController {
         error: error.message,
         message: 'Failed to retrieve trainer statistics'
       });
-    }
-  }
-
+    } }
   /**
    * Get participant statistics with optimization
    */
@@ -1334,8 +1213,6 @@ class TrainingController {
       if (cachedResult) {
         return res.json(cachedResult);
       }
-
-
       // Get participant sessions with optimization
       const sessionsQuery = TrainingSession.find({
         participants: participantId,
@@ -1375,8 +1252,7 @@ class TrainingController {
           ? sessions.filter(s =>
             s.attendance?.some(a => a.participantId === participantId && a.attended)
           ).length / sessions.length * 100 : 0
-      };
-
+      }
       const result = {
         success: true,
         data: {
@@ -1388,9 +1264,7 @@ class TrainingController {
           // Last 5 courses
         },
         message: 'Participant statistics retrieved successfully'
-      };
-
-
+      }
       // Cache the result for 10 minutes
       await cacheManager.set(cacheKey, result, 600);
 
@@ -1402,8 +1276,6 @@ class TrainingController {
         error: error.message,
         message: 'Failed to retrieve participant statistics'
       });
-    }
-  }
+    } }
 }
-
 module.exports = new TrainingController();

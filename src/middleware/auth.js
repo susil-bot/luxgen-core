@@ -9,26 +9,19 @@ class AuthenticationError extends Error {
     super(message);
     this.name = 'AuthenticationError';
     this.status = 401;
-  }
-}
-
+  } }
 class AuthorizationError extends Error {
   constructor (message = 'Access denied') {
     super(message);
     this.name = 'AuthorizationError';
     this.status = 403;
-  }
-}
-
+  } }
 class ValidationError extends Error {
   constructor (message = 'Validation failed') {
     super(message);
     this.name = 'ValidationError';
     this.status = 400;
-  }
-}
-
-
+  } }
 // JWT Configuration
 const JWT_CONFIG = {
   secret: process.env.JWT_SECRET || 'your_jwt_secret_key_here_2024',
@@ -36,9 +29,7 @@ const JWT_CONFIG = {
   refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   issuer: 'trainer-platform',
   audience: 'trainer-platform-users'
-};
-
-
+}
 // Rate limiting for authentication attempts
 const authAttempts = new Map();
 const MAX_AUTH_ATTEMPTS = 5;
@@ -52,8 +43,7 @@ setInterval(() => {
   for (const [key, attempts] of authAttempts.entries()) {
     if (now - attempts.timestamp > AUTH_ATTEMPT_WINDOW) {
       authAttempts.delete(key);
-    }
-  }
+    } }
 }, 60000); 
 // Clean up every minute
 
@@ -68,8 +58,6 @@ const authenticateToken = async (req, res, next) => {
     if (!token) {
       throw new AuthenticationError('Access token is required');
     }
-
-    
 // Verify JWT token
     const decoded = jwt.verify(token, JWT_CONFIG.secret, {
       issuer: JWT_CONFIG.issuer,
@@ -82,15 +70,11 @@ const authenticateToken = async (req, res, next) => {
     if (!user || !user.isActive) {
       throw new AuthenticationError('User not found or inactive');
     }
-
-    
 // Check if token is blacklisted (for logout functionality)
     const isBlacklisted = await checkTokenBlacklist(token);
     if (isBlacklisted) {
       throw new AuthenticationError('Token has been revoked');
     }
-
-    
 // Add user to request object
     req.user = user;
     req.token = token;
@@ -104,11 +88,8 @@ const authenticateToken = async (req, res, next) => {
       next(new AuthenticationError('Token has expired'));
     } else {
       next(error);
-    }
-  }
-};
-
-
+    } }
+}
 // Optional authentication middleware (doesn't fail if no token)
 const optionalAuth = async (req, res, next) => {
   try {
@@ -126,34 +107,24 @@ const optionalAuth = async (req, res, next) => {
         req.user = user;
         req.token = token;
         req.tokenPayload = decoded;
-      }
-    }
-
+      } }
     next();
   } catch (error) {
     
 // Don't fail for optional auth, just continue without user
     next();
-  }
-};
-
-
+  } }
 // Role-based authorization middleware
 const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
       return next(new AuthenticationError('Authentication required'));
     }
-
     if (!allowedRoles.includes(req.user.role)) {
       return next(new AuthorizationError(`Access denied. Required roles: ${allowedRoles.join(', ')}`));
     }
-
     next();
-  };
-};
-
-
+  } }
 // Admin authorization middleware (alias for authorizeRoles)
 const requireAdmin = authorizeRoles('admin', 'super_admin');
 
@@ -163,44 +134,34 @@ const authorizeTenant = (req, res, next) => {
   if (!req.user) {
     return next(new AuthenticationError('Authentication required'));
   }
-
   const requestedTenantId = req.params.tenantId || req.body.tenantId || req.query.tenantId;
 
   if (!requestedTenantId) {
     return next(new ValidationError('Tenant ID is required'));
   }
-
-  
 // Super admin can access all tenants
   if (req.user.role === 'super_admin') {
     req.tenantId = requestedTenantId;
     return next();
   }
-
-  
 // Check if user belongs to the requested tenant
   if (req.user.tenant_id !== requestedTenantId) {
     return next(new AuthorizationError('Access denied to this tenant'));
   }
-
   req.tenantId = requestedTenantId;
   next();
-};
-
-
+}
 // Resource ownership middleware
 const authorizeResource = (resourceType, resourceIdField = 'id') => {
   return async (req, res, next) => {
     if (!req.user) {
       return next(new AuthenticationError('Authentication required'));
     }
-
     const resourceId = req.params[resourceIdField] || req.body[resourceIdField];
 
     if (!resourceId) {
       return next(new ValidationError(`${resourceIdField} is required`));
     }
-
     try {
       
 // Get resource from database
@@ -209,29 +170,21 @@ const authorizeResource = (resourceType, resourceIdField = 'id') => {
       if (!resource) {
         return next(new ValidationError('Resource not found'));
       }
-
-      
 // Super admin can access all resources
       if (req.user.role === 'super_admin') {
         req.resource = resource;
         return next();
       }
-
-      
 // Check if user owns the resource or has access to it
       if (resource.user_id !== req.user.id && resource.tenant_id !== req.user.tenant_id) {
         return next(new AuthorizationError('Access denied to this resource'));
       }
-
       req.resource = resource;
       next();
     } catch (error) {
       next(error);
-    }
-  };
-};
-
-
+    } }
+}
 // Rate limiting for authentication attempts
 const rateLimitAuth = (req, res, next) => {
   const identifier = req.ip || req.connection.remoteAddress;
@@ -240,7 +193,6 @@ const rateLimitAuth = (req, res, next) => {
   if (!authAttempts.has(identifier)) {
     authAttempts.set(identifier, { count: 0, timestamp: now });
   }
-
   const attempts = authAttempts.get(identifier);
 
   
@@ -249,8 +201,6 @@ const rateLimitAuth = (req, res, next) => {
     attempts.count = 0;
     attempts.timestamp = now;
   }
-
-  
 // Check if limit exceeded
   if (attempts.count >= MAX_AUTH_ATTEMPTS) {
     return res.status(429).json({
@@ -259,15 +209,11 @@ const rateLimitAuth = (req, res, next) => {
       retryAfter: Math.ceil((AUTH_ATTEMPT_WINDOW - (now - attempts.timestamp)) / 1000)
     });
   }
-
-  
 // Increment attempt count
   attempts.count += 1;
 
   next();
-};
-
-
+}
 // Generate JWT tokens
 const generateTokens = (user) => {
   const payload = {
@@ -276,8 +222,7 @@ const generateTokens = (user) => {
     role: user.role,
     tenantId: user.tenant_id,
     iat: Math.floor(Date.now() / 1000)
-  };
-
+  }
   const accessToken = jwt.sign(payload, JWT_CONFIG.secret, {
     expiresIn: JWT_CONFIG.expiresIn,
     issuer: JWT_CONFIG.issuer,
@@ -291,13 +236,9 @@ const generateTokens = (user) => {
       expiresIn: JWT_CONFIG.refreshExpiresIn,
       issuer: JWT_CONFIG.issuer,
       audience: JWT_CONFIG.audience
-    }
-  );
+    } );
 
-  return { accessToken, refreshToken };
-};
-
-
+  return { accessToken, refreshToken } }
 // Refresh token middleware
 const refreshToken = async (req, res, next) => {
   try {
@@ -306,8 +247,6 @@ const refreshToken = async (req, res, next) => {
     if (!refreshToken) {
       throw new ValidationError('Refresh token is required');
     }
-
-    
 // Verify refresh token
     const decoded = jwt.verify(refreshToken, JWT_CONFIG.secret, {
       issuer: JWT_CONFIG.issuer,
@@ -317,15 +256,11 @@ const refreshToken = async (req, res, next) => {
     if (decoded.type !== 'refresh') {
       throw new AuthenticationError('Invalid refresh token');
     }
-
-    
 // Get user from database
     const user = await getUserById(decoded.userId);
     if (!user || !user.isActive) {
       throw new AuthenticationError('User not found or inactive');
     }
-
-    
 // Generate new tokens
     const tokens = generateTokens(user);
 
@@ -336,10 +271,7 @@ const refreshToken = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
-  }
-};
-
-
+  } }
 // Logout middleware (blacklist token)
 const logout = async (req, res, next) => {
   try {
@@ -348,17 +280,13 @@ const logout = async (req, res, next) => {
     if (token) {
       await blacklistToken(token);
     }
-
     res.json({
       success: true,
       message: 'Logged out successfully'
     });
   } catch (error) {
     next(error);
-  }
-};
-
-
+  } }
 // Database helper functions
 const getUserById = async (userId) => {
   try {
@@ -368,9 +296,7 @@ const getUserById = async (userId) => {
   } catch (error) {
     console.error('Error getting user by ID:', error);
     return null;
-  }
-}
-
+  } }
 const getResourceById = async (resourceType, resourceId) => {
   try {
     
@@ -381,9 +307,7 @@ const getResourceById = async (resourceType, resourceId) => {
   } catch (error) {
     console.error('Error getting resource by ID:', error);
     return null;
-  }
-}
-
+  } }
 const checkTokenBlacklist = async (token) => {
   try {
     const cacheManager = require('../utils/cache');
@@ -392,9 +316,7 @@ const checkTokenBlacklist = async (token) => {
   } catch (error) {
     console.error('Error checking token blacklist:', error);
     return false;
-  }
-}
-
+  } }
 const blacklistToken = async (token) => {
   try {
     const cacheManager = require('../utils/cache');
@@ -405,24 +327,17 @@ const blacklistToken = async (token) => {
 
     if (expiresIn > 0) {
       await cacheManager.set(`blacklist:${token}`, '1', expiresIn);
-    }
-  } catch (error) {
+    } } catch (error) {
     console.error('Error blacklisting token:', error);
-  }
-}
-
-
+  } }
 // Password hashing and verification
 const hashPassword = async (password) => {
   const saltRounds = 12;
   return bcrypt.hash(password, saltRounds);
-};
-
+}
 const verifyPassword = async (password, hash) => {
   return bcrypt.compare(password, hash);
-};
-
-
+}
 // Export middleware and utilities
 module.exports = {
   authenticateToken,
@@ -440,4 +355,4 @@ module.exports = {
   AuthenticationError,
   AuthorizationError,
   ValidationError
-};
+}

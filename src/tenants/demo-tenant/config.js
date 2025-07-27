@@ -58,8 +58,7 @@ module.exports = {
     advancedFeatures: {
       multiLanguage: { enabled: false },
       sso: { enabled: false },
-      auditLog: { enabled: true }
-    }
+      auditLog: { enabled: true } }
   },
 
 
@@ -85,8 +84,7 @@ module.exports = {
       mfa: { enabled: false },
       ipWhitelist: [],
       sessionConcurrency: 1
-    }
-  },
+    } },
 
 
   // Branding configuration
@@ -112,29 +110,25 @@ module.exports = {
         host: process.env.DEMO_SMTP_HOST || 'smtp.gmail.com',
         port: process.env.DEMO_SMTP_PORT || 587,
         secure: false
-      }
-    },
+      } },
     storage: {
       provider: 'local',
       config: {
         path: '/(uploads/demo-tenant)',
         backupEnabled: true
-      }
-    },
+      } },
     analytics: {
       provider: 'internal',
       config: {
         trackingId: 'DEMO-001',
         anonymizeData: true
-      }
-    },
+      } },
     payment: {
       provider: 'stripe',
       config: {
         publishableKey: process.env.DEMO_STRIPE_PUBLISHABLE_KEY,
         secretKey: process.env.DEMO_STRIPE_SECRET_KEY
-      }
-    }
+      } }
   },
 
 
@@ -170,5 +164,4 @@ module.exports = {
     lastUpdated: '2024-01-01T00:00:00Z',
     version: '1.0.0',
     tags: ['demo', 'sample', 'technology']
-  }
-};
+  } }

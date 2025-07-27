@@ -23,9 +23,7 @@ exports.getTenantStyling = async (req, res) => {
       message: 'Failed to get tenant styling',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Update tenant styling configuration
  */
@@ -50,9 +48,7 @@ exports.updateTenantStyling = async (req, res) => {
       message: 'Failed to update tenant styling',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get tenant CSS
  */
@@ -70,9 +66,7 @@ exports.getTenantCSS = async (req, res) => {
       message: 'Failed to generate tenant CSS',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get tenant Tailwind config
  */
@@ -95,9 +89,7 @@ exports.getTenantTailwindConfig = async (req, res) => {
       message: 'Failed to generate Tailwind config',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get multiple tenants styling (admin only)
  */
@@ -119,9 +111,7 @@ exports.getMultipleTenantStyling = async (req, res) => {
       message: 'Failed to get multiple tenants styling',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Reset tenant styling to defaults
  */
@@ -146,9 +136,7 @@ exports.resetTenantStyling = async (req, res) => {
       message: 'Failed to reset tenant styling',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Preview styling changes (doesn't save)
  */
@@ -173,9 +161,7 @@ exports.previewTenantStyling = async (req, res) => {
       message: 'Failed to preview styling changes',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Export tenant styling as JSON
  */
@@ -199,9 +185,7 @@ exports.exportTenantStyling = async (req, res) => {
       message: 'Failed to export tenant styling',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Import tenant styling from JSON
  */
@@ -232,5 +216,4 @@ exports.importTenantStyling = async (req, res) => {
       message: 'Failed to import tenant styling',
       error: error.message
     });
-  }
-};
+  } }

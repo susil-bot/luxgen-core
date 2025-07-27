@@ -9,12 +9,9 @@ class AIService {
   constructor () {
     this.enhancedService = EnhancedAIService;
   }
-
   async initialize () {
     return this.enhancedService.initialize();
   }
-
-
   // Legacy methods for backward compatibility
   async generateContent (prompt, options = {}) {
     return this.enhancedService.generateContent({
@@ -25,7 +22,6 @@ class AIService {
       tenantId: 'legacy'
     });
   }
-
   async generateContentWithRAG (prompt, options = {}) {
     return this.enhancedService.generateContent({
       type: 'text',
@@ -36,32 +32,25 @@ class AIService {
       tenantId: 'legacy'
     });
   }
-
   async addToKnowledgeBase (documentId, content, metadata = {}) {
     // Legacy method - now handled by content library
     return {
       documentId,
       chunksCount: 1,
       message: 'Document added to knowledge base'
-    };
-  }
-
+    } }
   async searchKnowledgeBase (query, maxResults = 5) {
     // Legacy method - return mock results
     return [
       {
         content: `Search result for: ${query}`,
         score: 0.95,
-        metadata: { source: 'knowledge_base' }
-      }
+        metadata: { source: 'knowledge_base' } }
     ];
   }
-
   async clearKnowledgeBase () {
     // Legacy method
-    return { success: true, message: 'Knowledge base cleared' };
-  }
-
+    return { success: true, message: 'Knowledge base cleared' } }
   getKnowledgeBaseStats () {
     // Legacy method
     return {
@@ -69,17 +58,13 @@ class AIService {
       totalChunks: 0,
       averageChunkSize: 0,
       lastUpdated: new Date()
-    };
-  }
-
+    } }
   async checkHealth () {
     return this.enhancedService.getHealth({ userId: 'legacy', tenantId: 'legacy' });
   }
-
   async healthCheck () {
     return this.enhancedService.getHealth({ userId: 'legacy', tenantId: 'legacy' });
   }
-
   async getContentLibrary () {
     return this.enhancedService.getContentLibrary({
       userId: 'legacy',
@@ -88,7 +73,6 @@ class AIService {
       limit: 10
     });
   }
-
   getContentCategories () {
     return [
       'Training Materials',
@@ -100,18 +84,13 @@ class AIService {
       'Product Descriptions'
     ];
   }
-
   getRecentContent () {
     return [];
   }
-
   getPopularContent () {
     return [];
   }
-
   getContentTemplates () {
     return this.enhancedService.getTemplates({ userId: 'legacy', tenantId: 'legacy' });
-  }
-}
-
+  } }
 module.exports = new AIService();

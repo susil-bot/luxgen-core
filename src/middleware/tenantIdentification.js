@@ -20,10 +20,7 @@ const identifyTenant = async (req, res, next) => {
       if (subdomain !== 'www' && subdomain !== 'api' && subdomain !== 'localhost') {
         tenantSlug = subdomain;
         identificationMethod = 'subdomain';
-      }
-    }
-
-    
+      } }
 // Method 2: Path-based identification
     if (!tenantSlug && req.path.startsWith('/tenant/')) {
       const pathParts = req.path.split('/');
@@ -34,8 +31,6 @@ const identifyTenant = async (req, res, next) => {
 // Remove tenant from path for route matching
       req.url = req.url.replace(`/tenant/${tenantSlug}`, '');
     }
-
-    
 // Method 3: Header-based identification
     if (!tenantSlug) {
       const headerTenantId = req.headers['x-tenant-id'];
@@ -48,31 +43,22 @@ const identifyTenant = async (req, res, next) => {
         if (dbTenant) {
           tenantSlug = dbTenant.slug;
           identificationMethod = 'header-id';
-        }
-      } else if (headerTenantSlug) {
+        } } else if (headerTenantSlug) {
         tenantSlug = headerTenantSlug;
         identificationMethod = 'header-slug';
-      }
-    }
-
-    
+      } }
 // Method 4: Query parameter identification
     if (!tenantSlug) {
       const queryTenantSlug = req.query.tenant;
       if (queryTenantSlug) {
         tenantSlug = queryTenantSlug;
         identificationMethod = 'query';
-      }
-    }
-
-    
+      } }
 // Method 5: JWT token identification (for authenticated requests)
     if (!tenantSlug && req.user && req.user.tenantSlug) {
       tenantSlug = req.user.tenantSlug;
       identificationMethod = 'jwt';
     }
-
-    
 // Validate tenant using configuration file
     if (tenantSlug) {
       
@@ -85,8 +71,6 @@ const identifyTenant = async (req, res, next) => {
           availableTenants: Object.keys(getActiveTenantConfigs())
         });
       }
-
-      
 // Get tenant configuration
       const tenantConfig = getTenantConfig(tenantSlug);
 
@@ -104,10 +88,7 @@ const identifyTenant = async (req, res, next) => {
         ...tenantConfig,
         _id: dbTenant?._id,
         dbData: dbTenant || null
-      };
-    }
-
-    
+      } }
 // Store tenant information in request
     req.tenant = tenant;
     req.tenantSlug = tenantSlug;
@@ -121,14 +102,11 @@ const identifyTenant = async (req, res, next) => {
       res.setHeader('X-Tenant-Name', tenant.name);
       res.setHeader('X-Tenant-Status', tenant.status);
     }
-
     next();
   } catch (error) {
     console.error('Tenant identification error:', error);
     next(error);
-  }
-};
-
+  } }
 /**
  * Require tenant identification
  * Ensures a tenant is identified before proceeding
@@ -139,10 +117,8 @@ const requireTenant = (req, res, next) => {
       success: false,
       message: 'Tenant not identified. Please provide tenant information via subdomain, path, header, or query parameter.',
       availableMethods: [
-        'Subdomain: https:
-//tenant-slug.luxgen.com',
-        'Path: https:
-//luxgen.com/(tenant/tenant-slug)',
+        'Subdomain: https://tenant-slug.luxgen.com',
+        'Path: https://luxgen.com/(tenant/tenant-slug)',
         'Header: X-Tenant-Slug: tenant-slug',
         'Query: ?tenant=tenant-slug'
       ],
@@ -150,8 +126,7 @@ const requireTenant = (req, res, next) => {
     });
   }
   next();
-};
-
+}
 /**
  * Optional tenant identification
  * Allows requests to proceed with or without tenant identification
@@ -160,8 +135,7 @@ const optionalTenant = (req, res, next) => {
   
 // Always proceed, tenant may or may not be identified
   next();
-};
-
+}
 /**
  * Feature gate middleware
  * Checks if tenant has specific feature enabled
@@ -174,7 +148,6 @@ const requireFeature = (featureName) => {
         message: 'Tenant not identified'
       });
     }
-
     if (!req.tenant.features || !req.tenant.features[featureName] || !req.tenant.features[featureName].enabled) {
       return res.status(403).json({
         success: false,
@@ -183,11 +156,8 @@ const requireFeature = (featureName) => {
         availableFeatures: req.tenant.features ? Object.keys(req.tenant.features).filter(f => req.tenant.features[f].enabled) : []
       });
     }
-
     next();
-  };
-};
-
+  } }
 /**
  * Rate limiting middleware based on tenant configuration
  */
@@ -195,7 +165,6 @@ const tenantRateLimit = (req, res, next) => {
   if (!req.tenant) {
     return next();
   }
-
   const apiConfig = req.tenant.features?.apiAccess;
   if (!apiConfig || !apiConfig.enabled) {
     return res.status(403).json({
@@ -203,18 +172,15 @@ const tenantRateLimit = (req, res, next) => {
       message: 'API access is not enabled for this tenant'
     });
   }
-
-  
 // TODO: Implement rate limiting logic based on apiConfig.rateLimit
   
 // For now, just proceed
   next();
-};
-
+}
 module.exports = {
   identifyTenant,
   requireTenant,
   optionalTenant,
   requireFeature,
   tenantRateLimit
-};
+}

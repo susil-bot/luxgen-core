@@ -44,8 +44,7 @@ const tenantSchema = new mongoose.Schema({
     website: {
       type: String,
       trim: true
-    }
-  },
+    } },
 
 
   // Address information
@@ -118,8 +117,7 @@ const tenantSchema = new mongoose.Schema({
       type: Number,
       default: 1000,
       min: 0
-    }
-  },
+    } },
 
 
   // Current usage
@@ -143,8 +141,7 @@ const tenantSchema = new mongoose.Schema({
       type: Number,
       default: 0,
       min: 0
-    }
-  },
+    } },
 
 
   // Status and settings
@@ -209,8 +206,7 @@ const tenantSchema = new mongoose.Schema({
     whiteLabel: {
       type: Boolean,
       default: false
-    }
-  },
+    } },
 
 
   // Settings and configuration
@@ -251,8 +247,7 @@ const tenantSchema = new mongoose.Schema({
       // hours
       min: 1,
       max: 168
-    }
-  },
+    } },
 
 
   // Security settings
@@ -278,8 +273,7 @@ const tenantSchema = new mongoose.Schema({
       requireSpecialChars: {
         type: Boolean,
         default: false
-      }
-    },
+      } },
     loginPolicy: {
       maxFailedAttempts: {
         type: Number,
@@ -295,8 +289,7 @@ const tenantSchema = new mongoose.Schema({
       requireMFA: {
         type: Boolean,
         default: false
-      }
-    },
+      } },
     ipWhitelist: [String],
     ipBlacklist: [String]
   },
@@ -327,20 +320,17 @@ const tenantSchema = new mongoose.Schema({
         default: 'local'
       },
       config: mongoose.Schema.Types.Mixed
-    }
-  },
+    } },
 
 
   // Metadata
   metadata: {
     type: mongoose.Schema.Types.Mixed,
-    default: {}
-  }
+    default: {} }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+  toObject: { virtuals: true } });
 
 
 // Virtual for display name
@@ -374,8 +364,7 @@ tenantSchema.virtual('usagePercentage').get(function () {
     users: Math.min(userPercentage, 100),
     storage: Math.min(storagePercentage, 100),
     polls: Math.min(pollPercentage, 100)
-  };
-});
+  } });
 
 
 // Indexes for performance
@@ -394,13 +383,10 @@ tenantSchema.pre('save', function (next) {
   if (this.isModified('slug')) {
     this.slug = this.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
   }
-
-
   // Set deletedAt when isDeleted is true
   if (this.isDeleted && !this.deletedAt) {
     this.deletedAt = new Date();
   }
-
   next();
 });
 
@@ -411,72 +397,56 @@ tenantSchema.methods.isWithinLimits = function () {
     users: this.usage.currentUsers < this.limits.maxUsers,
     storage: this.usage.currentStorageGB < this.limits.maxStorageGB,
     polls: this.usage.currentPolls < this.limits.maxPolls
-  };
-};
-
+  } }
 tenantSchema.methods.canAddUser = function () {
   return this.usage.currentUsers < this.limits.maxUsers;
-};
-
+}
 tenantSchema.methods.canCreatePoll = function () {
   return this.usage.currentPolls < this.limits.maxPolls;
-};
-
+}
 tenantSchema.methods.incrementUserCount = async function () {
   if (this.canAddUser()) {
     this.usage.currentUsers += 1;
     return this.save();
   }
   throw new Error('User limit exceeded');
-};
-
+}
 tenantSchema.methods.decrementUserCount = async function () {
   if (this.usage.currentUsers > 0) {
     this.usage.currentUsers -= 1;
     return this.save();
-  }
-};
-
+  } }
 tenantSchema.methods.incrementPollCount = async function () {
   if (this.canCreatePoll()) {
     this.usage.currentPolls += 1;
     return this.save();
   }
   throw new Error('Poll limit exceeded');
-};
-
+}
 tenantSchema.methods.decrementPollCount = async function () {
   if (this.usage.currentPolls > 0) {
     this.usage.currentPolls -= 1;
     return this.save();
-  }
-};
-
-
+  } }
 // Static methods
 tenantSchema.statics.findBySlug = function (slug) {
   return this.findOne({
     slug: slug.toLowerCase(), isActive: true, isDeleted: false
   });
-};
-
+}
 tenantSchema.statics.findByDomain = function (domain) {
   return this.findOne({
     domain: domain.toLowerCase(), isActive: true, isDeleted: false
   });
-};
-
+}
 tenantSchema.statics.findActive = function () {
   return this.find({ isActive: true, isDeleted: false });
-};
-
+}
 tenantSchema.statics.findExpired = function () {
   return this.find({
     'subscription.expiresAt': { $lt: new Date() },
-    'subscription.status': { $in: ['active', 'trial'] }
-  });
-};
-
+    'subscription.status': { $in: ['active', 'trial'] } });
+}
 tenantSchema.statics.getTenantStatistics = function () {
   return this.aggregate([
     { $match: { isDeleted: false } },
@@ -491,14 +461,12 @@ tenantSchema.statics.getTenantStatistics = function () {
               {
                 $and: [
                   { $eq: ['$subscription.status', 'trial'] },
-                  { $gt: ['$subscription.trialEndsAt', new Date()] }
-                ]
+                  { $gt: ['$subscription.trialEndsAt', new Date()] } ]
               },
               1,
               0
             ]
-          }
-        },
+          } },
         expiredTenants: {
           $sum: {
             $cond: [
@@ -506,11 +474,8 @@ tenantSchema.statics.getTenantStatistics = function () {
               1,
               0
             ]
-          }
-        }
-      }
-    }
+          } }
+      } }
   ]);
-};
-
+}
 module.exports = mongoose.model('Tenant', tenantSchema);

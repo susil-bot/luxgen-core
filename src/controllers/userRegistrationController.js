@@ -33,8 +33,6 @@ exports.registerUser = async (req, res) => {
         message: 'Missing required fields: email, password, firstName, lastName'
       });
     }
-
-
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -43,8 +41,6 @@ exports.registerUser = async (req, res) => {
         message: 'Invalid email format'
       });
     }
-
-
     // Validate password strength
     if (password.length < 6) {
       return res.status(400).json({
@@ -52,8 +48,6 @@ exports.registerUser = async (req, res) => {
         message: 'Password must be at least 6 characters long'
       });
     }
-
-
     // Check if user already exists (globally)
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -64,8 +58,6 @@ exports.registerUser = async (req, res) => {
         suggestion: 'Try logging in instead or use a different email address'
       });
     }
-
-
     // Multi-tenant logic: Find the correct tenant
     let tenant;
 
@@ -74,31 +66,25 @@ exports.registerUser = async (req, res) => {
       tenant = await require('../models/Tenant').findOne({
         _id: tenantId,
         isActive: true,
-        isDeleted: { $ne: true }
-      });
+        isDeleted: { $ne: true } });
     } else if (tenantSlug) {
       // Tenant slug provided
       tenant = await require('../models/Tenant').findOne({
         slug: tenantSlug,
         isActive: true,
-        isDeleted: { $ne: true }
-      });
+        isDeleted: { $ne: true } });
     } else {
       // Fallback to default tenant (for backward compatibility)
       tenant = await require('../models/Tenant').findOne({
         isActive: true,
-        isDeleted: { $ne: true }
-      });
+        isDeleted: { $ne: true } });
     }
-
     if (!tenant) {
       return res.status(400).json({
         success: false,
         message: 'Invalid or inactive tenant. Please provide a valid tenant slug or contact administrator.'
       });
     }
-
-
     // Check if user already exists in this specific tenant
     const existingTenantUser = await User.findOne({
       email,
@@ -111,8 +97,6 @@ exports.registerUser = async (req, res) => {
         message: 'User already exists in this organization'
       });
     }
-
-
     // Create user with tenant association
     const user = new User({
       tenantId: tenant._id,
@@ -151,8 +135,7 @@ exports.registerUser = async (req, res) => {
         expiresIn: '24h',
         issuer: 'trainer-platform',
         audience: 'trainer-platform-users'
-      }
-    );
+      } );
 
     res.status(201).json({
       success: true,
@@ -169,11 +152,9 @@ exports.registerUser = async (req, res) => {
             id: tenant._id,
             name: tenant.name,
             slug: tenant.slug
-          }
-        },
+          } },
         token: jwtToken
-      }
-    });
+      } });
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({
@@ -181,9 +162,7 @@ exports.registerUser = async (req, res) => {
       message: 'Registration failed',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Verify email
  */
@@ -198,8 +177,6 @@ exports.verifyEmail = async (req, res) => {
         message: 'Invalid or expired verification token'
       });
     }
-
-
     // Verify email
     user.verifyEmail();
     await user.save();
@@ -223,8 +200,7 @@ exports.verifyEmail = async (req, res) => {
         expiresIn: '24h',
         issuer: 'trainer-platform',
         audience: 'trainer-platform-users'
-      }
-    );
+      } );
 
     res.json({
       success: true,
@@ -239,8 +215,7 @@ exports.verifyEmail = async (req, res) => {
           isActive: user.isActive
         },
         token: jwtToken
-      }
-    });
+      } });
   } catch (error) {
     console.error('Email verification error:', error);
     res.status(500).json({
@@ -248,9 +223,7 @@ exports.verifyEmail = async (req, res) => {
       message: 'Email verification failed',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Resend verification email
  */
@@ -265,15 +238,12 @@ exports.resendVerificationEmail = async (req, res) => {
         message: 'User not found'
       });
     }
-
     if (user.isVerified) {
       return res.status(400).json({
         success: false,
         message: 'Email is already verified'
       });
     }
-
-
     // Generate new verification token
     user.generateEmailVerificationToken();
     await user.save();
@@ -294,9 +264,7 @@ exports.resendVerificationEmail = async (req, res) => {
       message: 'Failed to resend verification email',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Forgot password
  */
@@ -311,8 +279,6 @@ exports.forgotPassword = async (req, res) => {
         message: 'User not found'
       });
     }
-
-
     // Generate password reset token
     user.generatePasswordResetToken();
     await user.save();
@@ -333,9 +299,7 @@ exports.forgotPassword = async (req, res) => {
       message: 'Failed to send password reset email',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Reset password
  */
@@ -351,8 +315,6 @@ exports.resetPassword = async (req, res) => {
         message: 'Invalid or expired reset token'
       });
     }
-
-
     // Reset password
     user.resetPassword(newPassword);
     await user.save();
@@ -368,9 +330,7 @@ exports.resetPassword = async (req, res) => {
       message: 'Failed to reset password',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get user profile
  */
@@ -383,7 +343,6 @@ exports.getProfile = async (req, res) => {
         message: 'User not found'
       });
     }
-
     res.json({
       success: true,
       data: user
@@ -395,9 +354,7 @@ exports.getProfile = async (req, res) => {
       message: 'Failed to get profile',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Update user profile
  */
@@ -410,15 +367,12 @@ exports.updateProfile = async (req, res) => {
         message: 'User not found'
       });
     }
-
-
     // Update allowed fields
     const allowedFields = ['firstName', 'lastName', 'phone', 'company', 'jobTitle', 'department', 'bio', 'addresses', 'preferences'];
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) {
         user[field] = req.body[field];
-      }
-    });
+      } });
 
     await user.save();
 
@@ -434,9 +388,7 @@ exports.updateProfile = async (req, res) => {
       message: 'Failed to update profile',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Change password
  */
@@ -451,8 +403,6 @@ exports.changePassword = async (req, res) => {
         message: 'User not found'
       });
     }
-
-
     // Verify current password
     const isPasswordValid = await user.comparePassword(currentPassword);
     if (!isPasswordValid) {
@@ -461,8 +411,6 @@ exports.changePassword = async (req, res) => {
         message: 'Current password is incorrect'
       });
     }
-
-
     // Update password
     user.password = newPassword;
     await user.save();
@@ -478,9 +426,7 @@ exports.changePassword = async (req, res) => {
       message: 'Failed to change password',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Login user
  */
@@ -512,8 +458,6 @@ exports.loginUser = async (req, res) => {
         message: 'Email and password are required'
       });
     }
-
-
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -529,8 +473,6 @@ exports.loginUser = async (req, res) => {
         message: 'Invalid email format'
       });
     }
-
-
     // Find user by email
     const user = await User.findOne({ email, isActive: true });
     if (!user) {
@@ -546,7 +488,6 @@ exports.loginUser = async (req, res) => {
         message: 'Invalid email or password'
       });
     }
-
     console.log(`👤 User found: ${user.firstName} ${user.lastName} (${user.role})`);
 
 
@@ -566,7 +507,6 @@ exports.loginUser = async (req, res) => {
         message: 'Invalid email or password'
       });
     }
-
     console.log(`✅ Password verified for user: ${user.email}`);
 
 
@@ -583,8 +523,6 @@ exports.loginUser = async (req, res) => {
     } else {
       console.log(`⚠️ No tenant found for user: ${user.email}`);
     }
-
-
     // Generate JWT token with tenant information
     const jwtToken = jwt.sign(
       {
@@ -599,8 +537,7 @@ exports.loginUser = async (req, res) => {
         expiresIn: '24h',
         issuer: 'trainer-platform',
         audience: 'trainer-platform-users'
-      }
-    );
+      } );
 
     const responseTime = Date.now() - startTime;
     console.log(`🎉 Login successful for ${email} (${responseTime}ms)`);
@@ -634,11 +571,9 @@ exports.loginUser = async (req, res) => {
             id: tenant?._id,
             name: tenant?.name,
             slug: tenant?.slug
-          }
-        },
+          } },
         token: jwtToken
-      }
-    });
+      } });
   } catch (error) {
     const responseTime = Date.now() - startTime;
     console.error(`💥 Login error for ${email}:`, error.message);
@@ -659,9 +594,7 @@ exports.loginUser = async (req, res) => {
       message: 'Login failed',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Logout user
  */
@@ -682,7 +615,6 @@ exports.logout = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-
     res.status(200).json({
       success: true,
       message: 'Logged out successfully'
@@ -703,9 +635,7 @@ exports.logout = async (req, res) => {
       message: 'Logout failed',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Verify email address
  */
@@ -719,13 +649,10 @@ exports.verifyEmail = async (req, res) => {
         message: 'Verification token is required'
       });
     }
-
-
     // Find user by verification token
     const user = await User.findOne({
       emailVerificationToken: token,
-      emailVerificationExpires: { $gt: Date.now() }
-    });
+      emailVerificationExpires: { $gt: Date.now() } });
 
     if (!user) {
       return res.status(400).json({
@@ -733,8 +660,6 @@ exports.verifyEmail = async (req, res) => {
         message: 'Invalid or expired verification token'
       });
     }
-
-
     // Update user verification status
     user.isVerified = true;
     user.emailVerificationToken = undefined;
@@ -759,9 +684,7 @@ exports.verifyEmail = async (req, res) => {
       message: 'Failed to verify email',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Resend verification email
  */
@@ -775,7 +698,6 @@ exports.resendVerificationEmail = async (req, res) => {
         message: 'Email is required'
       });
     }
-
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -784,15 +706,12 @@ exports.resendVerificationEmail = async (req, res) => {
         message: 'User not found'
       });
     }
-
     if (user.isVerified) {
       return res.status(400).json({
         success: false,
         message: 'Email is already verified'
       });
     }
-
-
     // Generate new verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
     user.emailVerificationToken = verificationToken;
@@ -821,9 +740,7 @@ exports.resendVerificationEmail = async (req, res) => {
       message: 'Failed to resend verification email',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Forgot password
  */
@@ -837,7 +754,6 @@ exports.forgotPassword = async (req, res) => {
         message: 'Email is required'
       });
     }
-
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -847,8 +763,6 @@ exports.forgotPassword = async (req, res) => {
         message: 'If an account with that email exists, a password reset link has been sent'
       });
     }
-
-
     // Generate password reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.passwordResetToken = resetToken;
@@ -877,9 +791,7 @@ exports.forgotPassword = async (req, res) => {
       message: 'Failed to send password reset email',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Reset password
  */
@@ -894,20 +806,16 @@ exports.resetPassword = async (req, res) => {
         message: 'Token and new password are required'
       });
     }
-
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
         message: 'Password must be at least 6 characters long'
       });
     }
-
-
     // Find user by reset token
     const user = await User.findOne({
       passwordResetToken: token,
-      passwordResetExpires: { $gt: Date.now() }
-    });
+      passwordResetExpires: { $gt: Date.now() } });
 
     if (!user) {
       return res.status(400).json({
@@ -915,8 +823,6 @@ exports.resetPassword = async (req, res) => {
         message: 'Invalid or expired reset token'
       });
     }
-
-
     // Hash new password
     const hashedPassword = await bcrypt.hash(password, 12);
     user.password = hashedPassword;
@@ -942,9 +848,7 @@ exports.resetPassword = async (req, res) => {
       message: 'Failed to reset password',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Refresh token
  */
@@ -958,8 +862,6 @@ exports.refreshToken = async (req, res) => {
         message: 'Refresh token is required'
       });
     }
-
-
     // Verify refresh token
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'your_jwt_secret_key_here_2024');
 
@@ -972,8 +874,6 @@ exports.refreshToken = async (req, res) => {
         message: 'Invalid refresh token'
       });
     }
-
-
     // Generate new access token
     const newToken = jwt.sign(
       {
@@ -987,8 +887,7 @@ exports.refreshToken = async (req, res) => {
         expiresIn: '24h',
         issuer: 'trainer-platform',
         audience: 'trainer-platform-users'
-      }
-    );
+      } );
 
     logger.info(`Token refreshed for user: ${user.email}`, {
       userId: user._id,
@@ -999,8 +898,7 @@ exports.refreshToken = async (req, res) => {
     res.json({
       success: true,
       message: 'Token refreshed successfully',
-      data: { token: newToken }
-    });
+      data: { token: newToken } });
   } catch (error) {
     logger.error('Error refreshing token:', error);
     res.status(401).json({
@@ -1008,5 +906,4 @@ exports.refreshToken = async (req, res) => {
       message: 'Invalid refresh token',
       error: error.message
     });
-  }
-};
+  } }

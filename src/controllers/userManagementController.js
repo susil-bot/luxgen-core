@@ -20,7 +20,7 @@ exports.getAllUsers = async (req, res) => {
       search
     } = req.query;
 
-    const options = {};
+    const options = {}
     if (role) {
       options.role = role;
     }
@@ -30,20 +30,14 @@ exports.getAllUsers = async (req, res) => {
     if (isVerified !== undefined) {
       options.isVerified = isVerified === 'true';
     }
-
-    const query = { tenantId };
-
-
+    const query = { tenantId }
     // Add search functionality
     if (search) {
       query.$or = [
         { firstName: { $regex: search, $options: 'i' } },
         { lastName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
-      ];
+        { email: { $regex: search, $options: 'i' } } ];
     }
-
-
     // Add filter options
     Object.assign(query, options);
 
@@ -74,8 +68,7 @@ exports.getAllUsers = async (req, res) => {
           totalPages: Math.ceil(total / limit),
           totalItems: total,
           itemsPerPage: limit
-        }
-      },
+        } },
       message: 'Users retrieved successfully'
     });
   } catch (error) {
@@ -85,9 +78,7 @@ exports.getAllUsers = async (req, res) => {
       message: 'Failed to retrieve users',
       error: error.message
     });
-  }
-};
-
+  } }
 /**
  * Get user by ID
  */
@@ -106,7 +97,6 @@ exports.getUserById = async (req, res) => {
     if (!user) {
       throw new NotFoundError('User not found');
     }
-
     logger.info(`User retrieved: ${userId}`, { userId, tenantId });
 
     res.json({
@@ -127,10 +117,8 @@ exports.getUserById = async (req, res) => {
         message: 'Failed to retrieve user',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Create new user
  */
@@ -153,28 +141,20 @@ exports.createUser = async (req, res) => {
     if (!firstName || !lastName || !email || !password) {
       throw new ValidationError('First name, last name, email, and password are required');
     }
-
-
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       throw new ValidationError('Invalid email format');
     }
-
-
     // Validate password strength
     if (password.length < 6) {
       throw new ValidationError('Password must be at least 6 characters long');
     }
-
-
     // Check if user already exists
     const existingUser = await User.findOne({ email, tenantId });
     if (existingUser) {
       throw new ValidationError('User with this email already exists');
     }
-
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -231,10 +211,8 @@ exports.createUser = async (req, res) => {
         message: 'Failed to create user',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Update user
  */
@@ -252,8 +230,6 @@ exports.updateUser = async (req, res) => {
     if (!user) {
       throw new NotFoundError('User not found');
     }
-
-
     // Check if user has permission to update this user
     const isAdmin = req.user.role === 'admin';
     const isSelf = userId === req.user.userId;
@@ -261,22 +237,16 @@ exports.updateUser = async (req, res) => {
     if (!isAdmin && !isSelf) {
       throw new AuthorizationError('You do not have permission to update this user');
     }
-
-
     // If email is being changed, check for duplicates
     if (updateData.email && updateData.email !== user.email) {
       const existingUser = await User.findOne({
         email: updateData.email,
         tenantId,
-        _id: { $ne: userId }
-      });
+        _id: { $ne: userId } });
 
       if (existingUser) {
         throw new ValidationError('Email is already in use');
-      }
-    }
-
-
+      } }
     // If password is being changed, hash it
     if (updateData.password) {
       if (updateData.password.length < 6) {
@@ -285,8 +255,6 @@ exports.updateUser = async (req, res) => {
       updateData.password = await bcrypt.hash(updateData.password, 12);
       updateData.passwordChangedAt = new Date();
     }
-
-
     // Update user
     Object.assign(user, updateData, { updatedBy });
     await user.save();
@@ -322,10 +290,8 @@ exports.updateUser = async (req, res) => {
         message: 'Failed to update user',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Delete user (soft delete)
  */
@@ -342,8 +308,6 @@ exports.deleteUser = async (req, res) => {
     if (!user) {
       throw new NotFoundError('User not found');
     }
-
-
     // Check if user has permission to delete this user
     const isAdmin = req.user.role === 'admin';
     const isSelf = userId === req.user.userId;
@@ -351,12 +315,9 @@ exports.deleteUser = async (req, res) => {
     if (!isAdmin) {
       throw new AuthorizationError('You do not have permission to delete users');
     }
-
     if (isSelf) {
       throw new ValidationError('You cannot delete your own account');
     }
-
-
     // Soft delete
     user.isDeleted = true;
     user.deletedAt = new Date();
@@ -386,10 +347,8 @@ exports.deleteUser = async (req, res) => {
         message: 'Failed to delete user',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Bulk user operations
  */
@@ -403,17 +362,13 @@ exports.bulkUserAction = async (req, res) => {
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       throw new ValidationError('User IDs array is required');
     }
-
     if (!action) {
       throw new ValidationError('Action is required');
     }
-
-
     // Check if user has permission for bulk operations
     if (req.user.role !== 'admin') {
       throw new AuthorizationError('Only admins can perform bulk operations');
     }
-
     const users = await User.find({
       _id: { $in: userIds },
       tenantId
@@ -422,17 +377,16 @@ exports.bulkUserAction = async (req, res) => {
     if (users.length !== userIds.length) {
       throw new ValidationError('Some users not found');
     }
-
-    let updateData = {};
+    let updateData = {}
     let message = '';
 
     switch (action) {
       case 'activate':
-        updateData = { isActive: true };
+        updateData = { isActive: true }
         message = 'Users activated successfully';
         break;
       case 'deactivate':
-        updateData = { isActive: false };
+        updateData = { isActive: false }
         message = 'Users deactivated successfully';
         break;
       case 'delete':
@@ -440,26 +394,23 @@ exports.bulkUserAction = async (req, res) => {
           isDeleted: true,
           deletedAt: new Date(),
           deletedBy: actionBy
-        };
+        }
         message = 'Users deleted successfully';
         break;
       case 'changeRole':
         if (!data.role) {
           throw new ValidationError('Role is required for changeRole action');
         }
-        updateData = { role: data.role };
+        updateData = { role: data.role }
         message = 'User roles updated successfully';
         break;
       default:
         throw new ValidationError('Invalid action');
     }
-
-
     // Perform bulk update
     const result = await User.updateMany(
       { _id: { $in: userIds }, tenantId },
-      { ...updateData, updatedBy: actionBy }
-    );
+      { ...updateData, updatedBy: actionBy } );
 
     logger.info(`Bulk user action performed: ${action}`, {
       tenantId,
@@ -491,10 +442,8 @@ exports.bulkUserAction = async (req, res) => {
         message: 'Failed to perform bulk action',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Get user health
  */
@@ -511,8 +460,6 @@ exports.getUserHealth = async (req, res) => {
     if (!user) {
       throw new NotFoundError('User not found');
     }
-
-
     // Calculate user health metrics
     const healthMetrics = {
       isActive: user.isActive,
@@ -525,9 +472,7 @@ exports.getUserHealth = async (req, res) => {
         ? Math.floor((Date.now() - user.passwordChangedAt.getTime()) / (1000 * 60 * 60 * 24)) : null,
       loginCount: user.loginCount || 0,
       status: 'healthy'
-    };
-
-
+    }
     // Determine health status
     if (!user.isActive) {
       healthMetrics.status = 'inactive';
@@ -538,7 +483,6 @@ exports.getUserHealth = async (req, res) => {
     } else if (healthMetrics.passwordAge > 90) {
       healthMetrics.status = 'password_expired';
     }
-
     logger.info(`User health retrieved: ${userId}`, { userId, tenantId });
 
     res.json({
@@ -566,10 +510,8 @@ exports.getUserHealth = async (req, res) => {
         message: 'Failed to retrieve user health',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Reset user password
  */
@@ -584,11 +526,9 @@ exports.resetUserPassword = async (req, res) => {
     if (req.user.role !== 'admin') {
       throw new AuthorizationError('Only admins can reset user passwords');
     }
-
     if (!password || password.length < 6) {
       throw new ValidationError('Password must be at least 6 characters long');
     }
-
     const user = await User.findOne({
       _id: userId,
       tenantId
@@ -597,8 +537,6 @@ exports.resetUserPassword = async (req, res) => {
     if (!user) {
       throw new NotFoundError('User not found');
     }
-
-
     // Hash new password
     const hashedPassword = await bcrypt.hash(password, 12);
     user.password = hashedPassword;
@@ -631,10 +569,8 @@ exports.resetUserPassword = async (req, res) => {
         message: 'Failed to reset user password',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Suspend user
  */
@@ -649,7 +585,6 @@ exports.suspendUser = async (req, res) => {
     if (req.user.role !== 'admin') {
       throw new AuthorizationError('Only admins can suspend users');
     }
-
     const user = await User.findOne({
       _id: userId,
       tenantId
@@ -658,12 +593,9 @@ exports.suspendUser = async (req, res) => {
     if (!user) {
       throw new NotFoundError('User not found');
     }
-
     if (userId === req.user.userId) {
       throw new ValidationError('You cannot suspend your own account');
     }
-
-
     // Suspend user
     user.isActive = false;
     user.suspendedAt = new Date();
@@ -696,10 +628,8 @@ exports.suspendUser = async (req, res) => {
         message: 'Failed to suspend user',
         error: error.message
       });
-    }
-  }
-};
-
+    } }
+}
 /**
  * Activate user
  */
@@ -713,7 +643,6 @@ exports.activateUser = async (req, res) => {
     if (req.user.role !== 'admin') {
       throw new AuthorizationError('Only admins can activate users');
     }
-
     const user = await User.findOne({
       _id: userId,
       tenantId
@@ -722,8 +651,6 @@ exports.activateUser = async (req, res) => {
     if (!user) {
       throw new NotFoundError('User not found');
     }
-
-
     // Activate user
     user.isActive = true;
     user.suspendedAt = undefined;
@@ -755,6 +682,5 @@ exports.activateUser = async (req, res) => {
         message: 'Failed to activate user',
         error: error.message
       });
-    }
-  }
-};
+    } }
+}

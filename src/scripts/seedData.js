@@ -43,8 +43,7 @@ const sampleUsers = [
     role: 'user',
     department: 'Marketing',
     position: 'Marketing Specialist'
-  }
-];
+  } ];
 
 const samplePolls = [
   {
@@ -72,8 +71,7 @@ const samplePolls = [
         type: 'text',
         required: false,
         order: 3
-      }
-    ],
+      } ],
     channels: ['email', 'slack'],
     status: 'sent',
     priority: 'high',
@@ -94,8 +92,7 @@ const samplePolls = [
         name: 'Jane Smith',
         sentAt: new Date('2024-01-15'),
         respondedAt: new Date('2024-01-17')
-      }
-    ],
+      } ],
     responses: [
       {
         userId: null,
@@ -116,11 +113,9 @@ const samplePolls = [
             questionId: '3',
             answer: 'More focus on conflict resolution would be helpful.',
             questionText: 'What additional topics would you like to see covered in future training?'
-          }
-        ],
+          } ],
         completedAt: new Date('2024-01-16')
-      }
-    ],
+      } ],
     feedback: [
       {
         userId: null,
@@ -129,8 +124,7 @@ const samplePolls = [
         rating: 5,
         comment: 'Excellent training program! The practical exercises were very helpful.',
         helpful: 8
-      }
-    ],
+      } ],
     notifications: [
       {
         type: 'poll_response',
@@ -145,8 +139,7 @@ const samplePolls = [
         message: 'John Doe left feedback on Leadership Training Effectiveness poll',
         read: false,
         recipientId: null
-      }
-    ],
+      } ],
     settings: {
       allowAnonymous: false,
       requireEmail: true,
@@ -159,8 +152,7 @@ const samplePolls = [
       responseRate: 50,
       averageRating: 5,
       completionTime: 15
-    }
-  },
+    } },
   {
     tenantId: 'tenant1',
     title: 'Sales Team Performance Survey',
@@ -186,8 +178,7 @@ const samplePolls = [
         type: 'text',
         required: false,
         order: 3
-      }
-    ],
+      } ],
     channels: ['whatsapp', 'email'],
     status: 'scheduled',
     priority: 'medium',
@@ -207,8 +198,7 @@ const samplePolls = [
         name: 'Sarah Wilson',
         sentAt: null,
         respondedAt: null
-      }
-    ],
+      } ],
     responses: [],
     feedback: [],
     notifications: [
@@ -218,8 +208,7 @@ const samplePolls = [
         message: 'Sales Team Performance Survey is scheduled for Jan 25, 2024',
         read: true,
         recipientId: null
-      }
-    ],
+      } ],
     settings: {
       allowAnonymous: false,
       requireEmail: true,
@@ -232,8 +221,7 @@ const samplePolls = [
       responseRate: 0,
       averageRating: 0,
       completionTime: 0
-    }
-  },
+    } },
   {
     tenantId: 'tenant1',
     title: 'Technical Skills Assessment',
@@ -259,8 +247,7 @@ const samplePolls = [
         type: 'text',
         required: false,
         order: 3
-      }
-    ],
+      } ],
     channels: ['email'],
     status: 'draft',
     priority: 'low',
@@ -281,11 +268,10 @@ const samplePolls = [
       responseRate: 0,
       averageRating: 0,
       completionTime: 0
-    }
-  }
+    } }
 ];
 
-async const seedData = () {
+const seedData = async () => {
   try {
     console.log('🌱 Starting database seeding...');
 
@@ -309,8 +295,6 @@ async const seedData = () {
       createdUsers.push(user);
       console.log(`✅ Created user: ${user.email}`);
     }
-
-    
 // Create polls
     console.log('📊 Creating polls...');
     for (const pollData of samplePolls) {
@@ -326,8 +310,7 @@ async const seedData = () {
         return {
           ...recipient,
           userId: user ? user._id : null
-        };
-      });
+        } });
 
       
 // Create poll without responses and feedback first
@@ -335,8 +318,7 @@ async const seedData = () {
         ...pollData,
         responses: [],
         feedback: []
-      };
-
+      }
       const poll = new Poll(pollWithoutResponses);
       await poll.save();
 
@@ -354,10 +336,7 @@ async const seedData = () {
           }));
 
           await poll.addResponse(user._id, response.userName, response.userEmail, answers);
-        }
-      }
-
-      
+        } }
 // Add feedback if it exists
       if (pollData.feedback.length > 0) {
         const feedback = pollData.feedback[0];
@@ -365,12 +344,9 @@ async const seedData = () {
 
         if (user) {
           await poll.addFeedback(user._id, feedback.userName, feedback.userEmail, feedback.rating, feedback.comment);
-        }
-      }
-
+        } }
       console.log(`✅ Created poll: ${poll.title}`);
     }
-
     console.log('🎉 Database seeding completed successfully!');
     console.log(`📊 Created ${createdUsers.length} users and ${samplePolls.length} polls`);
   } catch (error) {
@@ -378,13 +354,9 @@ async const seedData = () {
   } finally {
     await database.disconnect();
     process.exit(0);
-  }
-}
-
-
+  } }
 // Run seeding if this file is executed directly
 if (require.main === module) {
   seedData();
 }
-
 module.exports = seedData;

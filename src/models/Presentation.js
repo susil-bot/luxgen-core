@@ -80,8 +80,7 @@ const presentationSchema = new mongoose.Schema({
       type: Number,
       // in seconds
       default: 30
-    }
-  },
+    } },
 
 
   // Slides structure
@@ -131,8 +130,7 @@ const presentationSchema = new mongoose.Schema({
       order: {
         type: Number,
         default: 0
-      }
-    }],
+      } }],
 
 
     // Poll integration
@@ -153,8 +151,7 @@ const presentationSchema = new mongoose.Schema({
       showResults: {
         type: Boolean,
         default: true
-      }
-    },
+      } },
 
 
     // Slide metadata
@@ -175,8 +172,7 @@ const presentationSchema = new mongoose.Schema({
     isRequired: {
       type: Boolean,
       default: true
-    }
-  }],
+    } }],
 
 
   // Presentation sessions
@@ -223,8 +219,7 @@ const presentationSchema = new mongoose.Schema({
       isActive: {
         type: Boolean,
         default: true
-      }
-    }],
+      } }],
 
 
     // Session progress
@@ -259,8 +254,7 @@ const presentationSchema = new mongoose.Schema({
       isPrivate: {
         type: Boolean,
         default: false
-      }
-    }],
+      } }],
 
 
     // Session polls
@@ -287,8 +281,7 @@ const presentationSchema = new mongoose.Schema({
         submittedAt: {
           type: Date,
           default: Date.now
-        }
-      }]
+        } }]
     }],
 
 
@@ -307,8 +300,7 @@ const presentationSchema = new mongoose.Schema({
       duration: {
         type: Number
         // in seconds
-      }
-    }
+      } }
   }],
 
 
@@ -336,8 +328,7 @@ const presentationSchema = new mongoose.Schema({
     totalViews: {
       type: Number,
       default: 0
-    }
-  },
+    } },
 
 
   // Presentation status
@@ -368,12 +359,10 @@ const presentationSchema = new mongoose.Schema({
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
-  }
-}, {
+  } }, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+  toObject: { virtuals: true } });
 
 
 // Indexes
@@ -407,8 +396,7 @@ presentationSchema.pre('save', function (next) {
   this.slides.forEach((slide, index) => {
     if (!slide.order) {
       slide.order = index;
-    }
-  });
+    } });
 
 
   // Update version if slides are modified
@@ -417,7 +405,6 @@ presentationSchema.pre('save', function (next) {
     const newPatch = parseInt(currentVersion[2]) + 1;
     this.version = `${currentVersion[0]}.${currentVersion[1]}.${newPatch}`;
   }
-
   next();
 });
 
@@ -425,16 +412,14 @@ presentationSchema.pre('save', function (next) {
 // Static methods
 presentationSchema.statics.findByTenant = function (tenantId, options = {}) {
   return this.find({ tenantId, ...options });
-};
-
+}
 presentationSchema.statics.findActive = function (tenantId) {
   return this.find({
     tenantId,
     isActive: true,
     isPublished: true
   });
-};
-
+}
 presentationSchema.statics.findByCategory = function (tenantId, category) {
   return this.find({
     tenantId,
@@ -442,22 +427,18 @@ presentationSchema.statics.findByCategory = function (tenantId, category) {
     isActive: true,
     isPublished: true
   });
-};
-
-
+}
 // Instance methods
 presentationSchema.methods.publish = function () {
   this.isPublished = true;
   this.publishedAt = new Date();
   return this.save();
-};
-
+}
 presentationSchema.methods.unpublish = function () {
   this.isPublished = false;
   this.publishedAt = null;
   return this.save();
-};
-
+}
 presentationSchema.methods.addSlide = function (slide) {
   if (!slide.order) {
     slide.order = this.slides.length;
@@ -467,16 +448,14 @@ presentationSchema.methods.addSlide = function (slide) {
   }
   this.slides.push(slide);
   return this.save();
-};
-
+}
 presentationSchema.methods.updateSlide = function (slideIndex, updates) {
   if (slideIndex >= 0 && slideIndex < this.slides.length) {
-    this.slides[slideIndex] = { ...this.slides[slideIndex], ...updates };
+    this.slides[slideIndex] = { ...this.slides[slideIndex], ...updates }
     return this.save();
   }
   throw new Error('Invalid slide index');
-};
-
+}
 presentationSchema.methods.removeSlide = function (slideIndex) {
   if (slideIndex >= 0 && slideIndex < this.slides.length) {
     this.slides.splice(slideIndex, 1);
@@ -488,8 +467,7 @@ presentationSchema.methods.removeSlide = function (slideIndex) {
     return this.save();
   }
   throw new Error('Invalid slide index');
-};
-
+}
 presentationSchema.methods.createSession = function (sessionData) {
   const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const session = {
@@ -498,31 +476,26 @@ presentationSchema.methods.createSession = function (sessionData) {
     scheduledAt: sessionData.scheduledAt || new Date(),
     participants: sessionData.participants || [],
     status: 'scheduled'
-  };
-
+  }
   this.sessions.push(session);
   return this.save();
-};
-
+}
 presentationSchema.methods.startSession = function (sessionId) {
   const session = this.sessions.find(s => s.sessionId === sessionId);
   if (!session) {
     throw new Error('Session not found');
   }
-
   session.status = 'in-progress';
   session.startTime = new Date();
   session.currentSlide = 0;
 
   return this.save();
-};
-
+}
 presentationSchema.methods.endSession = function (sessionId) {
   const session = this.sessions.find(s => s.sessionId === sessionId);
   if (!session) {
     throw new Error('Session not found');
   }
-
   session.status = 'completed';
   session.endTime = new Date();
 
@@ -535,16 +508,13 @@ presentationSchema.methods.endSession = function (sessionId) {
     const currentTotal = this.statistics.averageSessionDuration * (this.statistics.totalSessions - 1);
     this.statistics.averageSessionDuration = (currentTotal + duration) / this.statistics.totalSessions;
   }
-
   return this.save();
-};
-
+}
 presentationSchema.methods.addParticipant = function (sessionId, userId, role = 'attendee') {
   const session = this.sessions.find(s => s.sessionId === sessionId);
   if (!session) {
     throw new Error('Session not found');
   }
-
   const existingParticipant = session.participants.find(p => p.userId.toString() === userId.toString());
   if (existingParticipant) {
     existingParticipant.isActive = true;
@@ -557,51 +527,41 @@ presentationSchema.methods.addParticipant = function (sessionId, userId, role = 
       isActive: true
     });
   }
-
   return this.save();
-};
-
+}
 presentationSchema.methods.removeParticipant = function (sessionId, userId) {
   const session = this.sessions.find(s => s.sessionId === sessionId);
   if (!session) {
     throw new Error('Session not found');
   }
-
   const participant = session.participants.find(p => p.userId.toString() === userId.toString());
   if (participant) {
     participant.isActive = false;
     participant.leftAt = new Date();
   }
-
   return this.save();
-};
-
+}
 presentationSchema.methods.advanceSlide = function (sessionId, slideIndex) {
   const session = this.sessions.find(s => s.sessionId === sessionId);
   if (!session) {
     throw new Error('Session not found');
   }
-
   if (slideIndex >= 0 && slideIndex < this.slides.length) {
     session.currentSlide = slideIndex;
     return this.save();
   }
   throw new Error('Invalid slide index');
-};
-
+}
 presentationSchema.methods.activatePoll = function (sessionId, pollId, slideId) {
   const session = this.sessions.find(s => s.sessionId === sessionId);
   if (!session) {
     throw new Error('Session not found');
   }
-
-
   // Deactivate any currently active polls
   session.activePolls.forEach(poll => {
     if (!poll.deactivatedAt) {
       poll.deactivatedAt = new Date();
-    }
-  });
+    } });
 
 
   // Activate new poll
@@ -613,34 +573,27 @@ presentationSchema.methods.activatePoll = function (sessionId, pollId, slideId) 
   });
 
   return this.save();
-};
-
+}
 presentationSchema.methods.deactivatePoll = function (sessionId, pollId) {
   const session = this.sessions.find(s => s.sessionId === sessionId);
   if (!session) {
     throw new Error('Session not found');
   }
-
   const poll = session.activePolls.find(p => p.pollId.toString() === pollId.toString() && !p.deactivatedAt);
   if (poll) {
     poll.deactivatedAt = new Date();
   }
-
   return this.save();
-};
-
+}
 presentationSchema.methods.submitPollResponse = function (sessionId, pollId, userId, response) {
   const session = this.sessions.find(s => s.sessionId === sessionId);
   if (!session) {
     throw new Error('Session not found');
   }
-
   const poll = session.activePolls.find(p => p.pollId.toString() === pollId.toString() && !p.deactivatedAt);
   if (!poll) {
     throw new Error('Poll not active');
   }
-
-
   // Check if user already responded
   const existingResponse = poll.responses.find(r => r.userId.toString() === userId.toString());
   if (existingResponse) {
@@ -653,8 +606,6 @@ presentationSchema.methods.submitPollResponse = function (sessionId, pollId, use
       submittedAt: new Date()
     });
   }
-
   return this.save();
-};
-
+}
 module.exports = mongoose.model('Presentation', presentationSchema);
