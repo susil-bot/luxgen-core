@@ -28,7 +28,22 @@
     "docker:compose": "docker-compose up -d",
     "docker:compose:down": "docker-compose down",
     "deploy:staging": "npm run test && npm run lint && npm run security:audit",
-    "deploy:production": "npm run test:coverage && npm run lint && npm run security:audit && npm run performance:test"
+    "deploy:production": "npm run test:coverage && npm run lint && npm run security:audit && npm run performance:test",
+    "api:test": "node scripts/run-api-tests.js",
+    "api:test:auth": "node scripts/run-api-tests.js -c Authentication",
+    "api:test:users": "node scripts/run-api-tests.js -c User Management",
+    "api:test:tenants": "node scripts/run-api-tests.js -c Tenant Management",
+    "api:test:ai": "node scripts/run-api-tests.js -c AI Services",
+    "api:test:training": "node scripts/run-api-tests.js -c Training",
+    "api:test:presentations": "node scripts/run-api-tests.js -c Presentations",
+    "api:test:parallel": "node scripts/run-api-tests.js -p",
+    "api:test:all": "node scripts/run-api-tests.js -p -d 50",
+    "api:test:simple": "node scripts/simple-api-test.js",
+    "deploy": "./scripts/deploy.sh",
+    "deploy:staging": "./scripts/deploy.sh develop",
+    "deploy:production": "./scripts/deploy.sh main",
+    "deploy:render": "git push origin main",
+    "deploy:check": "npm run test && npm run lint && npm run security:audit"
   },
   "keywords": [
     "training",
@@ -78,7 +93,10 @@
     "events": "^3.3.0",
     "assert": "^2.0.0",
     "os": "^0.1.2",
-    "child_process": "^1.0.2"
+    "child_process": "^1.0.2",
+    "axios": "^1.5.0",
+    "csv-parser": "^3.0.0",
+    "commander": "^11.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1",

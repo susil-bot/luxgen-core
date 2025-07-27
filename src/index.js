@@ -4,12 +4,32 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
+const mongoose = require('mongoose');
 const { createDatabaseInitializer } = require('./config/databaseInit');
-const databaseManager = require('./config/database');
+const { connectToDatabase } = require('./config/database');
 const environmentConfig = require('./config/environment');
 const { errorHandler } = require('./utils/errors');
-const { cacheManager } = require('./utils/cache');
+const cacheManager = require('./utils/cache');
 const aiService = require('./services/aiService');
+
+// Import error handling middleware
+const {
+  requestLogger,
+  performanceMonitor,
+  errorTracker,
+  rateLimitErrorHandler,
+  databaseErrorHandler,
+  aiServiceErrorHandler,
+  trainingErrorHandler,
+  presentationErrorHandler,
+  tenantErrorHandler,
+  validationErrorHandler,
+  authenticationErrorHandler,
+  authorizationErrorHandler,
+  notFoundErrorHandler,
+  conflictErrorHandler,
+  genericErrorHandler
+} = require('./middleware/errorHandling');
 require('dotenv').config();
 
 const app = express();
@@ -199,9 +219,10 @@ async function startServer() {
     await aiService.initialize();
 
     // Initialize database connections first
-    await databaseManager.initialize();
+    const mongoUri = environmentConfig.get('MONGODB_URI', 'mongodb://localhost:27017/luxgen_trainer_platform');
+    await connectToDatabase(mongoUri);
 
-    // Initialize database with step-by-step process
+    // Initialize database with step-by-step process (skip connection since already connected)
     const dbInitializer = createDatabaseInitializer();
     await dbInitializer.initialize();
     
@@ -230,8 +251,8 @@ async function startServer() {
           // Stop cache
           await cacheManager.disconnect();
           
-          // Stop database health checks
-          databaseManager.stopHealthCheck();
+          // Close database connection
+          await mongoose.connection.close();
           
           console.log('✅ Server closed gracefully');
           process.exit(0);
