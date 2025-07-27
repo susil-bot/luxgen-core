@@ -4,7 +4,7 @@ const databaseManager = require('../config/database');
 
 // Custom error classes
 class AuthenticationError extends Error {
-  constructor(message = 'Authentication failed') {
+  constructor (message = 'Authentication failed') {
     super(message);
     this.name = 'AuthenticationError';
     this.status = 401;
@@ -12,7 +12,7 @@ class AuthenticationError extends Error {
 }
 
 class AuthorizationError extends Error {
-  constructor(message = 'Access denied') {
+  constructor (message = 'Access denied') {
     super(message);
     this.name = 'AuthorizationError';
     this.status = 403;
@@ -20,7 +20,7 @@ class AuthorizationError extends Error {
 }
 
 class ValidationError extends Error {
-  constructor(message = 'Validation failed') {
+  constructor (message = 'Validation failed') {
     super(message);
     this.name = 'ValidationError';
     this.status = 400;
@@ -33,7 +33,7 @@ const JWT_CONFIG = {
   expiresIn: process.env.JWT_EXPIRES_IN || '24h',
   refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   issuer: 'trainer-platform',
-  audience: 'trainer-platform-users',
+  audience: 'trainer-platform-users'
 };
 
 // Rate limiting for authentication attempts
@@ -64,7 +64,7 @@ const authenticateToken = async (req, res, next) => {
     // Verify JWT token
     const decoded = jwt.verify(token, JWT_CONFIG.secret, {
       issuer: JWT_CONFIG.issuer,
-      audience: JWT_CONFIG.audience,
+      audience: JWT_CONFIG.audience
     });
 
     // Get user from database
@@ -105,7 +105,7 @@ const optionalAuth = async (req, res, next) => {
     if (token) {
       const decoded = jwt.verify(token, JWT_CONFIG.secret, {
         issuer: JWT_CONFIG.issuer,
-        audience: JWT_CONFIG.audience,
+        audience: JWT_CONFIG.audience
       });
 
       const user = await getUserById(decoded.userId);
@@ -148,7 +148,7 @@ const authorizeTenant = (req, res, next) => {
   }
 
   const requestedTenantId = req.params.tenantId || req.body.tenantId || req.query.tenantId;
-  
+
   if (!requestedTenantId) {
     return next(new ValidationError('Tenant ID is required'));
   }
@@ -176,7 +176,7 @@ const authorizeResource = (resourceType, resourceIdField = 'id') => {
     }
 
     const resourceId = req.params[resourceIdField] || req.body[resourceIdField];
-    
+
     if (!resourceId) {
       return next(new ValidationError(`${resourceIdField} is required`));
     }
@@ -184,7 +184,7 @@ const authorizeResource = (resourceType, resourceIdField = 'id') => {
     try {
       // Get resource from database
       const resource = await getResourceById(resourceType, resourceId);
-      
+
       if (!resource) {
         return next(new ValidationError('Resource not found'));
       }
@@ -218,7 +218,7 @@ const rateLimitAuth = (req, res, next) => {
   }
 
   const attempts = authAttempts.get(identifier);
-  
+
   // Reset if window has passed
   if (now - attempts.timestamp > AUTH_ATTEMPT_WINDOW) {
     attempts.count = 0;
@@ -230,7 +230,7 @@ const rateLimitAuth = (req, res, next) => {
     return res.status(429).json({
       error: 'Too many authentication attempts',
       message: 'Please try again later',
-      retryAfter: Math.ceil((AUTH_ATTEMPT_WINDOW - (now - attempts.timestamp)) / 1000),
+      retryAfter: Math.ceil((AUTH_ATTEMPT_WINDOW - (now - attempts.timestamp)) / 1000)
     });
   }
 
@@ -247,13 +247,13 @@ const generateTokens = (user) => {
     email: user.email,
     role: user.role,
     tenantId: user.tenant_id,
-    iat: Math.floor(Date.now() / 1000),
+    iat: Math.floor(Date.now() / 1000)
   };
 
   const accessToken = jwt.sign(payload, JWT_CONFIG.secret, {
     expiresIn: JWT_CONFIG.expiresIn,
     issuer: JWT_CONFIG.issuer,
-    audience: JWT_CONFIG.audience,
+    audience: JWT_CONFIG.audience
   });
 
   const refreshToken = jwt.sign(
@@ -262,7 +262,7 @@ const generateTokens = (user) => {
     {
       expiresIn: JWT_CONFIG.refreshExpiresIn,
       issuer: JWT_CONFIG.issuer,
-      audience: JWT_CONFIG.audience,
+      audience: JWT_CONFIG.audience
     }
   );
 
@@ -281,7 +281,7 @@ const refreshToken = async (req, res, next) => {
     // Verify refresh token
     const decoded = jwt.verify(refreshToken, JWT_CONFIG.secret, {
       issuer: JWT_CONFIG.issuer,
-      audience: JWT_CONFIG.audience,
+      audience: JWT_CONFIG.audience
     });
 
     if (decoded.type !== 'refresh') {
@@ -300,7 +300,7 @@ const refreshToken = async (req, res, next) => {
     res.json({
       success: true,
       message: 'Tokens refreshed successfully',
-      data: tokens,
+      data: tokens
     });
   } catch (error) {
     next(error);
@@ -310,15 +310,15 @@ const refreshToken = async (req, res, next) => {
 // Logout middleware (blacklist token)
 const logout = async (req, res, next) => {
   try {
-    const token = req.token;
-    
+    const { token } = req;
+
     if (token) {
       await blacklistToken(token);
     }
 
     res.json({
       success: true,
-      message: 'Logged out successfully',
+      message: 'Logged out successfully'
     });
   } catch (error) {
     next(error);
@@ -326,7 +326,7 @@ const logout = async (req, res, next) => {
 };
 
 // Database helper functions
-async function getUserById(userId) {
+async function getUserById (userId) {
   try {
     const User = require('../models/User');
     const user = await User.findById(userId).select('-password');
@@ -337,32 +337,21 @@ async function getUserById(userId) {
   }
 }
 
-async function getResourceById(resourceType, resourceId) {
-  const pool = databaseManager.getPostgresPool();
-  if (!pool) {
-    throw new Error('Database connection not available');
-  }
-
-  const client = await pool.connect();
+async function getResourceById (resourceType, resourceId) {
   try {
-    const result = await client.query(
-      `SELECT * FROM ${resourceType} WHERE id = $1`,
-      [resourceId]
-    );
-    return result.rows[0] || null;
-  } finally {
-    client.release();
+    // For now, return null as we're using MongoDB, not PostgreSQL
+    // This function can be implemented later if needed for PostgreSQL
+    return null;
+  } catch (error) {
+    console.error('Error getting resource by ID:', error);
+    return null;
   }
 }
 
-async function checkTokenBlacklist(token) {
-  const redis = databaseManager.getRedisClient();
-  if (!redis) {
-    return false; // If Redis is not available, assume token is valid
-  }
-
+async function checkTokenBlacklist (token) {
   try {
-    const isBlacklisted = await redis.get(`blacklist:${token}`);
+    const cacheManager = require('../utils/cache');
+    const isBlacklisted = await cacheManager.get(`blacklist:${token}`);
     return !!isBlacklisted;
   } catch (error) {
     console.error('Error checking token blacklist:', error);
@@ -370,19 +359,15 @@ async function checkTokenBlacklist(token) {
   }
 }
 
-async function blacklistToken(token) {
-  const redis = databaseManager.getRedisClient();
-  if (!redis) {
-    return; // If Redis is not available, skip blacklisting
-  }
-
+async function blacklistToken (token) {
   try {
+    const cacheManager = require('../utils/cache');
     // Decode token to get expiration
     const decoded = jwt.decode(token);
     const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
-    
+
     if (expiresIn > 0) {
-      await redis.setex(`blacklist:${token}`, expiresIn, '1');
+      await cacheManager.set(`blacklist:${token}`, '1', expiresIn);
     }
   } catch (error) {
     console.error('Error blacklisting token:', error);
@@ -415,5 +400,5 @@ module.exports = {
   verifyPassword,
   AuthenticationError,
   AuthorizationError,
-  ValidationError,
-}; 
+  ValidationError
+};
