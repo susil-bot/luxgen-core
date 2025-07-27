@@ -55,7 +55,6 @@ module.exports = {
     // Control flow
     'no-else-return': 'error',
     'no-nested-ternary': 'warn',
-    'prefer-early-return': 'error',
     
     // Async
     'no-async-promise-executor': 'error',
@@ -182,7 +181,6 @@ module.exports = {
     'one-var-declaration-per-line': 'error',
     'operator-assignment': 'error',
     'operator-linebreak': 'error',
-    'padded-blocks': 'error',
     'prefer-object-spread': 'error',
     'quote-props': ['error', 'as-needed'],
     'quotes': ['error', 'single', { avoidEscape: true }],
