@@ -6,18 +6,17 @@
 const Joi = require('joi');
 const { ValidationError } = require('./errors');
 
-
 // Common validation patterns
 const PATTERNS = {
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   PHONE: /^[+]?[1-9][\d]{0,15}$/,
   PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
   SLUG: /^[a-z0-9-]+$/,
-  URL: /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&
-//=]*)$/,
+  URL: /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/,
   UUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
   OBJECT_ID: /^[0-9a-fA-F]{24}$/
-}
+};
+
 // Common validation messages
 const MESSAGES = {
   REQUIRED: 'This field is required',
@@ -36,7 +35,8 @@ const MESSAGES = {
   INVALID_DATE: 'Please enter a valid date',
   FUTURE_DATE: 'Date must be in the future',
   PAST_DATE: 'Date must be in the past'
-}
+};
+
 // Base schemas
 const baseSchemas = {
   id: Joi.string().pattern(PATTERNS.OBJECT_ID).messages({ 'string.pattern.base': MESSAGES.INVALID_OBJECT_ID }),
@@ -80,7 +80,8 @@ const baseSchemas = {
     sortBy: Joi.string().default('createdAt'),
     sortOrder: Joi.string().valid('asc', 'desc').default('desc')
   })
-}
+};
+
 // User validation schemas
 const userSchemas = {
   register: Joi.object({
@@ -109,49 +110,20 @@ const userSchemas = {
     password: Joi.string().required().messages({ 'string.empty': MESSAGES.REQUIRED })
   }),
 
-  updateProfile: Joi.object({
+  update: Joi.object({
     firstName: Joi.string().min(2).max(50).trim().optional(),
     lastName: Joi.string().min(2).max(50).trim().optional(),
     phone: baseSchemas.phone.optional(),
     company: Joi.string().max(100).trim().optional(),
-    jobTitle: Joi.string().max(100).trim().optional(),
-    department: Joi.string().max(100).trim().optional(),
-    bio: Joi.string().max(500).trim().optional(),
-    addresses: Joi.array().items(Joi.object({
-      type: Joi.string().valid('home', 'work', 'billing', 'shipping').default('home'),
-      street: Joi.string().trim().optional(),
-      city: Joi.string().trim().optional(),
-      state: Joi.string().trim().optional(),
-      country: Joi.string().trim().optional(),
-      zipCode: Joi.string().trim().optional(),
-      isDefault: Joi.boolean().default(false)
-    })).optional(),
-    preferences: Joi.object({
-      notifications: Joi.object({
-        email: Joi.object({
-          marketing: Joi.boolean().default(false),
-          updates: Joi.boolean().default(true),
-          security: Joi.boolean().default(true),
-          training: Joi.boolean().default(true)
-        }).optional(),
-        push: Joi.boolean().default(true).optional(),
-        sms: Joi.boolean().default(false).optional()
-      }).optional(),
-      theme: Joi.string().valid('light', 'dark', 'auto').default('auto').optional(),
-      language: Joi.string().default('en').optional(),
-      timezone: Joi.string().default('UTC').optional()
-    }).optional()
-  }),
-
-  changePassword: Joi.object({
-    currentPassword: Joi.string().required().messages({ 'string.empty': 'Current password is required' }),
-    newPassword: baseSchemas.strongPassword.required()
+    role: Joi.string().valid('user', 'trainer', 'admin', 'super_admin').optional(),
+    marketingConsent: Joi.boolean().optional()
   }),
 
   forgotPassword: Joi.object({ email: baseSchemas.email.required() }),
 
   resetPassword: Joi.object({ newPassword: baseSchemas.strongPassword.required() })
-}
+};
+
 // Tenant validation schemas
 const tenantSchemas = {
   create: Joi.object({
@@ -200,36 +172,21 @@ const tenantSchemas = {
     companySize: Joi.string().valid('1-10', '11-50', '51-200', '201-500', '501-1000', '1000+').optional(),
     timezone: Joi.string().optional(),
     language: Joi.string().optional(),
-    status: Joi.string().valid('active', 'inactive', 'suspended', 'pending').optional(),
-    features: Joi.object({
-      polls: Joi.object({
-        enabled: Joi.boolean().default(true),
-        maxPolls: Joi.number().integer().min(1).default(10),
-        maxRecipients: Joi.number().integer().min(1).default(100)
-      }).optional(),
-      analytics: Joi.object({
-        enabled: Joi.boolean().default(true),
-        retention: Joi.number().integer().min(1).default(90)
-      }).optional(),
-      branding: Joi.object({
-        enabled: Joi.boolean().default(false),
-        logo: Joi.string().optional(),
-        colors: Joi.object({
-          primary: Joi.string().pattern(/^#[0-9A-F]{6}$/i).default('#3B82F6'),
-          secondary: Joi.string().pattern(/^#[0-9A-F]{6}$/i).default('#6B7280')
-        }).optional()
-      }).optional()
-    }).optional()
+    status: Joi.string().valid('active', 'inactive', 'suspended', 'pending').optional()
   }),
 
   list: Joi.object({
-    ...baseSchemas.pagination,
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(10),
+    sortBy: Joi.string().default('createdAt'),
+    sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
     status: Joi.string().valid('active', 'inactive', 'suspended', 'pending').optional(),
     industry: Joi.string().optional(),
     companySize: Joi.string().valid('1-10', '11-50', '51-200', '201-500', '501-1000', '1000+').optional(),
     search: Joi.string().trim().optional()
   })
-}
+};
+
 // Poll validation schemas
 const pollSchemas = {
   create: Joi.object({
@@ -242,11 +199,7 @@ const pollSchemas = {
     questions: Joi.array().items(Joi.object({
       text: Joi.string().min(1).max(500).trim().required(),
       type: Joi.string().valid('multiple_choice', 'single_choice', 'text', 'rating', 'boolean').required(),
-      options: Joi.array().items(Joi.string().trim()).when('type', {
-        is: Joi.string().valid('multiple_choice', 'single_choice'),
-        then: Joi.required(),
-        otherwise: Joi.forbidden()
-      }),
+      options: Joi.array().items(Joi.string().trim()).optional(),
       required: Joi.boolean().default(false),
       order: Joi.number().integer().min(0).optional()
     })).min(1).required(),
@@ -269,11 +222,7 @@ const pollSchemas = {
       id: baseSchemas.id.optional(),
       text: Joi.string().min(1).max(500).trim().required(),
       type: Joi.string().valid('multiple_choice', 'single_choice', 'text', 'rating', 'boolean').required(),
-      options: Joi.array().items(Joi.string().trim()).when('type', {
-        is: Joi.string().valid('multiple_choice', 'single_choice'),
-        then: Joi.required(),
-        otherwise: Joi.forbidden()
-      }),
+      options: Joi.array().items(Joi.string().trim()).optional(),
       required: Joi.boolean().default(false),
       order: Joi.number().integer().min(0).optional()
     })).optional(),
@@ -291,7 +240,10 @@ const pollSchemas = {
   }),
 
   list: Joi.object({
-    ...baseSchemas.pagination,
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(10),
+    sortBy: Joi.string().default('createdAt'),
+    sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
     status: Joi.string().valid('draft', 'active', 'paused', 'closed').optional(),
     tags: Joi.array().items(Joi.string().trim()).optional(),
     search: Joi.string().trim().optional(),
@@ -309,14 +261,11 @@ const pollSchemas = {
         Joi.array().items(Joi.string().trim())
       ).required()
     })).min(1).required(),
-    email: baseSchemas.email.when('$requireEmail', {
-      is: true,
-      then: Joi.required(),
-      otherwise: Joi.optional()
-    }),
+    email: baseSchemas.email.optional(),
     name: Joi.string().trim().optional()
   })
-}
+};
+
 // Validation middleware
 const validate = (schema, options = {}) => {
   return (req, res, next) => {
@@ -324,8 +273,8 @@ const validate = (schema, options = {}) => {
       const { error, value } = schema.validate(req.body, {
         abortEarly: false,
         allowUnknown: options.allowUnknown || false,
-        stripUnknown: options.stripUnknown || true,
-        context: { requireEmail: req.body?.settings?.requireEmail || false } });
+        stripUnknown: options.stripUnknown || true
+      });
 
       if (error) {
         const details = error.details.map(detail => ({
@@ -336,13 +285,16 @@ const validate = (schema, options = {}) => {
 
         throw new ValidationError('Validation failed', details);
       }
-// Replace request body with validated data
+
+      // Replace request body with validated data
       req.body = value;
       next();
     } catch (error) {
       next(error);
-    } }
-}
+    }
+  };
+};
+
 // Query validation middleware
 const validateQuery = (schema, options = {}) => {
   return (req, res, next) => {
@@ -362,13 +314,16 @@ const validateQuery = (schema, options = {}) => {
 
         throw new ValidationError('Query validation failed', details);
       }
-// Replace request query with validated data
+
+      // Replace request query with validated data
       req.query = value;
       next();
     } catch (error) {
       next(error);
-    } }
-}
+    }
+  };
+};
+
 // Params validation middleware
 const validateParams = (schema, options = {}) => {
   return (req, res, next) => {
@@ -388,13 +343,16 @@ const validateParams = (schema, options = {}) => {
 
         throw new ValidationError('Parameter validation failed', details);
       }
-// Replace request params with validated data
+
+      // Replace request params with validated data
       req.params = value;
       next();
     } catch (error) {
       next(error);
-    } }
-}
+    }
+  };
+};
+
 module.exports = {
   PATTERNS,
   MESSAGES,
@@ -405,4 +363,4 @@ module.exports = {
   validate,
   validateQuery,
   validateParams
-}
+};

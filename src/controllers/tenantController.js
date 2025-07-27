@@ -1,5 +1,5 @@
 
-// const { validateTenantData } = require('../utils/validation');
+const { validate, tenantSchemas } = require('../utils/validation');
 const Tenant = require('../models/Tenant');
 const User = require('../models/User');
 const Poll = require('../models/Poll');
@@ -17,19 +17,25 @@ const createTenant = async (req, res) => {
 
 
     // Validate tenant data
-    const validation = validateTenantData(tenantData);
-    if (!validation.isValid) {
+    const { error, value } = validate(tenantData, tenantSchemas.create);
+    if (error) {
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
-        errors: validation.errors
+        errors: error.details.map(detail => ({
+          field: detail.path.join('.'),
+          message: detail.message
+        }))
       });
     }
+    
+    // Use validated data
+    const validatedData = value;
     // Check if tenant with same email or slug already exists
     const existingTenant = await Tenant.findOne({
       $or: [
-        { contactEmail: tenantData.contactEmail },
-        { slug: tenantData.slug || generateSlug(tenantData.name) } ]
+        { contactEmail: validatedData.contactEmail },
+        { slug: validatedData.slug || generateSlug(validatedData.name) } ]
     });
 
     if (existingTenant) {
@@ -39,18 +45,18 @@ const createTenant = async (req, res) => {
       });
     }
     // Generate slug if not provided
-    if (!tenantData.slug) {
-      tenantData.slug = generateSlug(tenantData.name);
+    if (!validatedData.slug) {
+      validatedData.slug = generateSlug(validatedData.name);
     }
     // Set default values
-    tenantData.status = 'pending';
-    tenantData.isVerified = false;
-    tenantData.metadata = {
-      ...tenantData.metadata,
+    validatedData.status = 'pending';
+    validatedData.isVerified = false;
+    validatedData.metadata = {
+      ...validatedData.metadata,
       source: req.body.source || 'api'
     }
     // Create tenant
-    const tenant = new Tenant(tenantData);
+    const tenant = new Tenant(validatedData);
     await tenant.save();
 
 
