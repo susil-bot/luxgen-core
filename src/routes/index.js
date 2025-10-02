@@ -26,16 +26,32 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const API_VERSION = 'v1';
 const API_PREFIX = `/api/${API_VERSION}`;
 
-// Health check endpoint
+// Enhanced health check endpoint
 router.get('/health', (req, res) => {
+  const memoryUsage = process.memoryUsage();
+  const uptime = process.uptime();
+  
   res.status(200).json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     service: 'luxgen-trainer-platform-api',
     version: '1.0.0',
     apiVersion: API_VERSION,
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
+    uptime: Math.floor(uptime),
+    uptimeFormatted: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`,
+    environment: process.env.NODE_ENV || 'development',
+    system: {
+      nodeVersion: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      memory: {
+        rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
+        heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
+        heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+        external: `${Math.round(memoryUsage.external / 1024 / 1024)}MB`
+      },
+      cpuUsage: process.cpuUsage()
+    }
   });
 });
 
@@ -57,6 +73,38 @@ router.get('/health/db', async (req, res) => {
       error: error.message
     });
   }
+});
+
+// System metrics endpoint
+router.get('/health/metrics', (req, res) => {
+  const memoryUsage = process.memoryUsage();
+  const uptime = process.uptime();
+  const cpuUsage = process.cpuUsage();
+  
+  res.status(200).json({
+    timestamp: new Date().toISOString(),
+    uptime: {
+      seconds: Math.floor(uptime),
+      formatted: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`
+    },
+    memory: {
+      rss: memoryUsage.rss,
+      heapTotal: memoryUsage.heapTotal,
+      heapUsed: memoryUsage.heapUsed,
+      external: memoryUsage.external,
+      arrayBuffers: memoryUsage.arrayBuffers
+    },
+    cpu: {
+      user: cpuUsage.user,
+      system: cpuUsage.system
+    },
+    system: {
+      nodeVersion: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      pid: process.pid
+    }
+  });
 });
 
 // API documentation endpoint
