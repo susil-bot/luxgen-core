@@ -1,164 +1,64 @@
 const mongoose = require('mongoose');
 
 const tenantSchemaSchema = new mongoose.Schema({
-  // Reference to Tenant
   tenantId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Tenant',
     required: true
   },
-  
-  // Schema Information
   schemaType: {
     type: String,
     required: true,
-    enum: ['user_profile', 'poll_template', 'custom_form', 'assessment', 'survey', 'feedback_form'],
-    trim: true
+    enum: ['user', 'training', 'assessment', 'poll', 'presentation', 'custom']
   },
-  
   name: {
     type: String,
     required: true,
-    trim: true,
-    maxlength: 100
+    trim: true
   },
-  
   description: {
     type: String,
-    trim: true,
-    maxlength: 500
+    trim: true
   },
-  
-  // Schema Definition (JSON Schema format)
   schema: {
     type: mongoose.Schema.Types.Mixed,
     required: true
   },
-  
-  // Schema Version
-  version: {
-    type: String,
-    default: '1.0.0'
-  },
-  
-  // Schema Status
   isActive: {
     type: Boolean,
     default: true
   },
-  
   isDefault: {
     type: Boolean,
     default: false
   },
-  
-  // Validation Rules
-  validationRules: {
-    type: Map,
-    of: mongoose.Schema.Types.Mixed,
-    default: {}
+  version: {
+    type: String,
+    default: '1.0.0'
   },
-  
-  // UI Configuration
-  uiConfig: {
-    layout: {
-      type: String,
-      enum: ['single_column', 'two_column', 'three_column', 'custom'],
-      default: 'single_column'
-    },
-    theme: {
-      type: String,
-      enum: ['default', 'minimal', 'professional', 'creative'],
-      default: 'default'
-    },
-    showProgress: {
-      type: Boolean,
-      default: true
-    },
-    allowSaveDraft: {
-      type: Boolean,
-      default: true
-    },
-    allowEdit: {
-      type: Boolean,
-      default: false
-    }
-  },
-  
-  // Access Control
-  permissions: {
-    view: {
-      type: [String],
-      enum: ['admin', 'manager', 'user', 'guest'],
-      default: ['admin', 'manager', 'user']
-    },
-    edit: {
-      type: [String],
-      enum: ['admin', 'manager'],
-      default: ['admin']
-    },
-    delete: {
-      type: [String],
-      enum: ['admin'],
-      default: ['admin']
-    }
-  },
-  
-  // Usage Statistics
   usage: {
-    timesUsed: {
-      type: Number,
-      default: 0
-    },
     lastUsed: {
       type: Date,
       default: Date.now
     },
-    totalResponses: {
+    useCount: {
       type: Number,
       default: 0
-    },
-    averageCompletionTime: {
-      type: Number,
-      default: 0 // in minutes
     }
   },
-  
-  // Metadata
   metadata: {
-    tags: [String],
-    category: String,
-    difficulty: {
-      type: String,
-      enum: ['beginner', 'intermediate', 'advanced'],
-      default: 'beginner'
-    },
-    estimatedTime: {
-      type: Number,
-      default: 5 // in minutes
-    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
     },
-    source: String,
-    notes: String
+    tags: [String],
+    category: String
   }
 }, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  timestamps: true
 });
 
 // Indexes for performance
-tenantSchemaSchema.index({ tenantId: 1 });
-tenantSchemaSchema.index({ schemaType: 1 });
-tenantSchemaSchema.index({ isActive: 1 });
-tenantSchemaSchema.index({ 'metadata.tags': 1 });
-tenantSchemaSchema.index({ createdAt: -1 });
-tenantSchemaSchema.index({ 'usage.lastUsed': -1 });
-
-// Compound indexes
 tenantSchemaSchema.index({ tenantId: 1, schemaType: 1 });
 tenantSchemaSchema.index({ tenantId: 1, isActive: 1 });
 
@@ -221,137 +121,101 @@ tenantSchemaSchema.pre('save', async function(next) {
       { isDefault: false }
     );
   }
+  
   next();
 });
 
 // Instance method to validate data against schema
 tenantSchemaSchema.methods.validateData = function(data) {
-  // This is a simplified validation - in production, you might want to use a proper JSON Schema validator
-  const errors = [];
-  
-  if (!this.schema || !this.schema.properties) {
-    errors.push('Invalid schema definition');
-    return { isValid: false, errors };
-  }
-  
-  // Check required fields
-  if (this.schema.required) {
-    this.schema.required.forEach(field => {
-      if (!data.hasOwnProperty(field)) {
-        errors.push(`Required field '${field}' is missing`);
-      }
-    });
-  }
-  
-  // Check field types (simplified)
-  Object.entries(this.schema.properties).forEach(([field, config]) => {
-    if (data.hasOwnProperty(field)) {
-      const value = data[field];
-      
-      switch (config.type) {
-        case 'string':
-          if (typeof value !== 'string') {
-            errors.push(`Field '${field}' must be a string`);
-          }
-          break;
-        case 'number':
-          if (typeof value !== 'number') {
-            errors.push(`Field '${field}' must be a number`);
-          }
-          break;
-        case 'boolean':
-          if (typeof value !== 'boolean') {
-            errors.push(`Field '${field}' must be a boolean`);
-          }
-          break;
-        case 'array':
-          if (!Array.isArray(value)) {
-            errors.push(`Field '${field}' must be an array`);
-          }
-          break;
-        case 'object':
-          if (typeof value !== 'object' || Array.isArray(value)) {
-            errors.push(`Field '${field}' must be an object`);
-          }
-          break;
+  try {
+    // Basic JSON Schema validation
+    if (!this.schema || !this.schema.properties) {
+      return { valid: false, errors: ['Schema not properly defined'] };
+    }
+    
+    const errors = [];
+    
+    // Check required fields
+    if (this.schema.required) {
+      for (const field of this.schema.required) {
+        if (!(field in data)) {
+          errors.push(`Required field '${field}' is missing`);
+        }
       }
     }
-  });
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
+    
+    // Check field types
+    for (const [field, value] of Object.entries(data)) {
+      if (this.schema.properties[field]) {
+        const fieldSchema = this.schema.properties[field];
+        if (fieldSchema.type && typeof value !== fieldSchema.type) {
+          errors.push(`Field '${field}' must be of type ${fieldSchema.type}`);
+        }
+      }
+    }
+    
+    return {
+      valid: errors.length === 0,
+      errors: errors
+    };
+  } catch (error) {
+    return { valid: false, errors: [error.message] };
+  }
 };
 
-// Instance method to increment usage
-tenantSchemaSchema.methods.incrementUsage = function() {
-  this.usage.timesUsed += 1;
-  this.usage.lastUsed = new Date();
-  return this.save();
-};
-
-// Instance method to update response statistics
-tenantSchemaSchema.methods.updateResponseStats = function(completionTime) {
-  this.usage.totalResponses += 1;
+// Instance method to get schema fields
+tenantSchemaSchema.methods.getFields = function() {
+  if (!this.schema || !this.schema.properties) {
+    return [];
+  }
   
-  // Update average completion time
-  const currentAvg = this.usage.averageCompletionTime;
-  const totalResponses = this.usage.totalResponses;
-  this.usage.averageCompletionTime = ((currentAvg * (totalResponses - 1)) + completionTime) / totalResponses;
-  
-  return this.save();
-};
-
-// Instance method to get schema as form fields
-tenantSchemaSchema.methods.getFormFields = function() {
-  if (!this.schema || !this.schema.properties) return [];
-  
-  return Object.entries(this.schema.properties).map(([name, config]) => ({
-    name,
-    type: config.type || 'text',
-    label: config.title || name,
-    placeholder: config.description || '',
-    required: this.schema.required ? this.schema.required.includes(name) : false,
-    options: config.enum || null,
-    validation: config.pattern ? new RegExp(config.pattern) : null,
-    ...config
+  return Object.keys(this.schema.properties).map(field => ({
+    name: field,
+    type: this.schema.properties[field].type || 'string',
+    required: this.schema.required ? this.schema.required.includes(field) : false,
+    description: this.schema.properties[field].description || ''
   }));
 };
 
-// Static method to find schemas by tenant
-tenantSchemaSchema.statics.findByTenant = function(tenantId, options = {}) {
-  const query = { tenantId };
-  
-  if (options.schemaType) query.schemaType = options.schemaType;
-  if (options.isActive !== undefined) query.isActive = options.isActive;
-  if (options.isDefault !== undefined) query.isDefault = options.isDefault;
-  
-  return this.find(query).sort({ createdAt: -1 });
+// Instance method to update usage
+tenantSchemaSchema.methods.updateUsage = function() {
+  this.usage.lastUsed = new Date();
+  this.usage.useCount += 1;
+  return this.save();
 };
 
-// Static method to find default schema for a type
-tenantSchemaSchema.statics.findDefault = function(tenantId, schemaType) {
-  return this.findOne({ 
-    tenantId, 
-    schemaType, 
-    isDefault: true, 
-    isActive: true 
-  });
-};
-
-// Static method to find active schemas
-tenantSchemaSchema.statics.findActive = function(tenantId) {
-  return this.find({ tenantId, isActive: true });
-};
-
-// Static method to find schemas by tags
-tenantSchemaSchema.statics.findByTags = function(tenantId, tags) {
-  return this.find({
-    tenantId,
-    'metadata.tags': { $in: tags },
+// Static method to get default schema for tenant and type
+tenantSchemaSchema.statics.getDefaultSchema = function(tenantId, schemaType) {
+  return this.findOne({
+    tenantId: tenantId,
+    schemaType: schemaType,
+    isDefault: true,
     isActive: true
   });
 };
 
-module.exports = mongoose.model('TenantSchema', tenantSchemaSchema); 
+// Static method to get all schemas for tenant
+tenantSchemaSchema.statics.getTenantSchemas = function(tenantId, schemaType = null) {
+  const query = { tenantId: tenantId, isActive: true };
+  if (schemaType) {
+    query.schemaType = schemaType;
+  }
+  
+  return this.find(query).sort({ isDefault: -1, createdAt: -1 });
+};
+
+// Static method to create default schema
+tenantSchemaSchema.statics.createDefaultSchema = function(tenantId, schemaType, schemaData) {
+  return this.create({
+    tenantId: tenantId,
+    schemaType: schemaType,
+    name: schemaData.name || `${schemaType} Schema`,
+    description: schemaData.description || '',
+    schema: schemaData.schema,
+    isDefault: true,
+    isActive: true,
+    metadata: schemaData.metadata || {}
+  });
+};
+
+module.exports = mongoose.model('TenantSchema', tenantSchemaSchema);

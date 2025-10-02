@@ -1,179 +1,139 @@
 {
-  "name": "luxgen-trainer-platform-backend",
+  "name": "luxgen-core",
   "version": "1.0.0",
-  "description": "A comprehensive training platform backend with AI integration, multi-tenancy, and advanced features",
+  "description": "LuxGen Trainer Platform Backend API",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "jest --detectOpenHandles --forceExit",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:unit": "jest --testPathPattern=src/tests/unit",
-    "test:integration": "jest --testPathPattern=src/tests/integration",
-    "test:e2e": "jest --testPathPattern=src/tests/e2e",
+    "test:watch": "jest --watch --detectOpenHandles --forceExit",
+    "test:coverage": "jest --coverage --detectOpenHandles --forceExit",
+    "test:api": "jest src/tests/api --detectOpenHandles --forceExit",
+    "test:integration": "jest src/tests/integration --detectOpenHandles --forceExit",
+    "test:unit": "jest src/tests/api --detectOpenHandles --forceExit",
+    "test:all": "npm run test:unit && npm run test:integration",
     "lint": "eslint src/ --ext .js",
     "lint:fix": "eslint src/ --ext .js --fix",
-    "format": "prettier --write src/**/*.js",
-    "format:check": "prettier --check src/**/*.js",
-    "security:audit": "npm audit",
-    "security:fix": "npm audit fix",
-    "security:check": "npm audit --audit-level=moderate",
-    "quality:check": "npm run security:check && npm run health:check",
-    "quality:check:full": "npm run lint -- --max-warnings=1000 && npm run security:check && npm run format:check && npm run health:check",
-    "db:migrate": "node src/scripts/setupDatabase.js",
-    "db:seed": "node src/scripts/seedData.js",
-    "db:reset": "npm run db:migrate && npm run db:seed",
-    "health:check": "curl -f http://localhost:3001/health || exit 1",
-    "performance:test": "artillery run tests/performance/load-test.yml",
-    "docker:build": "docker build -t luxgen-trainer-platform .",
-    "docker:run": "docker run -p 3001:3001 luxgen-trainer-platform",
-    "docker:compose": "docker-compose up -d",
-    "docker:compose:down": "docker-compose down",
-    "deploy:staging": "./scripts/deploy.sh develop",
-    "deploy:production": "./scripts/deploy.sh main",
-    "api:test": "node scripts/run-api-tests.js",
-    "api:test:auth": "node scripts/run-api-tests.js -c Authentication",
-    "api:test:users": "node scripts/run-api-tests.js -c User Management",
-    "api:test:tenants": "node scripts/run-api-tests.js -c Tenant Management",
-    "api:test:ai": "node scripts/run-api-tests.js -c AI Services",
-    "api:test:training": "node scripts/run-api-tests.js -c Training",
-    "api:test:presentations": "node scripts/run-api-tests.js -c Presentations",
-    "api:test:parallel": "node scripts/run-api-tests.js -p",
-    "api:test:all": "node scripts/run-api-tests.js -p -d 50",
-    "api:test:simple": "node scripts/simple-api-test.js",
-    "deploy": "./scripts/deploy.sh",
-    "deploy:render": "git push origin main",
-    "deploy:check": "npm run test && npm run lint && npm run security:audit"
+    "lint:staged": "lint-staged",
+    "lint:package": "npm audit && npm outdated",
+    "pre-commit": "node scripts/pre-commit.js",
+    "pre-commit:install": "husky install && husky add .husky/pre-commit 'npm run pre-commit'",
+    "pre-commit:uninstall": "husky uninstall",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/",
+    "security": "npm audit --audit-level moderate",
+    "deps:check": "npm outdated",
+    "deps:update": "npm update",
+    "deps:audit": "npm audit fix",
+    "clean": "rm -rf coverage/ node_modules/.cache/",
+    "clean:all": "rm -rf coverage/ node_modules/ package-lock.json",
+    "remove:icons": "node src/scripts/remove-icons-globally.js",
+    "ci": "npm run lint && npm run test:all && npm run security",
+    "ci:full": "npm run clean && npm install && npm run ci",
+    "prepare": "husky"
   },
   "keywords": [
-    "training",
+    "luxgen",
+    "trainer",
     "platform",
-    "ai",
-    "multi-tenant",
-    "nodejs",
-    "express",
+    "api",
     "mongodb",
+    "express",
     "jwt",
-    "api"
+    "multi-tenant"
   ],
   "author": "LuxGen Team",
   "license": "MIT",
   "dependencies": {
-    "assert": "^2.0.0",
-    "axios": "^1.5.0",
     "bcryptjs": "^2.4.3",
-    "buffer": "^6.0.3",
-    "child_process": "^1.0.2",
-    "commander": "^11.1.0",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
-    "csv-parser": "^3.0.0",
     "dotenv": "^16.3.1",
-    "events": "^3.3.0",
     "express": "^4.18.2",
-    "express-rate-limit": "^6.10.0",
+    "express-rate-limit": "^7.1.5",
     "express-validator": "^7.0.1",
-    "fs-extra": "^11.1.1",
-    "groq-sdk": "^0.3.0",
-    "helmet": "^7.0.0",
-    "http": "^0.0.1-security",
-    "https": "^1.0.0",
-    "joi": "^17.9.2",
+    "groq-sdk": "^0.33.0",
+    "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
-    "mongoose": "^7.5.0",
+    "mongodb": "^6.3.0",
+    "mongoose": "^8.0.3",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.9.4",
-    "openai": "^4.11.1",
-    "os": "^0.1.2",
-    "path": "^0.12.7",
-    "querystring": "^0.2.1",
-    "redis": "^4.6.8",
-    "stream": "^0.0.2",
-    "url": "^0.11.3",
-    "util": "^0.12.5",
-    "uuid": "^9.0.0",
-    "winston": "^3.10.0"
+    "nodemailer": "^6.9.7",
+    "openai": "^6.0.1",
+    "redis": "^4.6.10",
+    "sharp": "^0.32.6",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.2",
-    "@types/compression": "^1.7.2",
-    "@types/cors": "^2.8.13",
-    "@types/express": "^4.17.17",
-    "@types/jest": "^29.5.4",
-    "@types/jsonwebtoken": "^9.0.2",
-    "@types/lodash": "^4.14.195",
-    "@types/morgan": "^1.9.4",
-    "@types/multer": "^1.4.7",
-    "@types/node": "^20.5.0",
-    "@types/nodemailer": "^6.4.9",
-    "@types/uuid": "^9.0.2",
-    "artillery": "^2.0.0-27",
-    "eslint": "^8.47.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-prettier": "^5.0.0",
-    "husky": "^8.0.3",
-    "jest": "^29.6.2",
-    "lint-staged": "^16.1.2",
-    "mongodb-memory-server": "^8.12.2",
-    "nodemon": "^3.0.1",
-    "prettier": "^3.0.2",
-    "supertest": "^6.3.3"
+    "eslint": "^8.55.0",
+    "husky": "^9.1.7",
+    "jest": "^29.7.0",
+    "lint-staged": "^16.2.3",
+    "mongodb-memory-server": "^9.5.0",
+    "nodemon": "^3.0.2",
+    "prettier": "^3.6.2",
+    "supertest": "^6.3.4"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": [
+      "<rootDir>/src/tests/setup.js"
+    ],
+    "testMatch": [
+      "**/src/tests/**/*.spec.js",
+      "**/src/tests/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/tests/**",
+      "!src/scripts/**",
+      "!src/index.js"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "verbose": true,
+    "detectOpenHandles": true,
+    "forceExit": true
+  },
+  "lint-staged": {
+    "src/**/*.{js,ts}": [
+      "eslint --fix",
+      "prettier --write",
+      "git add"
+    ],
+    "src/tests/**/*.{js,ts}": [
+      "eslint --fix",
+      "prettier --write",
+      "git add"
+    ],
+    "*.{js,ts,json}": [
+      "eslint --fix",
+      "prettier --write",
+      "git add"
+    ],
+    "package.json": [
+      "npm run lint:package",
+      "git add"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged && npm run test:all",
+      "pre-push": "npm run ci"
+    }
   },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
-  },
-
-  "eslintConfig": {
-    "env": {
-      "node": true,
-      "es2021": true,
-      "jest": true
-    },
-    "extends": [
-      "eslint:recommended",
-      "prettier"
-    ],
-    "parserOptions": {
-      "ecmaVersion": 12,
-      "sourceType": "module"
-    },
-    "rules": {
-      "no-console": "warn",
-      "no-unused-vars": "error",
-      "prefer-const": "error",
-      "no-var": "error"
-    }
-  },
-  "prettier": {
-    "semi": true,
-    "trailingComma": "es5",
-    "singleQuote": true,
-    "printWidth": 80,
-    "tabWidth": 2
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
-  "lint-staged": {
-    "*.js": [
-      "eslint --fix",
-      "prettier --write"
-    ]
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/luxgen/trainer-platform-backend.git"
-  },
-  "bugs": {
-    "url": "https://github.com/luxgen/trainer-platform-backend/issues"
-  },
-  "homepage": "https://github.com/luxgen/trainer-platform-backend#readme"
+  }
 }

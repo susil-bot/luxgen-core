@@ -2,7 +2,6 @@
  * Caching System
  * Provides Redis-based caching with automatic serialization/deserialization
  */
-
 const Redis = require('redis');
 const logger = require('./logger');
 
@@ -20,9 +19,10 @@ class EnhancedCacheManager {
    */
   async connect() {
     try {
-      logger.info('🔌 Connecting to Redis cache...');
+      logger.info('Connecting to Redis cache...');
       
-      const redisUrl = process.env.REDIS_URL || `redis://${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || 6379}`;
+      const redisUrl = process.env.REDIS_URL || 
+        `redis://${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || 6379}`;
       
       this.redisClient = Redis.createClient({
         url: redisUrl,
@@ -43,28 +43,27 @@ class EnhancedCacheManager {
 
       await this.redisClient.connect();
       this.isConnected = true;
-      
-      logger.info('✅ Redis cache connected successfully');
-      
+      logger.info('Redis cache connected successfully');
+
       // Set up event handlers
       this.redisClient.on('error', (error) => {
-        logger.error('❌ Redis cache error:', error);
+        logger.error('Redis cache error:', error);
         this.isConnected = false;
       });
-      
+
       this.redisClient.on('connect', () => {
-        logger.info('✅ Redis cache connected');
+        logger.info('Redis cache connected');
         this.isConnected = true;
       });
-      
+
       this.redisClient.on('disconnect', () => {
-        logger.warn('⚠️ Redis cache disconnected');
+        logger.warn('WARNING: Redis cache disconnected');
         this.isConnected = false;
       });
-      
+
       return true;
     } catch (error) {
-      logger.warn('⚠️ Redis cache connection failed, falling back to memory cache:', error.message);
+      logger.warn('WARNING: Redis cache connection failed, falling back to memory cache:', error.message);
       this.isConnected = false;
       return false;
     }
@@ -78,14 +77,14 @@ class EnhancedCacheManager {
       if (this.isConnected && this.redisClient) {
         const value = await this.redisClient.get(key);
         if (value) {
-          logger.debug(`📥 Cache hit (Redis): ${key}`);
+          logger.debug(`Cache hit (Redis): ${key}`);
           return JSON.parse(value);
         }
       } else {
         // Fallback to memory cache
         const item = this.memoryCache.get(key);
         if (item && item.expiresAt > Date.now()) {
-          logger.debug(`📥 Cache hit (Memory): ${key}`);
+          logger.debug(`Cache hit (Memory): ${key}`);
           return item.value;
         } else if (item) {
           // Remove expired item
@@ -93,10 +92,10 @@ class EnhancedCacheManager {
         }
       }
       
-      logger.debug(`📤 Cache miss: ${key}`);
+      logger.debug(`Cache miss: ${key}`);
       return null;
     } catch (error) {
-      logger.error('❌ Cache get error:', error);
+      logger.error('Cache get error:', error);
       return null;
     }
   }
@@ -108,15 +107,15 @@ class EnhancedCacheManager {
     try {
       if (this.isConnected && this.redisClient) {
         await this.redisClient.setex(key, ttl, JSON.stringify(value));
-        logger.debug(`💾 Cache set (Redis): ${key}, TTL: ${ttl}s`);
+        logger.debug(`Cache set (Redis): ${key}, TTL: ${ttl}s`);
       } else {
         // Fallback to memory cache
         this.setMemoryCache(key, value, ttl);
-        logger.debug(`💾 Cache set (Memory): ${key}, TTL: ${ttl}s`);
+        logger.debug(`Cache set (Memory): ${key}, TTL: ${ttl}s`);
       }
       return true;
     } catch (error) {
-      logger.error('❌ Cache set error:', error);
+      logger.error('Cache set error:', error);
       return false;
     }
   }
@@ -144,14 +143,14 @@ class EnhancedCacheManager {
     try {
       if (this.isConnected && this.redisClient) {
         await this.redisClient.del(key);
-        logger.debug(`🗑️ Cache delete (Redis): ${key}`);
+        logger.debug(`Cache delete (Redis): ${key}`);
       } else {
         this.memoryCache.delete(key);
-        logger.debug(`🗑️ Cache delete (Memory): ${key}`);
+        logger.debug(`Cache delete (Memory): ${key}`);
       }
       return true;
     } catch (error) {
-      logger.error('❌ Cache delete error:', error);
+      logger.error('Cache delete error:', error);
       return false;
     }
   }
@@ -165,7 +164,7 @@ class EnhancedCacheManager {
         const keys = await this.redisClient.keys(pattern);
         if (keys.length > 0) {
           await this.redisClient.del(keys);
-          logger.info(`🗑️ Cache invalidated (Redis): ${pattern}, ${keys.length} keys`);
+          logger.info(`Cache invalidated (Redis): ${pattern}, ${keys.length} keys`);
         }
       } else {
         // Fallback to memory cache pattern matching
@@ -173,7 +172,7 @@ class EnhancedCacheManager {
       }
       return true;
     } catch (error) {
-      logger.error('❌ Cache invalidate error:', error);
+      logger.error('Cache invalidate error:', error);
       return false;
     }
   }
@@ -193,7 +192,7 @@ class EnhancedCacheManager {
     }
     
     if (deletedCount > 0) {
-      logger.info(`🗑️ Cache invalidated (Memory): ${pattern}, ${deletedCount} keys`);
+      logger.info(`Cache invalidated (Memory): ${pattern}, ${deletedCount} keys`);
     }
   }
 
@@ -207,15 +206,15 @@ class EnhancedCacheManager {
         memoryCacheSize: this.memoryCache.size,
         timestamp: new Date().toISOString()
       };
-      
+
       if (this.isConnected && this.redisClient) {
         const info = await this.redisClient.info();
         stats.redisInfo = info;
       }
-      
+
       return stats;
     } catch (error) {
-      logger.error('❌ Cache stats error:', error);
+      logger.error('Cache stats error:', error);
       return { error: error.message };
     }
   }
@@ -248,7 +247,7 @@ class EnhancedCacheManager {
     
     if (oldestKey) {
       this.memoryCache.delete(oldestKey);
-      logger.debug(`🗑️ Evicted oldest cache item: ${oldestKey}`);
+      logger.debug(`Evicted oldest cache item: ${oldestKey}`);
     }
   }
 
@@ -259,14 +258,14 @@ class EnhancedCacheManager {
     try {
       if (this.isConnected && this.redisClient) {
         await this.redisClient.flushall();
-        logger.info('🗑️ Cache cleared (Redis)');
+        logger.info('Cache cleared (Redis)');
       } else {
         this.memoryCache.clear();
-        logger.info('🗑️ Cache cleared (Memory)');
+        logger.info('Cache cleared (Memory)');
       }
       return true;
     } catch (error) {
-      logger.error('❌ Cache clear error:', error);
+      logger.error('Cache clear error:', error);
       return false;
     }
   }
@@ -279,10 +278,10 @@ class EnhancedCacheManager {
       if (this.redisClient) {
         await this.redisClient.quit();
         this.isConnected = false;
-        logger.info('✅ Redis cache disconnected');
+        logger.info('Redis cache disconnected');
       }
     } catch (error) {
-      logger.error('❌ Cache disconnect error:', error);
+      logger.error('Cache disconnect error:', error);
     }
   }
 
@@ -300,22 +299,21 @@ class EnhancedCacheManager {
         if (cachedResponse) {
           return res.json(cachedResponse);
         }
-        
+
         // Store original send method
         const originalSend = res.json;
-        
+
         // Override send method to cache response
         res.json = function(data) {
           // Cache the response
           this.set(cacheKey, data, ttl);
-          
           // Call original send method
           return originalSend.call(this, data);
         }.bind(this);
-        
+
         next();
       } catch (error) {
-        logger.error('❌ Cache middleware error:', error);
+        logger.error('Cache middleware error:', error);
         next();
       }
     };
@@ -325,4 +323,4 @@ class EnhancedCacheManager {
 // Create singleton instance
 const cacheManager = new EnhancedCacheManager();
 
-module.exports = cacheManager; 
+module.exports = cacheManager;

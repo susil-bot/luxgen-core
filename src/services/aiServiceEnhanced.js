@@ -2,7 +2,6 @@
  * Enhanced AI Service Module
  * Comprehensive AI service supporting all frontend requirements
  */
-
 const Groq = require('groq-sdk');
 const OpenAI = require('openai');
 const crypto = require('crypto');
@@ -20,14 +19,14 @@ class EnhancedAIService {
     this.topP = parseFloat(process.env.AI_TOP_P) || 0.9;
     this.frequencyPenalty = parseFloat(process.env.AI_FREQUENCY_PENALTY) || 0.0;
     this.presencePenalty = parseFloat(process.env.AI_PRESENCE_PENALTY) || 0.0;
-    
+
     // Rate limiting
     this.rateLimits = {
       standard: { perMinute: 60, perHour: 1000 },
       premium: { perMinute: 120, perHour: 2000 },
       enterprise: { perMinute: 300, perHour: 5000 }
     };
-    
+
     // In-memory storage (in production, use proper databases)
     this.conversations = new Map();
     this.contentLibrary = new Map();
@@ -41,16 +40,16 @@ class EnhancedAIService {
    */
   async initialize() {
     try {
-      logger.info('🤖 Initializing Enhanced AI Service...');
+      logger.info('Initializing Enhanced AI Service...');
 
       // Initialize Groq client
       if (process.env.GROQ_API_KEY) {
         this.groqClient = new Groq({
           apiKey: process.env.GROQ_API_KEY,
         });
-        logger.info('✅ Groq client initialized');
+        logger.info('Groq client initialized');
       } else {
-        logger.warn('⚠️ GROQ_API_KEY not found - AI features disabled');
+        logger.warn('WARNING: GROQ_API_KEY not found - AI features disabled');
       }
 
       // Initialize OpenAI client
@@ -58,17 +57,16 @@ class EnhancedAIService {
         this.openaiClient = new OpenAI({
           apiKey: process.env.OPENAI_API_KEY,
         });
-        logger.info('✅ OpenAI client initialized');
+        logger.info('OpenAI client initialized');
       } else {
-        logger.warn('⚠️ OPENAI_API_KEY not found - Some features disabled');
+        logger.warn('WARNING: OPENAI_API_KEY not found - Some features disabled');
       }
 
       this.isInitialized = true;
-      logger.info('🎉 Enhanced AI Service initialized successfully');
-      
+      logger.info('Enhanced AI Service initialized successfully');
       return true;
     } catch (error) {
-      logger.error('❌ Failed to initialize Enhanced AI Service:', error.message);
+      logger.error('Failed to initialize Enhanced AI Service:', error.message);
       throw error;
     }
   }
@@ -93,7 +91,7 @@ class EnhancedAIService {
 
       // Build system prompt based on type and options
       let systemPrompt = this.buildSystemPrompt(type, { tone, style, length, language });
-      
+
       // Add context if provided
       let enhancedPrompt = prompt;
       if (context) {
@@ -117,7 +115,6 @@ class EnhancedAIService {
       });
 
       const content = completion.choices[0]?.message?.content;
-      
       if (!content) {
         throw new Error('No content generated');
       }
@@ -153,7 +150,7 @@ class EnhancedAIService {
     };
 
     const prompt = `Create comprehensive training material about: ${topic}`;
-    
+
     return this.generateContent({
       type: 'training_material',
       prompt,
@@ -175,9 +172,9 @@ class EnhancedAIService {
     } = options || {};
 
     const prompt = `Create ${questionCount} assessment questions about: ${topic}
-    Question types: ${types.join(', ')}
-    Difficulty: ${difficulty}
-    Time limit: ${timeLimit} minutes`;
+Question types: ${types.join(', ')}
+Difficulty: ${difficulty}
+Time limit: ${timeLimit} minutes`;
 
     return this.generateContent({
       type: 'assessment',
@@ -199,9 +196,9 @@ class EnhancedAIService {
     } = options || {};
 
     const prompt = `Create a presentation outline about: ${topic}
-    Duration: ${duration}
-    Style: ${style}
-    Number of slides: ${slideCount}`;
+Duration: ${duration}
+Style: ${style}
+Number of slides: ${slideCount}`;
 
     return this.generateContent({
       type: 'presentation',
@@ -223,19 +220,15 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Improve the following content for ${improvement}:`;
-    
     if (targetLength) {
       prompt += ` Target length: ${targetLength} words.`;
     }
-    
     if (tone) {
       prompt += ` Tone: ${tone}.`;
     }
-    
     if (style) {
       prompt += ` Style: ${style}.`;
     }
-    
     prompt += `\n\nContent:\n${content}`;
 
     return this.generateContent({
@@ -257,11 +250,9 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Translate the following content to ${targetLanguage}`;
-    
     if (preserveTone) {
       prompt += ' while preserving the original tone';
     }
-    
     prompt += `.\nFormality: ${formality}\nContext: ${context}\n\nContent:\n${content}`;
 
     return this.generateContent({
@@ -285,19 +276,15 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Write a blog post about: ${topic}`;
-    
     if (length) {
       prompt += `\nLength: ${length}`;
     }
-    
     if (tone) {
       prompt += `\nTone: ${tone}`;
     }
-    
     if (targetAudience) {
       prompt += `\nTarget audience: ${targetAudience}`;
     }
-    
     if (keywords.length > 0) {
       prompt += `\nKeywords: ${keywords.join(', ')}`;
     }
@@ -322,15 +309,12 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create ${platform} content about: ${topic}`;
-    
     if (tone) {
       prompt += `\nTone: ${tone}`;
     }
-    
     if (includeHashtags) {
       prompt += '\nInclude relevant hashtags';
     }
-    
     if (callToAction) {
       prompt += `\nCall to action: ${callToAction}`;
     }
@@ -355,15 +339,12 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Write a ${type} email about: ${topic}`;
-    
     if (recipientType) {
       prompt += `\nRecipient: ${recipientType}`;
     }
-    
     if (tone) {
       prompt += `\nTone: ${tone}`;
     }
-    
     if (includeCallToAction) {
       prompt += '\nInclude a call to action';
     }
@@ -387,19 +368,15 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Write a product description for: ${productName}`;
-    
     if (targetAudience) {
       prompt += `\nTarget audience: ${targetAudience}`;
     }
-    
     if (features && features.length > 0) {
       prompt += `\nFeatures: ${features.join(', ')}`;
     }
-    
     if (style) {
       prompt += `\nStyle: ${style}`;
     }
-    
     if (length) {
       prompt += `\nLength: ${length}`;
     }
@@ -423,15 +400,12 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create a detailed image prompt for: ${description}`;
-    
     if (style) {
       prompt += `\nStyle: ${style}`;
     }
-    
     if (aspectRatio) {
       prompt += `\nAspect ratio: ${aspectRatio}`;
     }
-    
     if (mood) {
       prompt += `\nMood: ${mood}`;
     }
@@ -455,19 +429,15 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create a video script about: ${topic}`;
-    
     if (duration) {
       prompt += `\nDuration: ${duration}`;
     }
-    
     if (style) {
       prompt += `\nStyle: ${style}`;
     }
-    
     if (includeVisuals) {
       prompt += '\nInclude visual descriptions';
     }
-    
     if (targetAudience) {
       prompt += `\nTarget audience: ${targetAudience}`;
     }
@@ -491,15 +461,12 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create an audio script for ${type} about: ${topic}`;
-    
     if (duration) {
       prompt += `\nDuration: ${duration} minutes`;
     }
-    
     if (tone) {
       prompt += `\nTone: ${tone}`;
     }
-    
     if (includeMusic) {
       prompt += '\nInclude music cues';
     }
@@ -541,7 +508,6 @@ class EnhancedAIService {
     }
 
     this.conversations.set(conversationId, conversation);
-    
     return conversation;
   }
 
@@ -574,11 +540,9 @@ class EnhancedAIService {
    */
   async getConversation({ conversationId, userId, tenantId }) {
     const conversation = this.conversations.get(conversationId);
-    
     if (!conversation || conversation.userId !== userId || conversation.tenantId !== tenantId) {
       throw new Error('Conversation not found');
     }
-    
     return conversation;
   }
 
@@ -587,11 +551,9 @@ class EnhancedAIService {
    */
   async deleteConversation({ conversationId, userId, tenantId }) {
     const conversation = this.conversations.get(conversationId);
-    
     if (!conversation || conversation.userId !== userId || conversation.tenantId !== tenantId) {
       throw new Error('Conversation not found');
     }
-    
     this.conversations.delete(conversationId);
     return { success: true };
   }
@@ -601,7 +563,6 @@ class EnhancedAIService {
    */
   async sendMessage({ conversationId, content, type, metadata, userId, tenantId }) {
     const conversation = this.conversations.get(conversationId);
-    
     if (!conversation || conversation.userId !== userId || conversation.tenantId !== tenantId) {
       throw new Error('Conversation not found');
     }
@@ -625,9 +586,9 @@ class EnhancedAIService {
    */
   async generateResponse({ message, conversationId, context, userId, tenantId }) {
     const conversation = conversationId ? this.conversations.get(conversationId) : null;
-    
+
     let prompt = `User message: ${message}`;
-    
+
     if (conversation) {
       const recentMessages = conversation.messages.slice(-5);
       const conversationContext = recentMessages
@@ -635,7 +596,7 @@ class EnhancedAIService {
         .join('\n');
       prompt = `Conversation context:\n${conversationContext}\n\nUser message: ${message}`;
     }
-    
+
     if (context) {
       prompt = `Context: ${JSON.stringify(context)}\n\n${prompt}`;
     }
@@ -677,23 +638,18 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create a complete training module about: ${topic}`;
-    
     if (duration) {
       prompt += `\nDuration: ${duration} hours`;
     }
-    
     if (difficulty) {
       prompt += `\nDifficulty: ${difficulty}`;
     }
-    
     if (format) {
       prompt += `\nFormat: ${format}`;
     }
-    
     if (includeAssessment) {
       prompt += '\nInclude assessment questions';
     }
-    
     if (learningObjectives.length > 0) {
       prompt += `\nLearning objectives: ${learningObjectives.join(', ')}`;
     }
@@ -719,19 +675,15 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create practical exercises for: ${topic}`;
-    
     if (type) {
       prompt += `\nType: ${type}`;
     }
-    
     if (duration) {
       prompt += `\nDuration: ${duration} minutes`;
     }
-    
     if (difficulty) {
       prompt += `\nDifficulty: ${difficulty}`;
     }
-    
     if (materials.length > 0) {
       prompt += `\nMaterials: ${materials.join(', ')}`;
     }
@@ -757,19 +709,15 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create case studies for: ${topic}`;
-    
     if (industry) {
       prompt += `\nIndustry: ${industry}`;
     }
-    
     if (complexity) {
       prompt += `\nComplexity: ${complexity}`;
     }
-    
     if (includeSolutions) {
       prompt += '\nInclude solutions';
     }
-    
     if (learningOutcomes.length > 0) {
       prompt += `\nLearning outcomes: ${learningOutcomes.join(', ')}`;
     }
@@ -796,23 +744,18 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create a quiz about: ${topic}`;
-    
     if (questionCount) {
       prompt += `\nQuestions: ${questionCount}`;
     }
-    
     if (types.length > 0) {
       prompt += `\nQuestion types: ${types.join(', ')}`;
     }
-    
     if (difficulty) {
       prompt += `\nDifficulty: ${difficulty}`;
     }
-    
     if (timeLimit) {
       prompt += `\nTime limit: ${timeLimit} minutes`;
     }
-    
     if (passingScore) {
       prompt += `\nPassing score: ${passingScore}%`;
     }
@@ -838,19 +781,15 @@ class EnhancedAIService {
     } = options || {};
 
     let prompt = `Create scenario-based assessments for: ${topic}`;
-    
     if (scenarioCount) {
       prompt += `\nNumber of scenarios: ${scenarioCount}`;
     }
-    
     if (complexity) {
       prompt += `\nComplexity: ${complexity}`;
     }
-    
     if (includeMultipleChoice) {
       prompt += '\nInclude multiple choice questions';
     }
-    
     if (includeEssay) {
       prompt += '\nInclude essay questions';
     }
@@ -886,7 +825,6 @@ class EnhancedAIService {
     };
 
     this.contentLibrary.set(contentId, savedContent);
-    
     return savedContent;
   }
 
@@ -900,13 +838,11 @@ class EnhancedAIService {
     if (type) {
       contents = contents.filter(content => content.type === type);
     }
-    
     if (category) {
       contents = contents.filter(content => content.category === category);
     }
-    
     if (search) {
-      contents = contents.filter(content => 
+      contents = contents.filter(content =>
         content.title.toLowerCase().includes(search.toLowerCase()) ||
         content.content.toLowerCase().includes(search.toLowerCase())
       );
@@ -934,13 +870,11 @@ class EnhancedAIService {
    */
   async updateContent({ contentId, updateData, userId, tenantId }) {
     const content = this.contentLibrary.get(contentId);
-    
     if (!content || content.userId !== userId || content.tenantId !== tenantId) {
       throw new Error('Content not found');
     }
 
     Object.assign(content, updateData, { updatedAt: new Date() });
-    
     return content;
   }
 
@@ -949,11 +883,9 @@ class EnhancedAIService {
    */
   async deleteContent({ contentId, userId, tenantId }) {
     const content = this.contentLibrary.get(contentId);
-    
     if (!content || content.userId !== userId || content.tenantId !== tenantId) {
       throw new Error('Content not found');
     }
-
     this.contentLibrary.delete(contentId);
     return { success: true };
   }
@@ -1009,7 +941,6 @@ class EnhancedAIService {
     };
 
     this.templates.set(templateId, template);
-    
     return template;
   }
 
@@ -1039,9 +970,7 @@ class EnhancedAIService {
   async updatePreferences({ preferences, userId, tenantId }) {
     const key = `${userId}-${tenantId}`;
     const existingPreferences = this.userPreferences.get(key) || {};
-    
     this.userPreferences.set(key, { ...existingPreferences, ...preferences });
-    
     return this.userPreferences.get(key);
   }
 
@@ -1126,7 +1055,10 @@ class EnhancedAIService {
           gender: { male: 45, female: 55 }
         },
         interests: ['technology', 'business', 'education'],
-        behavior: { avgTimeOnPage: 120, pagesPerSession: 2.5 }
+        behavior: {
+          avgTimeOnPage: 120,
+          pagesPerSession: 2.5
+        }
       }
     };
   }
@@ -1136,7 +1068,6 @@ class EnhancedAIService {
    */
   async getConversationInsights({ conversationId, dateRange, userId, tenantId }) {
     const conversation = this.conversations.get(conversationId);
-    
     if (!conversation) {
       throw new Error('Conversation not found');
     }
@@ -1200,7 +1131,7 @@ class EnhancedAIService {
   async getRateLimits({ userId, tenantId }) {
     const userPlan = 'standard'; // In production, get from user profile
     const limits = this.rateLimits[userPlan];
-    
+
     return {
       requestsPerMinute: limits.perMinute,
       requestsPerHour: limits.perHour,
@@ -1219,9 +1150,8 @@ class EnhancedAIService {
    */
   buildSystemPrompt(type, options = {}) {
     const { tone, style, length, language } = options;
-    
     let systemPrompt = 'You are a helpful AI assistant. ';
-    
+
     switch (type) {
       case 'training_material':
         systemPrompt += 'Create comprehensive, engaging, and educational training materials. Focus on practical examples, clear explanations, and actionable insights.';
@@ -1250,23 +1180,20 @@ class EnhancedAIService {
       default:
         systemPrompt += 'Provide clear, accurate, and useful responses.';
     }
-    
+
     if (tone) {
       systemPrompt += ` Maintain a ${tone} tone.`;
     }
-    
     if (style) {
       systemPrompt += ` Use a ${style} style.`;
     }
-    
     if (length) {
       systemPrompt += ` Keep the content ${length} in length.`;
     }
-    
     if (language && language !== 'english') {
       systemPrompt += ` Respond in ${language}.`;
     }
-    
+
     return systemPrompt;
   }
 
@@ -1280,15 +1207,14 @@ class EnhancedAIService {
       contentGenerated: 0,
       conversations: 0
     };
-    
+
     stats.totalRequests++;
-    
     if (action === 'content_generation') {
       stats.contentGenerated++;
     } else if (action === 'conversation') {
       stats.conversations++;
     }
-    
+
     this.usageStats.set(key, stats);
   }
 }
@@ -1296,4 +1222,4 @@ class EnhancedAIService {
 // Create and export singleton instance
 const enhancedAIService = new EnhancedAIService();
 
-module.exports = enhancedAIService; 
+module.exports = enhancedAIService;

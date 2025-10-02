@@ -2,11 +2,10 @@
  * Comprehensive Error Handling Middleware
  * Provides request logging, error tracking, and performance monitoring
  */
-
 const logger = require('../utils/logger');
-const { 
-  ValidationError, 
-  AuthenticationError, 
+const {
+  ValidationError,
+  AuthenticationError,
   AuthorizationError,
   NotFoundError,
   ConflictError,
@@ -27,7 +26,7 @@ const requestLogger = (req, res, next) => {
   req.requestId = requestId;
   
   // Log incoming request
-  logger.info('📥 Incoming Request', {
+  logger.info('Incoming Request', {
     requestId,
     method: req.method,
     url: req.originalUrl,
@@ -37,14 +36,14 @@ const requestLogger = (req, res, next) => {
     tenantId: req.user?.tenantId,
     timestamp: new Date().toISOString()
   });
-
+  
   // Override res.json to log response
   const originalJson = res.json;
   res.json = function(data) {
     const duration = Date.now() - startTime;
     
     // Log response
-    logger.info('📤 Response Sent', {
+    logger.info('Response Sent', {
       requestId,
       method: req.method,
       url: req.originalUrl,
@@ -53,14 +52,14 @@ const requestLogger = (req, res, next) => {
       success: data?.success,
       timestamp: new Date().toISOString()
     });
-
+    
     // Add request ID to response headers
     res.setHeader('X-Request-ID', requestId);
     res.setHeader('X-Response-Time', `${duration}ms`);
-
+    
     return originalJson.call(this, data);
   };
-
+  
   next();
 };
 
@@ -74,7 +73,7 @@ const performanceMonitor = (req, res, next) => {
     
     // Log slow requests
     if (duration > 1000) { // Log requests taking more than 1 second
-      logger.warn('🐌 Slow Request Detected', {
+      logger.warn('Slow Request Detected', {
         requestId: req.requestId,
         method: req.method,
         url: req.originalUrl,
@@ -83,9 +82,9 @@ const performanceMonitor = (req, res, next) => {
         timestamp: new Date().toISOString()
       });
     }
-
+    
     // Log performance metrics
-    logger.info('📊 Performance Metric', {
+    logger.info('Performance Metric', {
       requestId: req.requestId,
       method: req.method,
       url: req.originalUrl,
@@ -94,7 +93,7 @@ const performanceMonitor = (req, res, next) => {
       timestamp: new Date().toISOString()
     });
   });
-
+  
   next();
 };
 
@@ -121,16 +120,16 @@ const errorTracker = (err, req, res, next) => {
     requestParams: req.params,
     timestamp: new Date().toISOString()
   };
-
+  
   // Log error with appropriate level
   if (err.statusCode >= 500) {
-    logger.error('🚨 Server Error', errorContext);
+    logger.error('Server Error', errorContext);
   } else if (err.statusCode >= 400) {
-    logger.warn('⚠️ Client Error', errorContext);
+    logger.warn('Client Error', errorContext);
   } else {
-    logger.info('ℹ️ Info Error', errorContext);
+    logger.info('Info Error', errorContext);
   }
-
+  
   // Add error ID to response
   res.setHeader('X-Error-ID', errorId);
   
@@ -140,14 +139,14 @@ const errorTracker = (err, req, res, next) => {
 // Rate limiting error handler
 const rateLimitErrorHandler = (err, req, res, next) => {
   if (err.name === 'RateLimitError') {
-    logger.warn('🚫 Rate Limit Exceeded', {
+    logger.warn('Rate Limit Exceeded', {
       requestId: req.requestId,
       ip: req.ip,
       url: req.originalUrl,
       method: req.method,
       timestamp: new Date().toISOString()
     });
-
+    
     return res.status(429).json({
       success: false,
       error: {
@@ -158,6 +157,7 @@ const rateLimitErrorHandler = (err, req, res, next) => {
       }
     });
   }
+  
   next(err);
 };
 
@@ -165,17 +165,17 @@ const rateLimitErrorHandler = (err, req, res, next) => {
 const databaseErrorHandler = (err, req, res, next) => {
   if (err.name === 'MongoNetworkError' || 
       err.name === 'MongoTimeoutError' || 
-      err.code === 'ECONNREFUSED' ||
+      err.code === 'ECONNREFUSED' || 
       err.code === 'ENOTFOUND') {
     
-    logger.error('🗄️ Database Connection Error', {
+    logger.error('Database Connection Error', {
       requestId: req.requestId,
       error: err.message,
       code: err.code,
       name: err.name,
       timestamp: new Date().toISOString()
     });
-
+    
     return res.status(503).json({
       success: false,
       error: {
@@ -185,20 +185,21 @@ const databaseErrorHandler = (err, req, res, next) => {
       }
     });
   }
+  
   next(err);
 };
 
 // AI service error handler
 const aiServiceErrorHandler = (err, req, res, next) => {
   if (err.name === 'AIError' || err.name === 'ContentGenerationError') {
-    logger.error('🤖 AI Service Error', {
+    logger.error('AI Service Error', {
       requestId: req.requestId,
       error: err.message,
       url: req.originalUrl,
       method: req.method,
       timestamp: new Date().toISOString()
     });
-
+    
     return res.status(502).json({
       success: false,
       error: {
@@ -208,6 +209,7 @@ const aiServiceErrorHandler = (err, req, res, next) => {
       }
     });
   }
+  
   next(err);
 };
 
@@ -218,77 +220,79 @@ const trainingErrorHandler = (err, req, res, next) => {
       err.name === 'EnrollmentError' || 
       err.name === 'AssessmentError') {
     
-    logger.error('🎓 Training Service Error', {
+    logger.error('Training Service Error', {
       requestId: req.requestId,
       error: err.message,
       url: req.originalUrl,
       method: req.method,
       timestamp: new Date().toISOString()
     });
-
-    return res.status(400).json({
+    
+    return res.status(500).json({
       success: false,
       error: {
-        message: err.message || 'Training operation failed',
-        statusCode: 400,
+        message: 'Training service error. Please try again later.',
+        statusCode: 500,
         timestamp: new Date().toISOString()
       }
     });
   }
+  
   next(err);
 };
 
 // Presentation service error handler
 const presentationErrorHandler = (err, req, res, next) => {
   if (err.name === 'PresentationError' || err.name === 'PollError') {
-    logger.error('📊 Presentation Service Error', {
+    logger.error('Presentation Service Error', {
       requestId: req.requestId,
       error: err.message,
       url: req.originalUrl,
       method: req.method,
       timestamp: new Date().toISOString()
     });
-
-    return res.status(400).json({
+    
+    return res.status(500).json({
       success: false,
       error: {
-        message: err.message || 'Presentation operation failed',
-        statusCode: 400,
+        message: 'Presentation service error. Please try again later.',
+        statusCode: 500,
         timestamp: new Date().toISOString()
       }
     });
   }
+  
   next(err);
 };
 
 // Tenant service error handler
 const tenantErrorHandler = (err, req, res, next) => {
   if (err.name === 'TenantError' || err.name === 'TenantAccessError') {
-    logger.error('🏢 Tenant Service Error', {
+    logger.error('Tenant Service Error', {
       requestId: req.requestId,
       error: err.message,
       url: req.originalUrl,
       method: req.method,
-      tenantId: req.user?.tenantId,
       timestamp: new Date().toISOString()
     });
-
-    return res.status(err.statusCode || 400).json({
+    
+    return res.status(500).json({
       success: false,
       error: {
-        message: err.message || 'Tenant operation failed',
-        statusCode: err.statusCode || 400,
+        message: 'Tenant service error. Please try again later.',
+        statusCode: 500,
         timestamp: new Date().toISOString()
       }
     });
   }
+  
   next(err);
 };
 
 // Validation error handler
 const validationErrorHandler = (err, req, res, next) => {
   if (err.name === 'ValidationError') {
-    logger.warn('✅ Validation Error', {
+    logger.warn('Validation Error', {
       requestId: req.requestId,
       error: err.message,
       details: err.details,
@@ -296,17 +300,18 @@ const validationErrorHandler = (err, req, res, next) => {
       method: req.method,
       timestamp: new Date().toISOString()
     });
-
+    
     return res.status(400).json({
       success: false,
       error: {
         message: 'Validation failed',
         statusCode: 400,
-        details: err.details || [],
+        details: err.details,
         timestamp: new Date().toISOString()
       }
     });
   }
+  
   next(err);
 };
 
@@ -316,15 +321,14 @@ const authenticationErrorHandler = (err, req, res, next) => {
       err.name === 'JsonWebTokenError' || 
       err.name === 'TokenExpiredError') {
     
-    logger.warn('🔐 Authentication Error', {
+    logger.warn('Authentication Error', {
       requestId: req.requestId,
       error: err.message,
       url: req.originalUrl,
       method: req.method,
-      ip: req.ip,
       timestamp: new Date().toISOString()
     });
-
+    
     return res.status(401).json({
       success: false,
       error: {
@@ -334,22 +338,23 @@ const authenticationErrorHandler = (err, req, res, next) => {
       }
     });
   }
+  
   next(err);
 };
 
 // Authorization error handler
 const authorizationErrorHandler = (err, req, res, next) => {
   if (err.name === 'AuthorizationError') {
-    logger.warn('🚫 Authorization Error', {
+    logger.warn('Authorization Error', {
       requestId: req.requestId,
       error: err.message,
       url: req.originalUrl,
       method: req.method,
       userId: req.user?.id,
-      userRole: req.user?.role,
+      tenantId: req.user?.tenantId,
       timestamp: new Date().toISOString()
     });
-
+    
     return res.status(403).json({
       success: false,
       error: {
@@ -359,20 +364,21 @@ const authorizationErrorHandler = (err, req, res, next) => {
       }
     });
   }
+  
   next(err);
 };
 
 // Not found error handler
 const notFoundErrorHandler = (err, req, res, next) => {
-  if (err.name === 'NotFoundError') {
-    logger.info('🔍 Resource Not Found', {
+  if (err.name === 'NotFoundError' || err.statusCode === 404) {
+    logger.warn('Not Found Error', {
       requestId: req.requestId,
       error: err.message,
       url: req.originalUrl,
       method: req.method,
       timestamp: new Date().toISOString()
     });
-
+    
     return res.status(404).json({
       success: false,
       error: {
@@ -382,20 +388,21 @@ const notFoundErrorHandler = (err, req, res, next) => {
       }
     });
   }
+  
   next(err);
 };
 
 // Conflict error handler
 const conflictErrorHandler = (err, req, res, next) => {
-  if (err.name === 'ConflictError' || err.code === 11000) {
-    logger.warn('⚡ Resource Conflict', {
+  if (err.name === 'ConflictError' || err.statusCode === 409) {
+    logger.warn('Conflict Error', {
       requestId: req.requestId,
       error: err.message,
       url: req.originalUrl,
       method: req.method,
       timestamp: new Date().toISOString()
     });
-
+    
     return res.status(409).json({
       success: false,
       error: {
@@ -405,16 +412,16 @@ const conflictErrorHandler = (err, req, res, next) => {
       }
     });
   }
+  
   next(err);
 };
 
-// Generic error handler (catch-all)
+// Generic error handler (must be last)
 const genericErrorHandler = (err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal server error';
-
-  // Log unexpected errors
-  logger.error('💥 Unexpected Error', {
+  
+  logger.error('Unhandled Error', {
     requestId: req.requestId,
     error: err.message,
     stack: err.stack,
@@ -423,24 +430,8 @@ const genericErrorHandler = (err, req, res, next) => {
     statusCode,
     timestamp: new Date().toISOString()
   });
-
-  // Development error response
-  if (process.env.NODE_ENV === 'development') {
-    return res.status(statusCode).json({
-      success: false,
-      error: {
-        message,
-        statusCode,
-        stack: err.stack,
-        name: err.name,
-        timestamp: new Date().toISOString(),
-        requestId: req.requestId
-      }
-    });
-  }
-
-  // Production error response
-  return res.status(statusCode).json({
+  
+  res.status(statusCode).json({
     success: false,
     error: {
       message: statusCode === 500 ? 'Internal server error' : message,
@@ -452,21 +443,21 @@ const genericErrorHandler = (err, req, res, next) => {
 };
 
 // Utility functions
-function generateRequestId() {
+const generateRequestId = () => {
   return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
+};
 
-function generateErrorId() {
+const generateErrorId = () => {
   return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
+};
 
-function sanitizeRequestBody(body) {
-  if (!body) return body;
+const sanitizeRequestBody = (body) => {
+  if (!body) return null;
   
   const sanitized = { ...body };
   
   // Remove sensitive fields
-  const sensitiveFields = ['password', 'token', 'secret', 'key', 'authorization'];
+  const sensitiveFields = ['password', 'token', 'secret', 'key', 'auth'];
   sensitiveFields.forEach(field => {
     if (sanitized[field]) {
       sanitized[field] = '[REDACTED]';
@@ -474,9 +465,8 @@ function sanitizeRequestBody(body) {
   });
   
   return sanitized;
-}
+};
 
-// Export middleware chain
 module.exports = {
   requestLogger,
   performanceMonitor,
@@ -493,4 +483,4 @@ module.exports = {
   notFoundErrorHandler,
   conflictErrorHandler,
   genericErrorHandler
-}; 
+};

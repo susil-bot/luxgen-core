@@ -2,7 +2,6 @@
  * Environment Configuration Manager
  * Simple configuration management with defaults
  */
-
 class EnvironmentConfig {
   constructor() {
     this.config = this.loadConfiguration();
@@ -19,7 +18,7 @@ class EnvironmentConfig {
         APP_VERSION: process.env.APP_VERSION || '1.0.0',
 
         // Database
-        MONGODB_URL: process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017/luxgen_trainer_platform',
+        MONGODB_URL: process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017/luxgen',
         REDIS_URL: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
 
         // Authentication
@@ -108,10 +107,10 @@ class EnvironmentConfig {
         this.checkDevelopmentSecurity(config);
       }
 
-      console.log('✅ Environment configuration loaded successfully');
+      console.log('Environment configuration loaded successfully');
       return config;
     } catch (error) {
-      console.error('💥 Failed to load environment configuration:', error.message);
+      console.error('Failed to load environment configuration:', error.message);
       process.exit(1);
     }
   }
@@ -120,20 +119,20 @@ class EnvironmentConfig {
     const warnings = [];
     
     if (config.JWT_SECRET.includes('your_jwt_secret_key_here')) {
-      warnings.push('⚠️  Using default JWT secret - change in production');
+      warnings.push('WARNING: Using default JWT secret - change in production');
     }
     
     if (config.SESSION_SECRET.includes('your_session_secret_here')) {
-      warnings.push('⚠️  Using default session secret - change in production');
+      warnings.push('WARNING: Using default session secret - change in production');
     }
     
     if (config.MONGODB_URL.includes('127.0.0.1')) {
-      warnings.push('⚠️  Using local MongoDB - ensure MongoDB is running locally');
+      warnings.push('WARNING: Using local MongoDB - ensure MongoDB is running locally');
     }
     
     if (warnings.length > 0) {
-      console.log('\n🔒 Development Security Warnings:');
-      warnings.forEach(warning => console.log(`   ${warning}`));
+      console.log('\n Development Security Warnings:');
+      warnings.forEach(warning => console.log(` ${warning}`));
       console.log('');
     }
   }
@@ -286,13 +285,11 @@ class EnvironmentConfig {
         } : false,
         xssFilter: this.config.ENABLE_XSS_PROTECTION,
         noSniff: this.config.ENABLE_CONTENT_TYPE_NOSNIFF,
-        frameguard: {
-          action: 'deny'
-        },
+        frameguard: { action: 'deny'},
         hidePoweredBy: true,
         ieNoOpen: true,
         noCache: false,
-        referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
+        referrerPolicy: { policy: 'strict-origin-when-cross-origin'}
       }
     };
   }
@@ -351,4 +348,4 @@ class EnvironmentConfig {
   }
 }
 
-module.exports = new EnvironmentConfig(); 
+module.exports = new EnvironmentConfig();
