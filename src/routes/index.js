@@ -5,6 +5,9 @@ const router = express.Router();
 const tenantRoutes = require('./tenantRoutes');
 const authRoutes = require('./authRoutes');
 
+// Robust Multi-Tenant Architecture Routes
+const tenantManagementRoutes = require('./tenantManagementRoutes');
+
 // Import middleware
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
@@ -127,6 +130,9 @@ router.get('/docs', (req, res) => {
 // Mount essential route modules with proper prefixes
 router.use(`${API_PREFIX}/tenants`, tenantRoutes);
 router.use(`${API_PREFIX}/auth`, authRoutes);
+
+// Robust Multi-Tenant Architecture Routes
+router.use(`${API_PREFIX}/tenants`, tenantManagementRoutes);
 
 // 404 handler for undefined routes
 router.use('*', (req, res) => {
