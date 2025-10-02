@@ -17,7 +17,7 @@ class EnvironmentConfig {
         APP_NAME: process.env.APP_NAME || 'Trainer Platform',
         APP_VERSION: process.env.APP_VERSION || '1.0.0',
 
-        // Database
+        // Database - STRICT: Always use luxgen database
         MONGODB_URL: process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017/luxgen',
         REDIS_URL: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
 

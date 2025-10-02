@@ -7,7 +7,7 @@ const express = require('express');
 const router = express.Router();
 const brandIdentityService = require('../services/BrandIdentityService');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const { tenantMiddleware } = require('../middleware/tenantMiddleware');
+const TenantMiddleware = require('../middleware/tenantMiddleware');
 const { 
   brandIdentityMiddleware, 
   validateBrandRequest, 
@@ -16,7 +16,7 @@ const {
 const logger = require('../utils/logger');
 
 // Apply middleware to all routes
-router.use(tenantMiddleware);
+router.use(TenantMiddleware.identifyTenant());
 router.use(brandIdentityMiddleware);
 
 /**
