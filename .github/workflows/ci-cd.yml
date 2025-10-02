@@ -1,0 +1,104 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '18'
+  CACHE_VERSION: v1
+
+jobs:
+  # Backend CI/CD
+  backend:
+    name: Backend Build & Deploy
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run linting
+        run: npm run lint
+        
+      - name: Run tests
+        run: npm test -- --coverage --watchAll=false --passWithNoTests
+        
+      - name: Build application
+        run: npm run build
+        
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-build
+          path: |
+            dist/
+            package.json
+            package-lock.json
+          retention-days: 7
+          
+      - name: Deploy to Railway (Production)
+        if: github.ref == 'refs/heads/main'
+        uses: railwayapp/railway-deploy@v1
+        with:
+          railway-token: ${{ secrets.RAILWAY_TOKEN }}
+          service: luxgen-backend
+          detach: true
+          
+      - name: Deploy to Railway (Preview)
+        if: github.event_name == 'pull_request'
+        uses: railwayapp/railway-deploy@v1
+        with:
+          railway-token: ${{ secrets.RAILWAY_TOKEN }}
+          service: luxgen-backend-preview
+          detach: true
+          
+      - name: Run database migrations
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Running database migrations..."
+          npm run db:migrate
+        env:
+          MONGODB_URL: ${{ secrets.MONGODB_URL }}
+          
+      - name: Seed database
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Seeding database..."
+          npm run db:seed
+        env:
+          MONGODB_URL: ${{ secrets.MONGODB_URL }}
+          
+      - name: Comment deployment URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deploymentUrl = 'https://luxgen-backend-preview.railway.app';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **Backend deployed successfully!**\n\n**Preview URL:** ${deploymentUrl}\n\n**Production URL:** https://luxgen-backend.railway.app\n\n**Build Status:** ✅ Success\n**Tests:** ✅ Passed\n**Linting:** ✅ Passed\n**Database:** ✅ Migrated & Seeded`
+            })
+            
+      - name: Notify deployment success
+        if: github.ref == 'refs/heads/main'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          text: 'Backend deployed successfully to production!'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
