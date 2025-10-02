@@ -1,52 +1,47 @@
-/**
- * Auth Routes
- * Provides authentication endpoints that match frontend expectations
- */
-
 const express = require('express');
-const userRegistrationController = require('../controllers/userRegistrationController');
-const { authenticateToken } = require('../middleware/auth');
+const { body } = require('express-validator');
+const authController = require('../controllers/authController');
+const { validateRequest } = require('../middleware/validation');
 
 const router = express.Router();
 
-// Logging middleware for route calls
-const logRouteCall = (req, res, next) => {
-  const timestamp = new Date().toISOString();
-  const { method, path, ip } = req;
-  const userAgent = req.get('User-Agent');
-  
-  console.log(`🌐 Auth Route called: ${method} ${path}`);
-  console.log(`📍 IP: ${ip}`);
-  console.log(`🕐 Timestamp: ${timestamp}`);
-  console.log(`🔍 User-Agent: ${userAgent}`);
-  
-  // Log request body for login attempts (without sensitive data)
-  if (path === '/login' && method === 'POST') {
-    const { email } = req.body;
-    console.log(`🔐 Auth Login request for email: ${email || 'not provided'}`);
-  }
-  
-  console.log('---');
-  
-  next();
-};
+// Validation schemas
+const loginValidation = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email address'),
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required'),
+  validateRequest
+];
 
-// Apply logging middleware to all routes
-router.use(logRouteCall);
+const registerValidation = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email address'),
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long'),
+  body('firstName')
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('First name must be between 2 and 50 characters'),
+  body('lastName')
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Last name must be between 2 and 50 characters'),
+  validateRequest
+];
 
-// Public routes (no authentication required)
-router.post('/login', userRegistrationController.loginUser);
-router.post('/register', userRegistrationController.registerUser);
-router.get('/verify/:token', userRegistrationController.verifyEmail);
-router.post('/resend-verification', userRegistrationController.resendVerificationEmail);
-router.post('/forgot-password', userRegistrationController.forgotPassword);
-router.post('/reset-password/:token', userRegistrationController.resetPassword);
-router.post('/refresh', userRegistrationController.refreshToken);
+// Routes
+router.post('/login', loginValidation, authController.login);
+router.post('/register', registerValidation, authController.register);
+router.post('/logout', authController.logout);
+router.post('/refresh', authController.refreshToken);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
 
-// Protected routes (authentication required)
-router.get('/profile', authenticateToken, userRegistrationController.getProfile);
-router.put('/profile', authenticateToken, userRegistrationController.updateProfile);
-router.post('/change-password', authenticateToken, userRegistrationController.changePassword);
-router.post('/logout', authenticateToken, userRegistrationController.logout);
-
-module.exports = router; 
+module.exports = router;

@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
   tenantId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Tenant',
-    required: true,
+    required: false, // Temporarily make optional to allow registration
     index: true
   },
   email: {
@@ -177,8 +177,6 @@ userSchema.virtual('isLocked').get(function() {
 userSchema.index({ tenantId: 1, email: 1 });
 userSchema.index({ tenantId: 1, role: 1 });
 userSchema.index({ tenantId: 1, isActive: 1 });
-userSchema.index({ emailVerificationToken: 1 });
-userSchema.index({ passwordResetToken: 1 });
 userSchema.index({ lastLoginAt: -1 });
 userSchema.index({ createdAt: -1 });
 
@@ -227,12 +225,19 @@ userSchema.methods.updateLastLogin = async function() {
 
 // Static method to find by email and tenant
 userSchema.statics.findByEmailAndTenant = function(email, tenantId) {
-  return this.findOne({ email: email.toLowerCase(), tenantId, isActive: true });
+  return this.findOne({ 
+    email: email.toLowerCase(), 
+    tenantId, 
+    isActive: true 
+  });
 };
 
 // Static method to find active users by tenant
 userSchema.statics.findActiveByTenant = function(tenantId) {
-  return this.find({ tenantId, isActive: true });
+  return this.find({ 
+    tenantId, 
+    isActive: true 
+  });
 };
 
 // Static method to get user statistics by tenant
@@ -259,4 +264,4 @@ userSchema.statics.getUserStatistics = function(tenantId) {
   ]);
 };
 
-module.exports = mongoose.model('User', userSchema); 
+module.exports = mongoose.model('User', userSchema);

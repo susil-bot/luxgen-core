@@ -1,40 +1,10 @@
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const databaseManager = require('../config/database');
+const { AuthenticationError, AuthorizationError } = require('../utils/errors');
+const { getUserById } = require('../services/userService');
+const environmentConfig = require('../config/environment');
 
-// Custom error classes
-class AuthenticationError extends Error {
-  constructor(message = 'Authentication failed') {
-    super(message);
-    this.name = 'AuthenticationError';
-    this.status = 401;
-  }
-}
-
-class AuthorizationError extends Error {
-  constructor(message = 'Access denied') {
-    super(message);
-    this.name = 'AuthorizationError';
-    this.status = 403;
-  }
-}
-
-class ValidationError extends Error {
-  constructor(message = 'Validation failed') {
-    super(message);
-    this.name = 'ValidationError';
-    this.status = 400;
-  }
-}
-
-// JWT Configuration
-const JWT_CONFIG = {
-  secret: process.env.JWT_SECRET || 'your_jwt_secret_key_here_2024',
-  expiresIn: process.env.JWT_EXPIRES_IN || '24h',
-  refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
-  issuer: 'trainer-platform',
-  audience: 'trainer-platform-users',
-};
+// Get JWT configuration
+const JWT_CONFIG = environmentConfig.getJWTConfig();
 
 // Rate limiting for authentication attempts
 const authAttempts = new Map();
@@ -138,8 +108,18 @@ const authorizeRoles = (...allowedRoles) => {
   };
 };
 
-// Admin authorization middleware (alias for authorizeRoles)
-const requireAdmin = authorizeRoles('admin', 'super_admin');
+// Admin-only middleware
+const requireAdminMiddleware = (req, res, next) => {
+  if (!req.user) {
+    return next(new AuthenticationError('Authentication required'));
+  }
+
+  if (req.user.role !== 'admin') {
+    return next(new AuthorizationError('Admin access required'));
+  }
+
+  next();
+};
 
 // Tenant-based authorization middleware
 const authorizeTenant = (req, res, next) => {
@@ -147,259 +127,106 @@ const authorizeTenant = (req, res, next) => {
     return next(new AuthenticationError('Authentication required'));
   }
 
-  const requestedTenantId = req.params.tenantId || req.body.tenantId || req.query.tenantId;
-  
-  if (!requestedTenantId) {
-    return next(new ValidationError('Tenant ID is required'));
-  }
-
-  // Super admin can access all tenants
-  if (req.user.role === 'super_admin') {
-    req.tenantId = requestedTenantId;
+  // Admin can access any tenant
+  if (req.user.role === 'admin') {
     return next();
   }
 
   // Check if user belongs to the requested tenant
-  if (req.user.tenant_id !== requestedTenantId) {
+  const requestedTenantId = req.params.tenantId || req.body.tenantId || req.query.tenantId;
+  if (requestedTenantId && req.user.tenantId !== requestedTenantId) {
     return next(new AuthorizationError('Access denied to this tenant'));
   }
 
-  req.tenantId = requestedTenantId;
   next();
 };
 
 // Resource ownership middleware
-const authorizeResource = (resourceType, resourceIdField = 'id') => {
-  return async (req, res, next) => {
+const authorizeResource = (resourceUserIdField = 'userId') => {
+  return (req, res, next) => {
     if (!req.user) {
       return next(new AuthenticationError('Authentication required'));
     }
 
-    const resourceId = req.params[resourceIdField] || req.body[resourceIdField];
-    
-    if (!resourceId) {
-      return next(new ValidationError(`${resourceIdField} is required`));
+    // Admin can access any resource
+    if (req.user.role === 'admin') {
+      return next();
     }
 
-    try {
-      // Get resource from database
-      const resource = await getResourceById(resourceType, resourceId);
-      
-      if (!resource) {
-        return next(new ValidationError('Resource not found'));
-      }
-
-      // Super admin can access all resources
-      if (req.user.role === 'super_admin') {
-        req.resource = resource;
-        return next();
-      }
-
-      // Check if user owns the resource or has access to it
-      if (resource.user_id !== req.user.id && resource.tenant_id !== req.user.tenant_id) {
-        return next(new AuthorizationError('Access denied to this resource'));
-      }
-
-      req.resource = resource;
-      next();
-    } catch (error) {
-      next(error);
+    // Check if user owns the resource
+    const resourceUserId = req.params[resourceUserIdField] || req.body[resourceUserIdField];
+    if (resourceUserId && req.user.id !== resourceUserId) {
+      return next(new AuthorizationError('Access denied to this resource'));
     }
+
+    next();
   };
 };
 
 // Rate limiting for authentication attempts
 const rateLimitAuth = (req, res, next) => {
-  const identifier = req.ip || req.connection.remoteAddress;
+  const clientId = req.ip;
   const now = Date.now();
 
-  if (!authAttempts.has(identifier)) {
-    authAttempts.set(identifier, { count: 0, timestamp: now });
+  if (authAttempts.has(clientId)) {
+    const attempts = authAttempts.get(clientId);
+    
+    if (attempts.count >= MAX_AUTH_ATTEMPTS) {
+      const timeRemaining = AUTH_ATTEMPT_WINDOW - (now - attempts.timestamp);
+      if (timeRemaining > 0) {
+        return res.status(429).json({
+          success: false,
+          error: {
+            message: 'Too many authentication attempts. Please try again later.',
+            retryAfter: Math.ceil(timeRemaining / 1000)
+          }
+        });
+      } else {
+        // Reset attempts after window expires
+        authAttempts.delete(clientId);
+      }
+    }
   }
-
-  const attempts = authAttempts.get(identifier);
-  
-  // Reset if window has passed
-  if (now - attempts.timestamp > AUTH_ATTEMPT_WINDOW) {
-    attempts.count = 0;
-    attempts.timestamp = now;
-  }
-
-  // Check if limit exceeded
-  if (attempts.count >= MAX_AUTH_ATTEMPTS) {
-    return res.status(429).json({
-      error: 'Too many authentication attempts',
-      message: 'Please try again later',
-      retryAfter: Math.ceil((AUTH_ATTEMPT_WINDOW - (now - attempts.timestamp)) / 1000),
-    });
-  }
-
-  // Increment attempt count
-  attempts.count++;
 
   next();
 };
 
-// Generate JWT tokens
-const generateTokens = (user) => {
-  const payload = {
-    userId: user.id,
-    email: user.email,
-    role: user.role,
-    tenantId: user.tenant_id,
-    iat: Math.floor(Date.now() / 1000),
-  };
+// Track authentication attempts
+const trackAuthAttempt = (req, res, next) => {
+  const clientId = req.ip;
+  const now = Date.now();
 
-  const accessToken = jwt.sign(payload, JWT_CONFIG.secret, {
-    expiresIn: JWT_CONFIG.expiresIn,
-    issuer: JWT_CONFIG.issuer,
-    audience: JWT_CONFIG.audience,
-  });
+  if (!authAttempts.has(clientId)) {
+    authAttempts.set(clientId, { count: 0, timestamp: now });
+  }
 
-  const refreshToken = jwt.sign(
-    { ...payload, type: 'refresh' },
-    JWT_CONFIG.secret,
-    {
-      expiresIn: JWT_CONFIG.refreshExpiresIn,
-      issuer: JWT_CONFIG.issuer,
-      audience: JWT_CONFIG.audience,
-    }
-  );
+  const attempts = authAttempts.get(clientId);
+  attempts.count++;
+  attempts.timestamp = now;
 
-  return { accessToken, refreshToken };
+  next();
 };
 
-// Refresh token middleware
-const refreshToken = async (req, res, next) => {
-  try {
-    const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-      throw new ValidationError('Refresh token is required');
-    }
-
-    // Verify refresh token
-    const decoded = jwt.verify(refreshToken, JWT_CONFIG.secret, {
-      issuer: JWT_CONFIG.issuer,
-      audience: JWT_CONFIG.audience,
-    });
-
-    if (decoded.type !== 'refresh') {
-      throw new AuthenticationError('Invalid refresh token');
-    }
-
-    // Get user from database
-    const user = await getUserById(decoded.userId);
-    if (!user || !user.isActive) {
-      throw new AuthenticationError('User not found or inactive');
-    }
-
-    // Generate new tokens
-    const tokens = generateTokens(user);
-
-    res.json({
-      success: true,
-      message: 'Tokens refreshed successfully',
-      data: tokens,
-    });
-  } catch (error) {
-    next(error);
-  }
+// Check if token is blacklisted (placeholder - implement with Redis in production)
+const checkTokenBlacklist = async (token) => {
+  // In production, check against Redis blacklist
+  // For now, return false (no blacklist)
+  return false;
 };
 
-// Logout middleware (blacklist token)
-const logout = async (req, res, next) => {
-  try {
-    const token = req.token;
-    
-    if (token) {
-      await blacklistToken(token);
-    }
-
-    res.json({
-      success: true,
-      message: 'Logged out successfully',
-    });
-  } catch (error) {
-    next(error);
-  }
+// Blacklist token (placeholder - implement with Redis in production)
+const blacklistToken = async (token) => {
+  // In production, add token to Redis blacklist with expiration
+  // For now, just return success
+  return true;
 };
 
-// Database helper functions
-async function getUserById(userId) {
-  try {
-    const User = require('../models/User');
-    const user = await User.findById(userId).select('-password');
-    return user;
-  } catch (error) {
-    console.error('Error getting user by ID:', error);
-    return null;
-  }
-}
+// Combined authentication and authorization
+const requireAuth = [authenticateToken];
+const requireAdmin = [authenticateToken, authorizeRoles('admin')];
+const requireUser = [authenticateToken, authorizeRoles('user', 'admin')];
+const requireTrainer = [authenticateToken, authorizeRoles('trainer', 'admin')];
 
-async function getResourceById(resourceType, resourceId) {
-  const pool = databaseManager.getPostgresPool();
-  if (!pool) {
-    throw new Error('Database connection not available');
-  }
-
-  const client = await pool.connect();
-  try {
-    const result = await client.query(
-      `SELECT * FROM ${resourceType} WHERE id = $1`,
-      [resourceId]
-    );
-    return result.rows[0] || null;
-  } finally {
-    client.release();
-  }
-}
-
-async function checkTokenBlacklist(token) {
-  const redis = databaseManager.getRedisClient();
-  if (!redis) {
-    return false; // If Redis is not available, assume token is valid
-  }
-
-  try {
-    const isBlacklisted = await redis.get(`blacklist:${token}`);
-    return !!isBlacklisted;
-  } catch (error) {
-    console.error('Error checking token blacklist:', error);
-    return false;
-  }
-}
-
-async function blacklistToken(token) {
-  const redis = databaseManager.getRedisClient();
-  if (!redis) {
-    return; // If Redis is not available, skip blacklisting
-  }
-
-  try {
-    // Decode token to get expiration
-    const decoded = jwt.decode(token);
-    const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
-    
-    if (expiresIn > 0) {
-      await redis.setex(`blacklist:${token}`, expiresIn, '1');
-    }
-  } catch (error) {
-    console.error('Error blacklisting token:', error);
-  }
-}
-
-// Password hashing and verification
-const hashPassword = async (password) => {
-  const saltRounds = 12;
-  return bcrypt.hash(password, saltRounds);
-};
-
-const verifyPassword = async (password, hash) => {
-  return bcrypt.compare(password, hash);
-};
-
-// Export middleware and utilities
 module.exports = {
   authenticateToken,
   optionalAuth,
@@ -408,12 +235,10 @@ module.exports = {
   authorizeTenant,
   authorizeResource,
   rateLimitAuth,
-  generateTokens,
-  refreshToken,
-  logout,
-  hashPassword,
-  verifyPassword,
-  AuthenticationError,
-  AuthorizationError,
-  ValidationError,
+  trackAuthAttempt,
+  checkTokenBlacklist,
+  blacklistToken,
+  requireAuth,
+  requireUser,
+  requireTrainer
 }; 

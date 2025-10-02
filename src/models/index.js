@@ -11,20 +11,5 @@ const TrainingSession = require('./TrainingSession');
 const TrainingCourse = require('./TrainingCourse');
 const TrainingModule = require('./TrainingModule');
 const TrainingAssessment = require('./TrainingAssessment');
-const Presentation = require('./Presentation');
-
-module.exports = {
-  User,
-  Tenant,
-  Session,
-  Group,
-  Poll,
-  Notification,
-  AuditLog,
-  TenantSchema,
-  TrainingSession,
-  TrainingCourse,
-  TrainingModule,
-  TrainingAssessment,
-  Presentation
+const Presentation = require('./Presentation'); module.exports = { User, Tenant, Session, Group, Poll, Notification, AuditLog, TenantSchema, TrainingSession, TrainingCourse, TrainingModule, TrainingAssessment, Presentation
 }; 
