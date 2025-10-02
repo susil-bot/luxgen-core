@@ -8,6 +8,9 @@ const authRoutes = require('./authRoutes');
 // Robust Multi-Tenant Architecture Routes
 const tenantManagementRoutes = require('./tenantManagementRoutes');
 
+// Brand Identity Routes
+const brandIdentityRoutes = require('./brandIdentityRoutes');
+
 // Import middleware
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
@@ -133,6 +136,9 @@ router.use(`${API_PREFIX}/auth`, authRoutes);
 
 // Robust Multi-Tenant Architecture Routes
 router.use(`${API_PREFIX}/tenants`, tenantManagementRoutes);
+
+// Brand Identity Routes
+router.use(`${API_PREFIX}/brand-identity`, brandIdentityRoutes);
 
 // 404 handler for undefined routes
 router.use('*', (req, res) => {
