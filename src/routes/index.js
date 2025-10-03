@@ -9,6 +9,17 @@ const activityRoutes = require('./activityRoutes');
 // Robust Multi-Tenant Architecture Routes
 const tenantManagementRoutes = require('./tenantManagementRoutes');
 
+// Brand Identity Routes
+const brandIdentityRoutes = require('./brandIdentityRoutes');
+
+// Job Board & ATS Routes
+const jobBoardRoutes = require('./jobBoardRoutes');
+const atsRoutes = require('./atsRoutes');
+
+// Feed & Messaging Routes
+const feedRoutes = require('./feedRoutes');
+const messagingRoutes = require('./messagingRoutes');
+
 // Import middleware
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
@@ -135,6 +146,17 @@ router.use(`${API_PREFIX}/activities`, activityRoutes);
 
 // Robust Multi-Tenant Architecture Routes
 router.use(`${API_PREFIX}/tenants`, tenantManagementRoutes);
+
+// Brand Identity Routes
+router.use(`${API_PREFIX}/brand-identity`, brandIdentityRoutes);
+
+// Job Board & ATS Routes
+router.use(`${API_PREFIX}/jobs`, jobBoardRoutes);
+router.use(`${API_PREFIX}/ats`, atsRoutes);
+
+// Feed & Messaging Routes
+router.use(`${API_PREFIX}/feed`, feedRoutes);
+router.use(`${API_PREFIX}/messaging`, messagingRoutes);
 
 // 404 handler for undefined routes
 router.use('*', (req, res) => {
