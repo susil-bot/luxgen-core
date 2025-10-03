@@ -4,6 +4,7 @@ const router = express.Router();
 // Import essential route modules only
 const tenantRoutes = require('./tenantRoutes');
 const authRoutes = require('./authRoutes');
+const activityRoutes = require('./activityRoutes');
 
 // Robust Multi-Tenant Architecture Routes
 const tenantManagementRoutes = require('./tenantManagementRoutes');
@@ -130,6 +131,7 @@ router.get('/docs', (req, res) => {
 // Mount essential route modules with proper prefixes
 router.use(`${API_PREFIX}/tenants`, tenantRoutes);
 router.use(`${API_PREFIX}/auth`, authRoutes);
+router.use(`${API_PREFIX}/activities`, activityRoutes);
 
 // Robust Multi-Tenant Architecture Routes
 router.use(`${API_PREFIX}/tenants`, tenantManagementRoutes);

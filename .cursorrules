@@ -1,0 +1,212 @@
+# LuxGen Backend Cursor AI Rules - STRICT ENFORCEMENT
+
+## CRITICAL RULES - NO EXCEPTIONS
+
+### **1. PROJECT STRUCTURE - ABSOLUTE RULE**
+- **REPOSITORY**: `luxgen-idea/luxgen-core` (Node.js backend)
+- **NEVER CREATE NEW REPOSITORIES**
+- **NEVER USE EXTERNAL REPOSITORIES**
+- **NEVER MIX FRONTEND/BACKEND CODE**
+
+### **2. DATABASE RULE - MANDATORY**
+- **DATABASE NAME**: `luxgen` (NEVER use `test`)
+- **MULTI-TENANT**: Always include `tenantId` in all models
+- **NEVER QUERY ACROSS TENANTS**
+
+### **3. API STRUCTURE - EXACT PATTERN**
+Every API endpoint MUST have these files:
+```
+[EndpointName]/
+├── controller.js            # API controller
+├── service.js              # Business logic
+├── model.js                # Database model
+├── routes.js               # Route definitions
+├── middleware.js           # Custom middleware
+├── validation.js           # Input validation
+├── [EndpointName].spec.js   # Unit tests
+├── queries.js              # Database queries
+├── fixture.js              # Mock data
+└── README.md               # Documentation
+```
+
+### **4. CODE GENERATION RULES**
+- **ALWAYS** use the exact templates provided
+- **ALWAYS** include all required files for APIs
+- **ALWAYS** use proper error handling
+- **ALWAYS** write comprehensive tests
+- **ALWAYS** create proper documentation
+- **ALWAYS** validate input and sanitize data
+
+### **5. TECHNOLOGY STACK - FIXED**
+- **Backend**: Node.js 18 + Express + MongoDB + Mongoose
+- **Database**: MongoDB with `luxgen` database name
+- **Testing**: Jest + Supertest
+- **API**: RESTful API design
+
+### **6. FILE NAMING - EXACT CONVENTIONS**
+- **Controllers**: `[Name]Controller.js`
+- **Services**: `[Name]Service.js`
+- **Models**: `[Name]Model.js`
+- **Routes**: `[Name]Routes.js`
+- **Middleware**: `[Name]Middleware.js`
+- **Validation**: `[Name]Validation.js`
+- **Tests**: `[Name].spec.js`
+- **Queries**: `queries.js`
+- **Fixtures**: `fixture.js`
+
+### **7. CODE QUALITY - MANDATORY**
+- **Error Handling**: ALWAYS implement proper error handling
+- **Validation**: ALWAYS validate input and sanitize data
+- **Testing**: ALWAYS write unit tests for all functions
+- **Documentation**: ALWAYS create README.md for APIs
+- **Security**: ALWAYS implement security best practices
+- **Logging**: ALWAYS implement proper logging
+
+### **8. AI ASSISTANT BEHAVIOR - STRICT**
+- **NEVER HALLUCINATE**: Only use existing code and patterns
+- **NEVER CREATE NEW REPOSITORIES**: Only work with `luxgen-idea/luxgen-core`
+- **NEVER SKIP FILES**: Always create all required files for APIs
+- **NEVER USE EXTERNAL DEPENDENCIES**: Only use existing packages
+- **ALWAYS FOLLOW TEMPLATES**: Use exact patterns provided
+- **ALWAYS VERIFY**: Check if files exist before creating
+
+### **9. FORBIDDEN ACTIONS**
+- **NEVER** create new repositories
+- **NEVER** use external repositories
+- **NEVER** skip API structure
+- **NEVER** use hardcoded values
+- **NEVER** skip error handling
+- **NEVER** skip testing
+- **NEVER** skip documentation
+- **NEVER** use `test` database
+- **NEVER** query across tenants
+- **NEVER** mix frontend/backend code
+
+### **10. GIT WORKFLOW - MANDATORY**
+- **EACH FEATURE**: Must have its own separate branch
+- **EACH FEATURE**: Must have its own Pull Request (PR)
+- **NEVER USE EXISTING BRANCH**: For new features or fixes
+- **BRANCH NAMING**: Use descriptive names (e.g., `feature/user-api`, `fix/auth-bug`)
+- **PR NAMING**: Use clear, descriptive titles
+- **BRANCH ISOLATION**: Each feature branch must be independent
+- **NO MIXING**: Never mix multiple features in one branch
+- **CLEAN HISTORY**: Keep commit history clean and logical
+- **REVIEW PROCESS**: All PRs must be reviewed before merging
+- **TESTING**: All features must be tested before PR submission
+
+### **11. MANDATORY TEMPLATES**
+
+#### **API Controller Template**
+```javascript
+const { validationResult } = require('express-validator');
+const ComponentNameService = require('../services/ComponentNameService');
+
+const getComponentName = async (req, res) => {
+  try {
+    // Controller logic here
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+module.exports = {
+  getComponentName
+};
+```
+
+#### **Database Model Template**
+```javascript
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
+
+const modelNameSchema = new Schema({
+  tenantId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Tenant',
+    required: true,
+    index: true
+  },
+  // Other fields here
+}, {
+  timestamps: true,
+  versionKey: false
+});
+
+module.exports = mongoose.model('ModelName', modelNameSchema);
+```
+
+#### **Service Template**
+```javascript
+const ModelName = require('../models/ModelName');
+
+class ComponentNameService {
+  static async create(data) {
+    try {
+      const result = await ModelName.create(data);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+}
+
+module.exports = ComponentNameService;
+```
+
+### **12. ENFORCEMENT RULES**
+- **ALWAYS** follow these rules exactly
+- **ALWAYS** check existing code before creating new
+- **ALWAYS** use existing patterns and templates
+- **ALWAYS** verify file structure before proceeding
+- **NEVER** deviate from established patterns
+- **NEVER** create files that don't follow the structure
+- **NEVER** use external dependencies not in package.json
+- **NEVER** skip any of the mandatory files
+
+### **13. VERIFICATION CHECKLIST**
+Before creating any API, verify:
+- [ ] All required files will be created
+- [ ] File names follow exact conventions
+- [ ] Error handling is implemented
+- [ ] Tests are included
+- [ ] Documentation is created
+- [ ] No external dependencies are used
+- [ ] Database uses `luxgen` name
+- [ ] Multi-tenant structure is followed
+- [ ] New branch created for feature
+- [ ] PR will be created for feature
+
+### **14. SYSTEM PROMPT OVERRIDE**
+You are working on the LuxGen backend project. You MUST:
+1. **NEVER HALLUCINATE** - Only use existing code patterns
+2. **NEVER CREATE NEW REPOSITORIES** - Only work with `luxgen-idea/luxgen-core`
+3. **ALWAYS CREATE ALL REQUIRED FILES** for every API
+4. **ALWAYS USE EXISTING TEMPLATES** - Don't invent new patterns
+5. **ALWAYS VERIFY STRUCTURE** before creating files
+6. **NEVER USE EXTERNAL DEPENDENCIES** not in package.json
+7. **ALWAYS USE `luxgen` DATABASE** - Never use `test`
+8. **ALWAYS INCLUDE `tenantId`** in all database models
+9. **ALWAYS FOLLOW EXACT NAMING** conventions
+10. **ALWAYS IMPLEMENT ERROR HANDLING** and testing
+11. **ALWAYS CREATE NEW BRANCH** for each feature
+12. **ALWAYS CREATE PR** for each feature
+
+### **15. HALLUCINATION PREVENTION**
+- **BEFORE CREATING**: Check if similar APIs exist
+- **BEFORE CREATING**: Verify the exact file structure needed
+- **BEFORE CREATING**: Ensure all dependencies exist
+- **BEFORE CREATING**: Confirm database name is `luxgen`
+- **BEFORE CREATING**: Verify tenant isolation is implemented
+- **BEFORE CREATING**: Create new branch for feature
+- **NEVER ASSUME**: Always check existing code first
+- **NEVER INVENT**: Only use established patterns
+- **NEVER SKIP**: Always create all required files
+
+Remember: Quality over speed. Better to deliver complete, tested, and documented solutions than quick fixes.
