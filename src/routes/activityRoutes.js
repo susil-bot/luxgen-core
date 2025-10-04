@@ -1,9 +1,9 @@
 const express = require('express');
 const { body, param, query } = require('express-validator');
 const activityController = require('../controllers/activityController');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 const tenantMiddleware = require('../middleware/tenantMiddleware');
-const validation = require('../middleware/validation');
+const { validateRequest } = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -149,7 +149,7 @@ const typeValidation = [
 ];
 
 // Apply middleware to all routes
-router.use(auth);
+router.use(authenticateToken);
 router.use(tenantMiddleware);
 
 /**
@@ -157,7 +157,7 @@ router.use(tenantMiddleware);
  * @desc    Get activities for a tenant with filtering and pagination
  * @access  Private
  */
-router.get('/', queryValidation, validation, activityController.getActivities);
+router.get('/', queryValidation, validateRequest, activityController.getActivities);
 
 /**
  * @route   GET /api/activities/stats
@@ -177,62 +177,62 @@ router.get('/search', [
     .withMessage('Search query is required')
     .isLength({ min: 1, max: 100 })
     .withMessage('Search query must be between 1 and 100 characters')
-], validation, activityController.searchActivities);
+], validateRequest, activityController.searchActivities);
 
 /**
  * @route   GET /api/activities/user/:userId
  * @desc    Get activities by user
  * @access  Private
  */
-router.get('/user/:userId', userIdValidation, queryValidation, validation, activityController.getActivitiesByUser);
+router.get('/user/:userId', userIdValidation, queryValidation, validateRequest, activityController.getActivitiesByUser);
 
 /**
  * @route   GET /api/activities/type/:type
  * @desc    Get activities by type
  * @access  Private
  */
-router.get('/type/:type', typeValidation, queryValidation, validation, activityController.getActivitiesByType);
+router.get('/type/:type', typeValidation, queryValidation, validateRequest, activityController.getActivitiesByType);
 
 /**
  * @route   GET /api/activities/:id
  * @desc    Get a specific activity by ID
  * @access  Private
  */
-router.get('/:id', idValidation, validation, activityController.getActivityById);
+router.get('/:id', idValidation, validateRequest, activityController.getActivityById);
 
 /**
  * @route   GET /api/activities/:id/engagement
  * @desc    Get activity engagement metrics
  * @access  Private
  */
-router.get('/:id/engagement', idValidation, validation, activityController.getActivityEngagement);
+router.get('/:id/engagement', idValidation, validateRequest, activityController.getActivityEngagement);
 
 /**
  * @route   POST /api/activities
  * @desc    Create a new activity
  * @access  Private
  */
-router.post('/', activityValidation, validation, activityController.createActivity);
+router.post('/', activityValidation, validateRequest, activityController.createActivity);
 
 /**
  * @route   POST /api/activities/:id/actions
  * @desc    Perform an action on an activity (like, comment, share)
  * @access  Private
  */
-router.post('/:id/actions', idValidation, actionValidation, validation, activityController.performActivityAction);
+router.post('/:id/actions', idValidation, actionValidation, validateRequest, activityController.performActivityAction);
 
 /**
  * @route   PUT /api/activities/:id
  * @desc    Update an activity
  * @access  Private
  */
-router.put('/:id', idValidation, activityValidation, validation, activityController.updateActivity);
+router.put('/:id', idValidation, activityValidation, validateRequest, activityController.updateActivity);
 
 /**
  * @route   DELETE /api/activities/:id
  * @desc    Delete an activity (soft delete)
  * @access  Private
  */
-router.delete('/:id', idValidation, validation, activityController.deleteActivity);
+router.delete('/:id', idValidation, validateRequest, activityController.deleteActivity);
 
 module.exports = router;

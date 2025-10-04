@@ -5,7 +5,11 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "start:health": "node src/scripts/startWithHealthCheck.js",
+    "health": "node src/scripts/simpleHealthCheck.js",
+    "health:full": "node src/scripts/healthCheck.js",
     "dev": "nodemon src/index.js",
+    "dev:health": "nodemon src/scripts/startWithHealthCheck.js",
     "test": "jest --detectOpenHandles --forceExit",
     "test:watch": "jest --watch --detectOpenHandles --forceExit",
     "test:coverage": "jest --coverage --detectOpenHandles --forceExit",
