@@ -1,197 +1,94 @@
-const mongoose = require('mongoose');
-const logger = require('../utils/logger');
+/**
+ * LuxGen Database Configuration
+ * 
+ * HIGH TECHNICAL STANDARDS: Environment-based configuration
+ * Following LuxGen rules: Multi-tenant architecture with proper flagging
+ * 
+ * Usage:
+ * - Local Development: USE_LOCAL_DB=true in .env
+ * - Production: USE_LOCAL_DB=false or not set (uses Atlas)
+ */
 
-// Enhanced database configuration with connection pooling and retry logic
-const databaseConfig = {
-  // Connection options with pooling
-  options: {
-    maxPoolSize: 10,
-    minPoolSize: 2,
-    serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
-    connectTimeoutMS: 10000,
-    retryWrites: true,
-    retryReads: true,
-    w: 'majority',
-    readPreference: 'secondaryPreferred',
-    maxIdleTimeMS: 30000,
-    heartbeatFrequencyMS: 10000,
-    bufferCommands: false
-  },
-  
-  // Index configuration for performance
-  indexes: {
-    // User indexes
-    userIndexes: [
-      { email: 1, tenantId: 1 },
-      { tenantId: 1, role: 1 },
-      { tenantId: 1, status: 1 },
-      { createdAt: -1 }
-    ],
-    
-    // Training indexes
-    trainingSessionIndexes: [
-      { tenantId: 1, scheduledAt: 1 },
-      { tenantId: 1, status: 1 },
-      { trainerId: 1, tenantId: 1 },
-      { participants: 1, tenantId: 1 }
-    ],
-    
-    trainingCourseIndexes: [
-      { tenantId: 1, status: 1 },
-      { instructorId: 1, tenantId: 1 },
-      { category: 1, tenantId: 1 },
-      { tags: 1, tenantId: 1 }
-    ],
-    
-    // Poll indexes
-    pollIndexes: [
-      { tenantId: 1, status: 1 },
-      { createdBy: 1, tenantId: 1 },
-      { createdAt: -1 }
-    ],
-    
-    // Presentation indexes
-    presentationIndexes: [
-      { tenantId: 1, status: 1 },
-      { createdBy: 1, tenantId: 1 },
-      { tags: 1, tenantId: 1 }
-    ]
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+
+class DatabaseConfig {
+  constructor() {
+    this.config = this.loadConfiguration();
   }
-};
 
-// Enhanced connection function with retry logic
-const connectToDatabase = async (uri) => {
-  const maxRetries = 5;
-  let retryCount = 0;
+  loadConfiguration() {
+    const useLocal = process.env.USE_LOCAL_DB === 'true';
+    const atlasUri = process.env.MONGODB_URI;
+    const localHost = process.env.LOCAL_MONGODB_HOST || 'localhost';
+    const localPort = process.env.LOCAL_MONGODB_PORT || '27017';
+    const localDatabase = process.env.LOCAL_MONGODB_DATABASE || 'luxgen';
 
-  while (retryCount < maxRetries) {
-    try {
-      logger.info(`Attempting database connection (attempt ${retryCount + 1}/${maxRetries})...`);
-      
-      await mongoose.connect(uri, databaseConfig.options);
-      
-      logger.info('Database connected successfully');
-      
-      // Set up connection event listeners
-      mongoose.connection.on('error', (error) => {
-        logger.error('Database connection error:', error);
-      });
-
-      mongoose.connection.on('disconnected', () => {
-        logger.warn('WARNING: Database disconnected');
-      });
-
-      mongoose.connection.on('reconnected', () => {
-        logger.info('Database reconnected');
-      });
-
-      // Create indexes for performance
-      await createIndexes();
-      
-      return true;
-    } catch (error) {
-      retryCount++;
-      logger.error(`Database connection attempt ${retryCount} failed:`, error.message);
-      
-      if (retryCount >= maxRetries) {
-        logger.error('Maximum database connection retries reached');
-        throw error;
-      }
-      
-      // Exponential backoff
-      const delay = Math.pow(2, retryCount) * 1000;
-      logger.info(`Waiting ${delay}ms before retry...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+    // Validate configuration
+    if (!useLocal && !atlasUri) {
+      throw new Error(`
+❌ Database configuration error:
+   USE_LOCAL_DB is not set to 'true' and MONGODB_URI is not provided.
+   
+   For local development:
+   - Set USE_LOCAL_DB=true in .env file
+   - Or run: USE_LOCAL_DB=true npm start
+   
+   For production:
+   - Set MONGODB_URI=mongodb+srv://... in .env file
+   - Or set USE_LOCAL_DB=false
+      `);
     }
-  }
-};
 
-// Create database indexes for performance
-const createIndexes = async () => {
-  try {
-    logger.info('Creating database indexes for performance...');
-    
-    // Skip index creation for now to avoid errors
-    logger.info('Database indexes creation skipped');
-  } catch (error) {
-    logger.error('Error creating database indexes:', error);
-    // Don't throw error as indexes are optional for functionality
-  }
-};
-
-// Enhanced query optimization helper
-const optimizeQuery = (query, options = {}) => {
-  const {
-    lean = true,        // Use lean queries for better performance
-    limit = 50,         // Default limit
-    select = null,      // Fields to select
-    populate = null,  // Fields to populate
-    sort = null         // Sort options
-  } = options;
-
-  if (lean) {
-    query.lean();
-  }
-  
-  if (limit) {
-    query.limit(limit);
-  }
-  
-  if (select) {
-    query.select(select);
-  }
-  
-  if (populate) {
-    query.populate(populate);
-  }
-  
-  if (sort) {
-    query.sort(sort);
-  }
-  
-  return query;
-};
-
-// Pagination helper
-const paginate = (query, page = 1, limit = 10) => {
-  const skip = (page - 1) * limit;
-  return query.skip(skip).limit(limit);
-};
-
-// Database health check
-const checkDatabaseHealth = async () => {
-  try {
-    const state = mongoose.connection.readyState;
-    const states = {
-      0: 'disconnected',
-      1: 'connected',
-      2: 'connecting',
-      3: 'disconnecting'
-    };
-    
     return {
-      status: states[state] || 'unknown',
-      connected: state === 1,
-      host: mongoose.connection.host,
-      port: mongoose.connection.port,
-      name: mongoose.connection.name
-    };
-  } catch (error) {
-    logger.error('Database health check failed:', error);
-    return {
-      status: 'error',
-      connected: false,
-      error: error.message
+      useLocal,
+      uri: useLocal 
+        ? `mongodb://${localHost}:${localPort}/${localDatabase}`
+        : atlasUri,
+      timeout: 30000,
+      options: {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 30000,
+        connectTimeoutMS: 30000,
+        socketTimeoutMS: 30000
+      }
     };
   }
-};
 
-module.exports = {
-  connectToDatabase,
-  createIndexes,
-  optimizeQuery,
-  paginate,
-  checkDatabaseHealth,
-  databaseConfig
-};
+  getConnectionString() {
+    return this.config.uri;
+  }
+
+  getConnectionOptions() {
+    return this.config.options;
+  }
+
+  isLocal() {
+    return this.config.useLocal;
+  }
+
+  isAtlas() {
+    return !this.config.useLocal;
+  }
+
+  getEnvironmentInfo() {
+    return {
+      mode: this.config.useLocal ? 'LOCAL' : 'ATLAS',
+      uri: this.config.uri,
+      timeout: this.config.timeout,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  logConfiguration() {
+    const info = this.getEnvironmentInfo();
+    console.log('🔧 Database Configuration:');
+    console.log(`   Mode: ${info.mode}`);
+    console.log(`   URI: ${info.uri}`);
+    console.log(`   Timeout: ${info.timeout}ms`);
+    console.log(`   Timestamp: ${info.timestamp}`);
+  }
+}
+
+module.exports = DatabaseConfig;

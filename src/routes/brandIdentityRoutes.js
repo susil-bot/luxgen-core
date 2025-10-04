@@ -1,315 +1,339 @@
 /**
- * Brand Identity Routes
- * API endpoints for managing brand identity configurations
+ * LUXGEN BRAND IDENTITY ROUTES
+ * Comprehensive brand identity management API endpoints
  */
 
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const { body, validationResult } = require('express-validator');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const brandIdentityService = require('../services/BrandIdentityService');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const TenantMiddleware = require('../middleware/tenantMiddleware');
-const { 
-  brandIdentityMiddleware, 
-  validateBrandRequest, 
-  requireBrandIdentity 
-} = require('../middleware/brandIdentityMiddleware');
-const logger = require('../utils/logger');
+const { validateRequest } = require('../middleware/validation');
 
-// Apply middleware to all routes
-router.use(TenantMiddleware.identifyTenant());
-router.use(brandIdentityMiddleware);
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+    files: 5 // Maximum 5 files per request
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow images and certain file types
+    const allowedTypes = /jpeg|jpg|png|gif|svg|ico|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
 
 /**
- * @route GET /api/v1/brand-identity
- * @desc Get current brand identity for tenant
- * @access Private
+ * GET /api/v1/brand-identity/:tenantId
+ * Get tenant brand identity
  */
-router.get('/', async (req, res) => {
-  try {
-    const tenantId = req.tenantId;
-    const brandId = req.brandId;
-    
-    const brandIdentity = await brandIdentityService.getBrandIdentity(tenantId, brandId);
-    
-    res.json({
-      success: true,
-      data: {
-        tenantId,
-        brandId,
-        brandIdentity
+router.get('/:tenantId',
+  async (req, res) => {
+    try {
+      const brandIdentity = await brandIdentityService.getTenantBrandIdentity(req.params.tenantId);
+      res.json({
+        success: true,
+        data: brandIdentity,
+        message: 'Brand identity retrieved successfully'
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * PUT /api/v1/brand-identity/:tenantId
+ * Update tenant brand identity
+ */
+router.put('/:tenantId',
+  [
+    body('name').optional().isString().isLength({ min: 1, max: 255 }),
+    body('colors.primary').optional().isHexColor(),
+    body('colors.secondary').optional().isHexColor(),
+    body('colors.accent').optional().isHexColor(),
+    body('typography.primary.fontFamily').optional().isString(),
+    body('typography.secondary.fontFamily').optional().isString(),
+    body('spacing.xs').optional().isString(),
+    body('spacing.sm').optional().isString(),
+    body('spacing.md').optional().isString(),
+    body('spacing.lg').optional().isString(),
+    body('spacing.xl').optional().isString(),
+    body('decorations.borderRadius.sm').optional().isString(),
+    body('decorations.borderRadius.md').optional().isString(),
+    body('decorations.borderRadius.lg').optional().isString(),
+    body('customCSS').optional().isString(),
+    body('customJS').optional().isString()
+  ],
+  validateRequest,
+  authenticateToken,
+  authorizeRoles(['admin', 'superadmin']),
+  async (req, res) => {
+    try {
+      const result = await brandIdentityService.updateTenantBrandIdentity(req.params.tenantId, req.body);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/v1/brand-identity/:tenantId/css
+ * Get tenant CSS
+ */
+router.get('/:tenantId/css',
+  async (req, res) => {
+    try {
+      const css = await brandIdentityService.generateTenantCSS(req.params.tenantId);
+      res.set('Content-Type', 'text/css');
+      res.send(css);
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/v1/brand-identity/:tenantId/js
+ * Get tenant JavaScript
+ */
+router.get('/:tenantId/js',
+  async (req, res) => {
+    try {
+      const js = await brandIdentityService.generateTenantJS(req.params.tenantId);
+      res.set('Content-Type', 'application/javascript');
+      res.send(js);
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/brand-identity/:tenantId/assets/:assetType
+ * Upload brand asset
+ */
+router.post('/:tenantId/assets/:assetType',
+  upload.single('asset'),
+  authenticateToken,
+  authorizeRoles(['admin', 'superadmin']),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No file uploaded'
+        });
       }
-    });
-  } catch (error) {
-    logger.error('Failed to get brand identity', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get brand identity',
-      error: error.message
-    });
+
+      const result = await brandIdentityService.uploadBrandAsset(
+        req.params.tenantId,
+        req.params.assetType,
+        req.file
+      );
+
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
   }
-});
+);
 
 /**
- * @route GET /api/v1/brand-identity/available
- * @desc Get available brand identities for tenant
- * @access Private
+ * DELETE /api/v1/brand-identity/:tenantId/assets/:assetType
+ * Delete brand asset
  */
-router.get('/available', async (req, res) => {
-  try {
-    const tenantId = req.tenantId;
-    const availableBrands = await brandIdentityService.getAvailableBrands(tenantId);
-    
-    res.json({
-      success: true,
-      data: {
-        tenantId,
-        availableBrands
-      }
-    });
-  } catch (error) {
-    logger.error('Failed to get available brands', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get available brands',
-      error: error.message
-    });
+router.delete('/:tenantId/assets/:assetType',
+  authenticateToken,
+  authorizeRoles(['admin', 'superadmin']),
+  async (req, res) => {
+    try {
+      const result = await brandIdentityService.deleteBrandAsset(
+        req.params.tenantId,
+        req.params.assetType
+      );
+
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
   }
-});
+);
 
 /**
- * @route GET /api/v1/brand-identity/:brandId
- * @desc Get specific brand identity
- * @access Private
+ * GET /api/v1/brand-identity/:tenantId/assets
+ * Get all brand assets
  */
-router.get('/:brandId', validateBrandRequest, async (req, res) => {
-  try {
-    const tenantId = req.tenantId;
-    const { brandId } = req.params;
-    
-    const brandIdentity = await brandIdentityService.getBrandIdentity(tenantId, brandId);
-    
-    res.json({
-      success: true,
-      data: {
-        tenantId,
-        brandId,
-        brandIdentity
-      }
-    });
-  } catch (error) {
-    logger.error(`Failed to get brand identity: ${req.params.brandId}`, error);
-    res.status(404).json({
-      success: false,
-      message: 'Brand identity not found',
-      error: error.message
-    });
+router.get('/:tenantId/assets',
+  async (req, res) => {
+    try {
+      const assets = await brandIdentityService.getTenantAssets(req.params.tenantId);
+      res.json({
+        success: true,
+        data: assets,
+        message: 'Brand assets retrieved successfully'
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
   }
-});
+);
 
 /**
- * @route POST /api/v1/brand-identity/:brandId
- * @desc Create new brand identity
- * @access Private (Admin only)
+ * POST /api/v1/brand-identity/:tenantId/reset
+ * Reset brand identity to default
  */
-router.post('/:brandId', authenticateToken, requireAdmin, validateBrandRequest, async (req, res) => {
-  try {
-    const tenantId = req.tenantId;
-    const { brandId } = req.params;
-    const brandIdentity = req.body;
-    
-    const createdBrand = await brandIdentityService.createBrandIdentity(tenantId, brandId, brandIdentity);
-    
-    res.status(201).json({
-      success: true,
-      message: 'Brand identity created successfully',
-      data: {
-        tenantId,
-        brandId,
-        brandIdentity: createdBrand
-      }
-    });
-  } catch (error) {
-    logger.error(`Failed to create brand identity: ${req.params.brandId}`, error);
-    res.status(400).json({
-      success: false,
-      message: 'Failed to create brand identity',
-      error: error.message
-    });
+router.post('/:tenantId/reset',
+  authenticateToken,
+  authorizeRoles(['admin', 'superadmin']),
+  async (req, res) => {
+    try {
+      const result = await brandIdentityService.resetToDefault(req.params.tenantId);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
   }
-});
+);
 
 /**
- * @route PUT /api/v1/brand-identity/:brandId
- * @desc Update brand identity
- * @access Private (Admin only)
+ * GET /api/v1/brand-identity/:tenantId/preview
+ * Get brand identity preview
  */
-router.put('/:brandId', authenticateToken, requireAdmin, validateBrandRequest, async (req, res) => {
-  try {
-    const tenantId = req.tenantId;
-    const { brandId } = req.params;
-    const brandIdentity = req.body;
-    
-    const updatedBrand = await brandIdentityService.updateBrandIdentity(tenantId, brandId, brandIdentity);
-    
-    res.json({
-      success: true,
-      message: 'Brand identity updated successfully',
-      data: {
-        tenantId,
-        brandId,
-        brandIdentity: updatedBrand
-      }
-    });
-  } catch (error) {
-    logger.error(`Failed to update brand identity: ${req.params.brandId}`, error);
-    res.status(400).json({
-      success: false,
-      message: 'Failed to update brand identity',
-      error: error.message
-    });
+router.get('/:tenantId/preview',
+  async (req, res) => {
+    try {
+      const preview = await brandIdentityService.generatePreview(req.params.tenantId);
+      res.json({
+        success: true,
+        data: preview,
+        message: 'Brand identity preview generated successfully'
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
   }
-});
+);
 
 /**
- * @route DELETE /api/v1/brand-identity/:brandId
- * @desc Delete brand identity
- * @access Private (Admin only)
+ * POST /api/v1/brand-identity/:tenantId/validate
+ * Validate brand identity configuration
  */
-router.delete('/:brandId', authenticateToken, requireAdmin, validateBrandRequest, async (req, res) => {
-  try {
-    const tenantId = req.tenantId;
-    const { brandId } = req.params;
-    
-    await brandIdentityService.deleteBrandIdentity(tenantId, brandId);
-    
-    res.json({
-      success: true,
-      message: 'Brand identity deleted successfully',
-      data: {
-        tenantId,
-        brandId
-      }
-    });
-  } catch (error) {
-    logger.error(`Failed to delete brand identity: ${req.params.brandId}`, error);
-    res.status(400).json({
-      success: false,
-      message: 'Failed to delete brand identity',
-      error: error.message
-    });
+router.post('/:tenantId/validate',
+  [
+    body('colors').optional().isObject(),
+    body('typography').optional().isObject(),
+    body('spacing').optional().isObject(),
+    body('decorations').optional().isObject()
+  ],
+  validateRequest,
+  async (req, res) => {
+    try {
+      const validation = await brandIdentityService.validateBrandIdentity(
+        req.params.tenantId,
+        req.body
+      );
+
+      res.json({
+        success: true,
+        data: validation,
+        message: 'Brand identity validation completed'
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
   }
-});
+);
 
 /**
- * @route GET /api/v1/brand-identity/:brandId/assets
- * @desc Get brand assets
- * @access Private
+ * GET /api/v1/brand-identity/templates
+ * Get available brand templates
  */
-router.get('/:brandId/assets', validateBrandRequest, async (req, res) => {
-  try {
-    const tenantId = req.tenantId;
-    const { brandId } = req.params;
-    
-    const assets = await brandIdentityService.getBrandAssets(tenantId, brandId);
-    
-    res.json({
-      success: true,
-      data: {
-        tenantId,
-        brandId,
-        assets
-      }
-    });
-  } catch (error) {
-    logger.error(`Failed to get brand assets: ${req.params.brandId}`, error);
-    res.status(404).json({
-      success: false,
-      message: 'Brand assets not found',
-      error: error.message
-    });
+router.get('/templates',
+  async (req, res) => {
+    try {
+      const templates = await brandIdentityService.getAvailableTemplates();
+      res.json({
+        success: true,
+        data: templates,
+        message: 'Brand templates retrieved successfully'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
   }
-});
+);
 
 /**
- * @route GET /api/v1/brand-identity/:brandId/css
- * @desc Get brand CSS variables
- * @access Public
+ * POST /api/v1/brand-identity/:tenantId/apply-template
+ * Apply brand template
  */
-router.get('/:brandId/css', validateBrandRequest, async (req, res) => {
-  try {
-    const tenantId = req.tenantId;
-    const { brandId } = req.params;
-    
-    const brandIdentity = await brandIdentityService.getBrandIdentity(tenantId, brandId);
-    const cssVariables = brandIdentityService.generateCSSVariables(brandIdentity);
-    
-    res.set('Content-Type', 'text/css');
-    res.set('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
-    res.send(cssVariables);
-  } catch (error) {
-    logger.error(`Failed to generate brand CSS: ${req.params.brandId}`, error);
-    res.status(404).json({
-      success: false,
-      message: 'Brand CSS not found',
-      error: error.message
-    });
-  }
-});
+router.post('/:tenantId/apply-template',
+  [
+    body('templateId').notEmpty().withMessage('Template ID is required')
+  ],
+  validateRequest,
+  authenticateToken,
+  authorizeRoles(['admin', 'superadmin']),
+  async (req, res) => {
+    try {
+      const result = await brandIdentityService.applyTemplate(
+        req.params.tenantId,
+        req.body.templateId
+      );
 
-/**
- * @route GET /api/v1/brand-identity/:brandId/health
- * @desc Get brand identity health status
- * @access Private
- */
-router.get('/:brandId/health', validateBrandRequest, async (req, res) => {
-  try {
-    const tenantId = req.tenantId;
-    const { brandId } = req.params;
-    
-    const health = await brandIdentityService.getBrandHealth(tenantId, brandId);
-    
-    res.json({
-      success: true,
-      data: health
-    });
-  } catch (error) {
-    logger.error(`Failed to get brand health: ${req.params.brandId}`, error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get brand health',
-      error: error.message
-    });
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
   }
-});
-
-/**
- * @route POST /api/v1/brand-identity/:brandId/clear-cache
- * @desc Clear brand identity cache
- * @access Private (Admin only)
- */
-router.post('/:brandId/clear-cache', authenticateToken, requireAdmin, validateBrandRequest, async (req, res) => {
-  try {
-    const tenantId = req.tenantId;
-    const { brandId } = req.params;
-    
-    brandIdentityService.clearCache(tenantId, brandId);
-    
-    res.json({
-      success: true,
-      message: 'Brand identity cache cleared successfully',
-      data: {
-        tenantId,
-        brandId
-      }
-    });
-  } catch (error) {
-    logger.error(`Failed to clear brand cache: ${req.params.brandId}`, error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to clear brand cache',
-      error: error.message
-    });
-  }
-});
+);
 
 module.exports = router;

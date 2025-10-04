@@ -8,10 +8,48 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const mongoose = require('mongoose');
-const { createDatabaseInitializer } = require('./config/databaseInit');
-const { connectToDatabase } = require('./config/database');
-const { connectToMongoDB, testConnection: testMongoDBConnection } = require('./config/mongodb');
-const environmentConfig = require('./config/environment');
+// Simple database connection - no complex config files needed
+const connectToMongoDB = async () => {
+  try {
+    const useLocalDB = process.env.USE_LOCAL_DB === 'true';
+    const uri = useLocalDB 
+      ? `mongodb://localhost:27017/luxgen`
+      : process.env.MONGODB_URI || process.env.MONGODB_ATLAS_URI;
+    
+    if (!uri) {
+      throw new Error('MongoDB URI is required. Please set MONGODB_URI or MONGODB_ATLAS_URI environment variable.');
+    }
+    
+    console.log(`🔗 Connecting to ${useLocalDB ? 'Local' : 'Atlas'} MongoDB...`);
+    await mongoose.connect(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log(`✅ Connected to ${useLocalDB ? 'Local' : 'Atlas'} MongoDB successfully`);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to connect to MongoDB:', error.message);
+    throw error;
+  }
+};
+
+// Simple environment config
+const environmentConfig = {
+  get: (key, defaultValue) => process.env[key] || defaultValue,
+  getRateLimitConfig: () => ({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100 // limit each IP to 100 requests per windowMs
+  }),
+  getSecurityConfig: () => ({
+    helmet: {
+      contentSecurityPolicy: false
+    }
+  }),
+  getCORSConfig: () => ({
+    origin: process.env.CORS_ORIGIN || '*',
+    credentials: true
+  })
+};
 const { errorHandler } = require('./utils/errors');
 const cacheManager = require('./utils/cache');
 const aiService = require('./services/aiService'); // Import error handling middleware
@@ -77,25 +115,15 @@ async function startServer() {
     // Initialize AI service
     await aiService.initialize();
 
-    // Initialize MongoDB Atlas connection first
-    try {
-      await connectToMongoDB();
-      console.log('Native MongoDB driver connected to Atlas');
-    } catch (error) {
-      console.warn('WARNING: Native MongoDB driver connection failed (continuing with Mongoose):', error.message);
-    }
-
-    // Initialize Mongoose connection as fallback
-    const mongoUri = process.env.MONGODB_ATLAS_URI || process.env.MONGODB_URI || environmentConfig.get('MONGODB_URL', 'mongodb://localhost:27017/luxgen_trainer_platform');
-    await connectToDatabase(mongoUri);
-
-    // Initialize database with step-by-step process (skip connection since already connected)
-    try {
-      const dbInitializer = createDatabaseInitializer();
-      await dbInitializer.initialize();
-    } catch (error) {
-      console.warn('WARNING: Database initialization failed (continuing):', error.message);
-    }
+    // Initialize database connection
+    // Simple database connection
+    console.log('🔧 Database Configuration:');
+    console.log(`   - USE_LOCAL_DB: ${process.env.USE_LOCAL_DB}`);
+    console.log(`   - Connection: ${process.env.USE_LOCAL_DB === 'true' ? 'Local MongoDB' : 'Atlas MongoDB'}`);
+    
+    // Connect to MongoDB
+    await connectToMongoDB();
+    console.log('✅ Database connection established');
 
     // Start server
     const server = app.listen(PORT, '0.0.0.0', () => {

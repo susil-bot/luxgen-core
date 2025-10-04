@@ -3,7 +3,7 @@ const router = express.Router();
 const Post = require('../models/Post');
 const Comment = require('../models/Comment');
 const Like = require('../models/Like');
-const { authenticateToken, requireRole } = require('../middleware/authMiddleware');
+const { authenticateToken, requireRole } = require('../middleware/auth');
 const TenantMiddleware = require('../middleware/tenantMiddleware');
 
 // Apply middleware to all routes

@@ -1,329 +1,413 @@
 /**
- * Brand Identity Service
- * Manages brand identity configurations for multi-tenant architecture
+ * LUXGEN BRAND IDENTITY SERVICE
+ * Comprehensive brand identity management for tenants
+ * 
+ * Features:
+ * - Dynamic branding per tenant
+ * - Asset management
+ * - Theme customization
+ * - Brand consistency enforcement
  */
 
 const fs = require('fs').promises;
 const path = require('path');
-const Joi = require('joi');
-const brandIdentitySchema = require('../brand-identity/schema');
-const cache = require('../utils/cache');
-const logger = require('../utils/logger');
+const sharp = require('sharp');
+const mongoose = require('mongoose');
 
 class BrandIdentityService {
   constructor() {
-    this.brandIdentityPath = path.join(__dirname, '../brand-identity');
-    this.cache = cache;
-    this.cacheTTL = 10 * 60 * 1000; // 10 minutes
+    this.brandCache = new Map();
+    this.assetCache = new Map();
+    this.basePath = path.join(__dirname, '../brand-identity');
   }
 
   /**
-   * Get brand identity configuration for a tenant
-   * @param {string} tenantId - The tenant identifier
-   * @param {string} brandId - The brand identifier (defaults to 'default')
-   * @returns {Promise<Object>} Brand identity configuration
+   * GET TENANT BRAND IDENTITY
+   * Retrieves complete brand identity for a tenant
    */
-  async getBrandIdentity(tenantId, brandId = 'default') {
-    const cacheKey = `brand-identity:${tenantId}:${brandId}`;
-    
+  async getTenantBrandIdentity(tenantId) {
     try {
       // Check cache first
-      const cached = this.cache.get(cacheKey);
-      if (cached) {
-        logger.debug(`Brand identity cache hit for tenant: ${tenantId}, brand: ${brandId}`);
-        return cached;
+      if (this.brandCache.has(tenantId)) {
+        return this.brandCache.get(tenantId);
       }
 
-      // Load brand identity from file system
-      const brandPath = path.join(this.brandIdentityPath, 'brand', brandId);
-      const brandIdentityFile = path.join(brandPath, 'brand-identity.json');
+      // Load tenant-specific brand identity
+      const brandIdentity = await this.loadTenantBrandIdentity(tenantId);
       
-      let brandIdentity;
-      try {
-        const brandData = await fs.readFile(brandIdentityFile, 'utf8');
-        brandIdentity = JSON.parse(brandData);
-      } catch (error) {
-        logger.warn(`Brand identity file not found for brand: ${brandId}, using default`);
-        // Fallback to default brand
-        const defaultBrandFile = path.join(this.brandIdentityPath, 'brand', 'default', 'brand-identity.json');
-        const defaultBrandData = await fs.readFile(defaultBrandFile, 'utf8');
-        brandIdentity = JSON.parse(defaultBrandData);
-      }
+      // Cache the result
+      this.brandCache.set(tenantId, brandIdentity);
 
-      // Validate brand identity against schema
-      const { error, value } = brandIdentitySchema.validate(brandIdentity);
-      if (error) {
-        logger.error(`Brand identity validation failed for tenant: ${tenantId}, brand: ${brandId}`, error.details);
-        throw new Error(`Invalid brand identity configuration: ${error.details.map(d => d.message).join(', ')}`);
-      }
+      return brandIdentity;
 
-      // Cache the validated brand identity
-      this.cache.set(cacheKey, value, this.cacheTTL);
-      
-      logger.info(`Brand identity loaded for tenant: ${tenantId}, brand: ${brandId}`);
-      return value;
     } catch (error) {
-      logger.error(`Failed to load brand identity for tenant: ${tenantId}, brand: ${brandId}`, error);
-      throw error;
+      console.error('❌ Error getting tenant brand identity:', error);
+      throw new Error(`Failed to get brand identity: ${error.message}`);
     }
   }
 
   /**
-   * Get available brand identities for a tenant
-   * @param {string} tenantId - The tenant identifier
-   * @returns {Promise<Array>} List of available brand identities
+   * UPDATE TENANT BRAND IDENTITY
+   * Updates brand identity for a tenant
    */
-  async getAvailableBrands(tenantId) {
-    const cacheKey = `available-brands:${tenantId}`;
-    
+  async updateTenantBrandIdentity(tenantId, brandData) {
     try {
-      const cached = this.cache.get(cacheKey);
-      if (cached) {
-        return cached;
-      }
+      console.log('🎨 Updating brand identity for tenant:', tenantId);
 
-      const brandPath = path.join(this.brandIdentityPath, 'brand');
-      const brands = await fs.readdir(brandPath);
-      
-      const availableBrands = brands.filter(async (brand) => {
-        const brandDir = path.join(brandPath, brand);
-        const stat = await fs.stat(brandDir);
-        return stat.isDirectory();
-      });
+      // Validate brand data
+      const validatedBrand = await this.validateBrandData(brandData);
 
-      this.cache.set(cacheKey, availableBrands, this.cacheTTL);
-      return availableBrands;
-    } catch (error) {
-      logger.error(`Failed to get available brands for tenant: ${tenantId}`, error);
-      return ['default'];
-    }
-  }
-
-  /**
-   * Create a new brand identity for a tenant
-   * @param {string} tenantId - The tenant identifier
-   * @param {string} brandId - The brand identifier
-   * @param {Object} brandIdentity - The brand identity configuration
-   * @returns {Promise<Object>} Created brand identity
-   */
-  async createBrandIdentity(tenantId, brandId, brandIdentity) {
-    try {
-      // Validate brand identity against schema
-      const { error, value } = brandIdentitySchema.validate(brandIdentity);
-      if (error) {
-        throw new Error(`Invalid brand identity configuration: ${error.details.map(d => d.message).join(', ')}`);
-      }
-
-      // Create brand directory
-      const brandPath = path.join(this.brandIdentityPath, 'brand', brandId);
-      await fs.mkdir(brandPath, { recursive: true });
-
-      // Save brand identity file
-      const brandIdentityFile = path.join(brandPath, 'brand-identity.json');
-      await fs.writeFile(brandIdentityFile, JSON.stringify(value, null, 2));
-
-      // Clear cache
-      this.cache.delete(`brand-identity:${tenantId}:${brandId}`);
-      this.cache.delete(`available-brands:${tenantId}`);
-
-      logger.info(`Brand identity created for tenant: ${tenantId}, brand: ${brandId}`);
-      return value;
-    } catch (error) {
-      logger.error(`Failed to create brand identity for tenant: ${tenantId}, brand: ${brandId}`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Update brand identity for a tenant
-   * @param {string} tenantId - The tenant identifier
-   * @param {string} brandId - The brand identifier
-   * @param {Object} brandIdentity - The updated brand identity configuration
-   * @returns {Promise<Object>} Updated brand identity
-   */
-  async updateBrandIdentity(tenantId, brandId, brandIdentity) {
-    try {
-      // Validate brand identity against schema
-      const { error, value } = brandIdentitySchema.validate(brandIdentity);
-      if (error) {
-        throw new Error(`Invalid brand identity configuration: ${error.details.map(d => d.message).join(', ')}`);
-      }
+      // Process and save assets
+      const processedAssets = await this.processBrandAssets(tenantId, validatedBrand);
 
       // Update brand identity file
-      const brandPath = path.join(this.brandIdentityPath, 'brand', brandId);
-      const brandIdentityFile = path.join(brandPath, 'brand-identity.json');
-      await fs.writeFile(brandIdentityFile, JSON.stringify(value, null, 2));
+      await this.saveTenantBrandIdentity(tenantId, {
+        ...validatedBrand,
+        assets: processedAssets,
+        updatedAt: new Date().toISOString()
+      });
 
       // Clear cache
-      this.cache.delete(`brand-identity:${tenantId}:${brandId}`);
+      this.brandCache.delete(tenantId);
 
-      logger.info(`Brand identity updated for tenant: ${tenantId}, brand: ${brandId}`);
-      return value;
+      console.log('✅ Brand identity updated successfully');
+      return {
+        success: true,
+        brandIdentity: validatedBrand,
+        message: 'Brand identity updated successfully'
+      };
+
     } catch (error) {
-      logger.error(`Failed to update brand identity for tenant: ${tenantId}, brand: ${brandId}`, error);
-      throw error;
+      console.error('❌ Error updating brand identity:', error);
+      throw new Error(`Failed to update brand identity: ${error.message}`);
     }
   }
 
   /**
-   * Delete brand identity for a tenant
-   * @param {string} tenantId - The tenant identifier
-   * @param {string} brandId - The brand identifier
-   * @returns {Promise<boolean>} Success status
+   * GENERATE TENANT CSS
+   * Generates CSS with tenant-specific branding
    */
-  async deleteBrandIdentity(tenantId, brandId) {
+  async generateTenantCSS(tenantId) {
     try {
-      if (brandId === 'default') {
-        throw new Error('Cannot delete default brand identity');
-      }
-
-      const brandPath = path.join(this.brandIdentityPath, 'brand', brandId);
-      await fs.rmdir(brandPath, { recursive: true });
-
-      // Clear cache
-      this.cache.delete(`brand-identity:${tenantId}:${brandId}`);
-      this.cache.delete(`available-brands:${tenantId}`);
-
-      logger.info(`Brand identity deleted for tenant: ${tenantId}, brand: ${brandId}`);
-      return true;
-    } catch (error) {
-      logger.error(`Failed to delete brand identity for tenant: ${tenantId}, brand: ${brandId}`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get brand assets (logos, icons, etc.) for a tenant
-   * @param {string} tenantId - The tenant identifier
-   * @param {string} brandId - The brand identifier
-   * @returns {Promise<Object>} Brand assets
-   */
-  async getBrandAssets(tenantId, brandId = 'default') {
-    try {
-      const brandPath = path.join(this.brandIdentityPath, 'brand', brandId, 'assets');
-      const assets = {};
-
-      // Get all asset directories
-      const assetDirs = await fs.readdir(brandPath);
+      const brandIdentity = await this.getTenantBrandIdentity(tenantId);
       
-      for (const dir of assetDirs) {
-        const dirPath = path.join(brandPath, dir);
-        const stat = await fs.stat(dirPath);
-        
-        if (stat.isDirectory()) {
-          const files = await fs.readdir(dirPath);
-          assets[dir] = files.map(file => ({
-            name: file,
-            path: `/brand-identity/brand/${brandId}/assets/${dir}/${file}`,
-            type: path.extname(file).substring(1)
-          }));
-        }
-      }
+      const css = `
+/* LUXGEN TENANT CSS - ${tenantId} */
+:root {
+  /* Primary Colors */
+  --primary-color: ${brandIdentity.colors.primary};
+  --secondary-color: ${brandIdentity.colors.secondary};
+  --accent-color: ${brandIdentity.colors.accent};
+  
+  /* Background Colors */
+  --bg-primary: ${brandIdentity.colors.background.primary};
+  --bg-secondary: ${brandIdentity.colors.background.secondary};
+  --bg-accent: ${brandIdentity.colors.background.accent};
+  
+  /* Text Colors */
+  --text-primary: ${brandIdentity.colors.text.primary};
+  --text-secondary: ${brandIdentity.colors.text.secondary};
+  --text-accent: ${brandIdentity.colors.text.accent};
+  
+  /* Typography */
+  --font-primary: '${brandIdentity.typography.primary.fontFamily}', ${brandIdentity.typography.primary.fallback};
+  --font-secondary: '${brandIdentity.typography.secondary.fontFamily}', ${brandIdentity.typography.secondary.fallback};
+  
+  /* Spacing */
+  --spacing-xs: ${brandIdentity.spacing.xs};
+  --spacing-sm: ${brandIdentity.spacing.sm};
+  --spacing-md: ${brandIdentity.spacing.md};
+  --spacing-lg: ${brandIdentity.spacing.lg};
+  --spacing-xl: ${brandIdentity.spacing.xl};
+  
+  /* Border Radius */
+  --border-radius-sm: ${brandIdentity.decorations.borderRadius.sm};
+  --border-radius-md: ${brandIdentity.decorations.borderRadius.md};
+  --border-radius-lg: ${brandIdentity.decorations.borderRadius.lg};
+}
 
-      return assets;
+/* Brand-specific styles */
+.tenant-brand {
+  color: var(--primary-color);
+}
+
+.tenant-bg {
+  background-color: var(--bg-primary);
+}
+
+.tenant-text {
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+}
+
+/* Custom tenant styles */
+${brandIdentity.customCSS || ''}
+      `;
+
+      return css;
+
     } catch (error) {
-      logger.error(`Failed to get brand assets for tenant: ${tenantId}, brand: ${brandId}`, error);
-      return {};
+      console.error('❌ Error generating tenant CSS:', error);
+      throw new Error(`Failed to generate tenant CSS: ${error.message}`);
     }
   }
 
   /**
-   * Generate CSS variables from brand identity
-   * @param {Object} brandIdentity - The brand identity configuration
-   * @returns {string} CSS variables string
+   * GENERATE TENANT JAVASCRIPT
+   * Generates JavaScript with tenant-specific functionality
    */
-  generateCSSVariables(brandIdentity) {
-    const variables = [];
+  async generateTenantJS(tenantId) {
+    try {
+      const brandIdentity = await this.getTenantBrandIdentity(tenantId);
+      
+      const js = `
+// LUXGEN TENANT JS - ${tenantId}
+(function() {
+  'use strict';
+  
+  // Tenant configuration
+  window.LuxGenTenant = {
+    id: '${tenantId}',
+    name: '${brandIdentity.name}',
+    branding: ${JSON.stringify(brandIdentity, null, 2)},
     
-    // Generate color variables
-    if (brandIdentity.colors && brandIdentity.colors.palette) {
-      Object.entries(brandIdentity.colors.palette).forEach(([key, value]) => {
-        variables.push(`--color-${key}: ${value};`);
-      });
-    }
-
-    // Generate spacing variables
-    if (brandIdentity.spacing) {
-      Object.entries(brandIdentity.spacing).forEach(([key, value]) => {
-        if (typeof value === 'string' && value.startsWith('spacing-')) {
-          variables.push(`--spacing-${key}: ${value};`);
-        } else if (typeof value === 'string') {
-          variables.push(`--spacing-${key}: ${value};`);
-        }
-      });
-    }
-
-    // Generate typography variables
-    if (brandIdentity.typography && brandIdentity.typography.definitions) {
-      Object.entries(brandIdentity.typography.definitions).forEach(([category, styles]) => {
-        Object.entries(styles).forEach(([styleName, style]) => {
-          if (style.family) {
-            variables.push(`--font-family-${category}-${styleName}: ${style.family};`);
-          }
-          if (style.weight) {
-            variables.push(`--font-weight-${category}-${styleName}: ${style.weight};`);
-          }
-          if (style['mobile-size']) {
-            variables.push(`--font-size-${category}-${styleName}: ${style['mobile-size']}px;`);
+    // Initialize tenant-specific functionality
+    init: function() {
+      this.applyBranding();
+      this.setupAnalytics();
+      this.setupNotifications();
+    },
+    
+    // Apply branding to page
+    applyBranding: function() {
+      // Update page title
+      document.title = '${brandIdentity.name} - LuxGen';
+      
+      // Update favicon
+      const favicon = document.querySelector('link[rel="icon"]');
+      if (favicon) {
+        favicon.href = '${brandIdentity.assets.favicon}';
+      }
+      
+      // Apply custom styles
+      this.injectCustomStyles();
+    },
+    
+    // Setup analytics
+    setupAnalytics: function() {
+      // Track tenant-specific events
+      if (typeof gtag !== 'undefined') {
+        gtag('config', '${brandIdentity.analytics.trackingId}', {
+          custom_map: {
+            'tenant_id': '${tenantId}',
+            'tenant_name': '${brandIdentity.name}'
           }
         });
-      });
+      }
+    },
+    
+    // Setup notifications
+    setupNotifications: function() {
+      // Configure notification settings
+      if ('Notification' in window) {
+        Notification.requestPermission();
+      }
+    },
+    
+    // Inject custom styles
+    injectCustomStyles: function() {
+      const style = document.createElement('style');
+      style.textContent = \`${brandIdentity.customCSS || ''}\`;
+      document.head.appendChild(style);
     }
-
-    return `:root {\n  ${variables.join('\n  ')}\n}`;
+  };
+  
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      window.LuxGenTenant.init();
+    });
+  } else {
+    window.LuxGenTenant.init();
   }
+})();
 
-  /**
-   * Get brand identity health status
-   * @param {string} tenantId - The tenant identifier
-   * @param {string} brandId - The brand identifier
-   * @returns {Promise<Object>} Health status
-   */
-  async getBrandHealth(tenantId, brandId = 'default') {
-    try {
-      const brandIdentity = await this.getBrandIdentity(tenantId, brandId);
-      
-      return {
-        status: 'healthy',
-        tenantId,
-        brandId,
-        lastUpdated: new Date().toISOString(),
-        hasColors: !!(brandIdentity.colors && brandIdentity.colors.palette),
-        hasTypography: !!(brandIdentity.typography && brandIdentity.typography.definitions),
-        hasSpacing: !!(brandIdentity.spacing),
-        hasMotion: !!(brandIdentity.motion),
-        hasInteractive: !!(brandIdentity.interactive),
-        hasNavigation: !!(brandIdentity.navigation),
-        hasDecorations: !!(brandIdentity.decorations)
-      };
+${brandIdentity.customJS || ''}
+      `;
+
+      return js;
+
     } catch (error) {
-      return {
-        status: 'unhealthy',
-        tenantId,
-        brandId,
-        error: error.message,
-        lastUpdated: new Date().toISOString()
-      };
+      console.error('❌ Error generating tenant JS:', error);
+      throw new Error(`Failed to generate tenant JS: ${error.message}`);
     }
   }
 
   /**
-   * Clear brand identity cache
-   * @param {string} tenantId - The tenant identifier
-   * @param {string} brandId - The brand identifier (optional)
+   * UPLOAD BRAND ASSET
+   * Handles brand asset uploads (logos, images, etc.)
    */
-  clearCache(tenantId, brandId = null) {
-    if (brandId) {
-      this.cache.delete(`brand-identity:${tenantId}:${brandId}`);
-    } else {
-      // Clear all brand-related cache for tenant
-      const keys = this.cache.keys();
-      keys.forEach(key => {
-        if (key.startsWith(`brand-identity:${tenantId}:`) || key.startsWith(`available-brands:${tenantId}`)) {
-          this.cache.delete(key);
-        }
-      });
+  async uploadBrandAsset(tenantId, assetType, file) {
+    try {
+      console.log('📁 Uploading brand asset:', assetType, 'for tenant:', tenantId);
+
+      // Create tenant-specific directory
+      const tenantDir = path.join(this.basePath, 'brand', tenantId);
+      await fs.mkdir(tenantDir, { recursive: true });
+
+      // Generate unique filename
+      const fileExtension = path.extname(file.originalname);
+      const fileName = `${assetType}-${new mongoose.Types.ObjectId()}${fileExtension}`;
+      const filePath = path.join(tenantDir, fileName);
+
+      // Process and save file
+      let processedFile;
+      switch (assetType) {
+        case 'logo':
+          processedFile = await this.processLogo(file.buffer, filePath);
+          break;
+        case 'favicon':
+          processedFile = await this.processFavicon(file.buffer, filePath);
+          break;
+        case 'background':
+          processedFile = await this.processBackground(file.buffer, filePath);
+          break;
+        default:
+          processedFile = await this.processGenericAsset(file.buffer, filePath);
+      }
+
+      // Update brand identity with new asset
+      const brandIdentity = await this.getTenantBrandIdentity(tenantId);
+      brandIdentity.assets[assetType] = `/brand-identity/brand/${tenantId}/${fileName}`;
+      
+      await this.saveTenantBrandIdentity(tenantId, brandIdentity);
+
+      console.log('✅ Brand asset uploaded successfully');
+      return {
+        success: true,
+        asset: {
+          type: assetType,
+          url: brandIdentity.assets[assetType],
+          filename: fileName
+        },
+        message: 'Brand asset uploaded successfully'
+      };
+
+    } catch (error) {
+      console.error('❌ Error uploading brand asset:', error);
+      throw new Error(`Failed to upload brand asset: ${error.message}`);
     }
+  }
+
+  /**
+   * HELPER METHODS
+   */
+
+  async loadTenantBrandIdentity(tenantId) {
+    try {
+      const tenantPath = path.join(this.basePath, 'brand', tenantId, 'brand-identity.json');
+      
+      try {
+        const data = await fs.readFile(tenantPath, 'utf8');
+        return JSON.parse(data);
+      } catch (error) {
+        // If tenant-specific brand doesn't exist, load default
+        return await this.loadDefaultBrandIdentity();
+      }
+    } catch (error) {
+      console.error('❌ Error loading tenant brand identity:', error);
+      throw error;
+    }
+  }
+
+  async loadDefaultBrandIdentity() {
+    try {
+      const defaultPath = path.join(this.basePath, 'brand', 'default', 'brand-identity.json');
+      const data = await fs.readFile(defaultPath, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      console.error('❌ Error loading default brand identity:', error);
+      throw error;
+    }
+  }
+
+  async saveTenantBrandIdentity(tenantId, brandIdentity) {
+    try {
+      const tenantDir = path.join(this.basePath, 'brand', tenantId);
+      await fs.mkdir(tenantDir, { recursive: true });
+      
+      const filePath = path.join(tenantDir, 'brand-identity.json');
+      await fs.writeFile(filePath, JSON.stringify(brandIdentity, null, 2));
+    } catch (error) {
+      console.error('❌ Error saving tenant brand identity:', error);
+      throw error;
+    }
+  }
+
+  async validateBrandData(brandData) {
+    // Validate colors
+    if (brandData.colors) {
+      if (brandData.colors.primary && !this.isValidHexColor(brandData.colors.primary)) {
+        throw new Error('Invalid primary color format');
+      }
+      if (brandData.colors.secondary && !this.isValidHexColor(brandData.colors.secondary)) {
+        throw new Error('Invalid secondary color format');
+      }
+    }
+
+    // Validate typography
+    if (brandData.typography) {
+      if (brandData.typography.primary && !brandData.typography.primary.fontFamily) {
+        throw new Error('Primary font family is required');
+      }
+    }
+
+    return brandData;
+  }
+
+  async processBrandAssets(tenantId, brandData) {
+    const assets = {};
+
+    // Process logo if provided
+    if (brandData.assets && brandData.assets.logo) {
+      assets.logo = brandData.assets.logo;
+    }
+
+    // Process favicon if provided
+    if (brandData.assets && brandData.assets.favicon) {
+      assets.favicon = brandData.assets.favicon;
+    }
+
+    return assets;
+  }
+
+  async processLogo(buffer, outputPath) {
+    return await sharp(buffer)
+      .resize(200, 200, { fit: 'inside', withoutEnlargement: true })
+      .png()
+      .toFile(outputPath);
+  }
+
+  async processFavicon(buffer, outputPath) {
+    return await sharp(buffer)
+      .resize(32, 32)
+      .png()
+      .toFile(outputPath);
+  }
+
+  async processBackground(buffer, outputPath) {
+    return await sharp(buffer)
+      .resize(1920, 1080, { fit: 'cover' })
+      .jpeg({ quality: 80 })
+      .toFile(outputPath);
+  }
+
+  async processGenericAsset(buffer, outputPath) {
+    return await fs.writeFile(outputPath, buffer);
+  }
+
+  isValidHexColor(color) {
+    return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color);
   }
 }
 

@@ -1,5 +1,6 @@
-const { getCollection } = require('../config/mongodb');
+const mongoose = require('mongoose');
 const logger = require('../utils/logger');
+const User = require('../models/User');
 
 /**
  * User Management Service
@@ -92,15 +93,12 @@ class UserService {
    */
   async getUserById(userId) {
     try {
-      await this.init();
-      
-      const user = await this.usersCollection.findOne({ _id: userId });
+      const user = await User.findById(userId);
       if (!user) {
         throw new Error('User not found');
       }
       
-      delete user.password;
-      return { success: true, user };
+      return user;
     } catch (error) {
       logger.error('Failed to get user:', error);
       throw error;
