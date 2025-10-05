@@ -165,13 +165,20 @@ class TenantManagementService {
         return this.tenantCache.get(identifier);
       }
 
+      // Build query conditions
+      const queryConditions = [
+        { slug: identifier },
+        { domain: identifier }
+      ];
+
+      // Only add _id condition if identifier looks like a valid ObjectId
+      if (identifier && typeof identifier === 'string' && identifier.length === 24 && /^[0-9a-fA-F]{24}$/.test(identifier)) {
+        queryConditions.unshift({ _id: identifier });
+      }
+
       // Query database
       const tenant = await Tenant.findOne({
-        $or: [
-          { _id: identifier },
-          { slug: identifier },
-          { domain: identifier }
-        ],
+        $or: queryConditions,
         isActive: true,
         isDeleted: false
       });

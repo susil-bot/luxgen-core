@@ -4,6 +4,10 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 
+// Import business workflows
+const { setupAllWorkflowRoutes } = require('../workflow/business/WorkflowRoutes');
+const { businessWorkflowRegistry } = require('../workflow/business/WorkflowRegistry');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -23,6 +27,15 @@ app.get('/health', (req, res) => {
     mode: 'development-fallback'
   });
 });
+
+// Initialize business workflows
+console.log('🚀 Initializing Business Workflows...');
+try {
+  setupAllWorkflowRoutes(app);
+  console.log('✅ Business workflows initialized');
+} catch (error) {
+  console.error('❌ Failed to initialize business workflows:', error.message);
+}
 
 // Mock API endpoints for development
 app.get('/api/v1/jobs', (req, res) => {
