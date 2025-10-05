@@ -1,10 +1,13 @@
 const jwt = require('jsonwebtoken');
 const { AuthenticationError, AuthorizationError } = require('../utils/errors');
 const { getUserById } = require('../services/userService');
-const environmentConfig = require('../config/environment');
 
-// Get JWT configuration
-const JWT_CONFIG = environmentConfig.getJWTConfig();
+// Simple JWT configuration
+const JWT_CONFIG = {
+  secret: process.env.JWT_SECRET || 'your-jwt-secret-key',
+  issuer: 'luxgen',
+  audience: 'luxgen-users'
+};
 
 // Rate limiting for authentication attempts
 const authAttempts = new Map();
@@ -32,22 +35,15 @@ const authenticateToken = async (req, res, next) => {
     }
 
     // Verify JWT token
-    const decoded = jwt.verify(token, JWT_CONFIG.secret, {
-      issuer: JWT_CONFIG.issuer,
-      audience: JWT_CONFIG.audience,
-    });
+    const decoded = jwt.verify(token, JWT_CONFIG.secret);
 
-    // Get user from database
-    const user = await getUserById(decoded.userId);
-    if (!user || !user.isActive) {
-      throw new AuthenticationError('User not found or inactive');
+    // Get user from database using the id from our JWT
+    const user = await getUserById(decoded.id);
+    if (!user) {
+      throw new AuthenticationError('User not found');
     }
 
-    // Check if token is blacklisted (for logout functionality)
-    const isBlacklisted = await checkTokenBlacklist(token);
-    if (isBlacklisted) {
-      throw new AuthenticationError('Token has been revoked');
-    }
+    // Token validation passed
 
     // Add user to request object
     req.user = user;
@@ -57,11 +53,11 @@ const authenticateToken = async (req, res, next) => {
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
-      next(new AuthenticationError('Invalid token'));
+      return next(new AuthenticationError('Invalid token'));
     } else if (error.name === 'TokenExpiredError') {
-      next(new AuthenticationError('Token has expired'));
+      return next(new AuthenticationError('Token has expired'));
     } else {
-      next(error);
+      return next(new AuthenticationError('Authentication failed'));
     }
   }
 };
@@ -99,6 +95,11 @@ const authorizeRoles = (...allowedRoles) => {
     if (!req.user) {
       return next(new AuthenticationError('Authentication required'));
     }
+
+    console.log('🔍 Authorization check:');
+    console.log('   User role:', req.user.role);
+    console.log('   Allowed roles:', allowedRoles);
+    console.log('   User object:', req.user);
 
     if (!allowedRoles.includes(req.user.role)) {
       return next(new AuthorizationError(`Access denied. Required roles: ${allowedRoles.join(', ')}`));

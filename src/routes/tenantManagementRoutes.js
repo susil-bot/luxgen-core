@@ -1,437 +1,427 @@
 /**
- * Comprehensive Tenant Management Routes
- * Handles all tenant-related operations with robust architecture
+ * LUXGEN TENANT MANAGEMENT ROUTES
+ * Advanced tenant management and administration
  */
 
 const express = require('express');
 const router = express.Router();
-const TenantMiddleware = require('../middleware/tenantMiddleware');
-const tenantConfigurationManager = require('../services/TenantConfigurationManager');
-const { requireAuth, requireAdmin } = require('../middleware/auth');
-const logger = require('../utils/logger');
-
-// Apply tenant middleware to all routes
-router.use(TenantMiddleware.identifyTenant());
-router.use(TenantMiddleware.validateTenantAccess());
-router.use(TenantMiddleware.applyTenantConfig());
-router.use(TenantMiddleware.transformResponse());
-router.use(TenantMiddleware.auditTenantActions());
+const { body, validationResult } = require('express-validator');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const tenantManagementService = require('../services/TenantManagementService');
+const { validateRequest } = require('../middleware/validation');
 
 /**
- * Tenant Health and Status Routes
+ * GET /api/v1/tenants/dashboard
+ * Get tenant management dashboard data
  */
-router.get('/health', TenantMiddleware.getTenantHealth);
-router.get('/health/all', TenantMiddleware.getAllTenantConfigs);
-
-/**
- * Get current tenant configuration
- */
-router.get('/config', async (req, res) => {
-  try {
-    const tenantConfig = req.tenant.config;
-
-    res.json({
-      success: true,
-      data: {
-        tenant: req.tenant.slug,
-        config: tenantConfig,
-        timestamp: new Date().toISOString()
-      }
-    });
-  } catch (error) {
-    logger.error('Failed to get tenant config:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get tenant configuration',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Update tenant configuration
- */
-router.put('/config', requireAuth, async (req, res) => {
-  try {
-    const { updates } = req.body;
-
-    if (!updates || typeof updates !== 'object') {
-      return res.status(400).json({
+router.get('/dashboard',
+  authenticateToken,
+  authorizeRoles(['superadmin']),
+  async (req, res) => {
+    try {
+      const dashboard = await tenantManagementService.getDashboardData();
+      res.json({
+        success: true,
+        data: dashboard,
+        message: 'Dashboard data retrieved successfully'
+      });
+    } catch (error) {
+      res.status(500).json({
         success: false,
-        message: 'Invalid updates provided'
+        message: error.message
       });
     }
-
-    const updatedConfig = await tenantConfigurationManager.updateTenantConfig(
-      req.tenant.slug,
-      updates
-    );
-
-    res.json({
-      success: true,
-      data: updatedConfig,
-      message: 'Tenant configuration updated successfully'
-    });
-  } catch (error) {
-    logger.error('Failed to update tenant config:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update tenant configuration',
-      error: error.message
-    });
   }
-});
+);
 
 /**
- * Get tenant features
+ * GET /api/v1/tenants/statistics
+ * Get tenant statistics
  */
-router.get('/features', async (req, res) => {
-  try {
-    const features = req.tenant.config.features || [];
-
-    res.json({
-      success: true,
-      data: {
-        features,
-        enabled: features,
-        disabled: tenantConfigurationManager.getDisabledFeatures(req.tenant.config)
-      }
-    });
-  } catch (error) {
-    logger.error('Failed to get tenant features:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get tenant features',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Update tenant features
- */
-router.put('/features', requireAuth, async (req, res) => {
-  try {
-    const { features } = req.body;
-
-    if (!Array.isArray(features)) {
-      return res.status(400).json({
+router.get('/statistics',
+  authenticateToken,
+  authorizeRoles(['superadmin']),
+  async (req, res) => {
+    try {
+      const statistics = await tenantManagementService.getTenantStatistics();
+      res.json({
+        success: true,
+        data: statistics,
+        message: 'Tenant statistics retrieved successfully'
+      });
+    } catch (error) {
+      res.status(500).json({
         success: false,
-        message: 'Features must be an array'
+        message: error.message
       });
     }
-
-    const updatedConfig = await tenantConfigurationManager.updateTenantConfig(
-      req.tenant.slug,
-      { features }
-    );
-
-    res.json({
-      success: true,
-      data: updatedConfig,
-      message: 'Tenant features updated successfully'
-    });
-  } catch (error) {
-    logger.error('Failed to update tenant features:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update tenant features',
-      error: error.message
-    });
   }
-});
+);
 
 /**
- * Get tenant branding
+ * POST /api/v1/tenants/:tenantId/suspend
+ * Suspend tenant
  */
-router.get('/branding', async (req, res) => {
-  try {
-    const branding = req.tenant.config.branding || {};
-
-    res.json({
-      success: true,
-      data: branding
-    });
-  } catch (error) {
-    logger.error('Failed to get tenant branding:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get tenant branding',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Update tenant branding
- */
-router.put('/branding', requireAuth, async (req, res) => {
-  try {
-    const { branding } = req.body;
-
-    if (!branding || typeof branding !== 'object') {
-      return res.status(400).json({
+router.post('/:tenantId/suspend',
+  authenticateToken,
+  authorizeRoles(['superadmin']),
+  async (req, res) => {
+    try {
+      const result = await tenantManagementService.suspendTenant(req.params.tenantId, req.body.reason);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
         success: false,
-        message: 'Invalid branding data provided'
+        message: error.message
       });
     }
-
-    const updatedConfig = await tenantConfigurationManager.updateTenantConfig(
-      req.tenant.slug,
-      { branding }
-    );
-
-    res.json({
-      success: true,
-      data: updatedConfig,
-      message: 'Tenant branding updated successfully'
-    });
-  } catch (error) {
-    logger.error('Failed to update tenant branding:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update tenant branding',
-      error: error.message
-    });
   }
-});
+);
 
 /**
- * Get tenant limits
+ * POST /api/v1/tenants/:tenantId/activate
+ * Activate tenant
  */
-router.get('/limits', async (req, res) => {
-  try {
-    const limits = req.tenant.config.limits || {};
-    const usage = tenantConfigurationManager.getCurrentUsage(req.tenant.config);
-
-    res.json({
-      success: true,
-      data: {
-        limits,
-        usage,
-        remaining: this.calculateRemainingLimits(limits, usage)
-      }
-    });
-  } catch (error) {
-    logger.error('Failed to get tenant limits:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get tenant limits',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Get tenant security settings
- */
-router.get('/security', async (req, res) => {
-  try {
-    const security = req.tenant.config.security || {};
-
-    res.json({
-      success: true,
-      data: security
-    });
-  } catch (error) {
-    logger.error('Failed to get tenant security:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get tenant security settings',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Update tenant security settings
- */
-router.put('/security', requireAuth, async (req, res) => {
-  try {
-    const { security } = req.body;
-
-    if (!security || typeof security !== 'object') {
-      return res.status(400).json({
+router.post('/:tenantId/activate',
+  authenticateToken,
+  authorizeRoles(['superadmin']),
+  async (req, res) => {
+    try {
+      const result = await tenantManagementService.activateTenant(req.params.tenantId);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
         success: false,
-        message: 'Invalid security data provided'
+        message: error.message
       });
     }
-
-    const updatedConfig = await tenantConfigurationManager.updateTenantConfig(
-      req.tenant.slug,
-      { security }
-    );
-
-    res.json({
-      success: true,
-      data: updatedConfig,
-      message: 'Tenant security settings updated successfully'
-    });
-  } catch (error) {
-    logger.error('Failed to update tenant security:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update tenant security settings',
-      error: error.message
-    });
   }
-});
+);
 
 /**
- * Get tenant integrations
+ * POST /api/v1/tenants/:tenantId/upgrade
+ * Upgrade tenant plan
  */
-router.get('/integrations', async (req, res) => {
-  try {
-    const integrations = req.tenant.config.integrations || {};
-
-    res.json({
-      success: true,
-      data: integrations
-    });
-  } catch (error) {
-    logger.error('Failed to get tenant integrations:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get tenant integrations',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Update tenant integrations
- */
-router.put('/integrations', requireAuth, async (req, res) => {
-  try {
-    const { integrations } = req.body;
-
-    if (!integrations || typeof integrations !== 'object') {
-      return res.status(400).json({
+router.post('/:tenantId/upgrade',
+  [
+    body('newPlan').isIn(['starter', 'professional', 'enterprise']).withMessage('Invalid plan'),
+    body('reason').optional().isString()
+  ],
+  validateRequest,
+  authenticateToken,
+  authorizeRoles(['superadmin']),
+  async (req, res) => {
+    try {
+      const result = await tenantManagementService.upgradeTenantPlan(
+        req.params.tenantId,
+        req.body.newPlan,
+        req.body.reason
+      );
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
         success: false,
-        message: 'Invalid integrations data provided'
+        message: error.message
       });
     }
-
-    const updatedConfig = await tenantConfigurationManager.updateTenantConfig(
-      req.tenant.slug,
-      { integrations }
-    );
-
-    res.json({
-      success: true,
-      data: updatedConfig,
-      message: 'Tenant integrations updated successfully'
-    });
-  } catch (error) {
-    logger.error('Failed to update tenant integrations:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update tenant integrations',
-      error: error.message
-    });
   }
-});
+);
 
 /**
- * Transform component based on tenant configuration
+ * POST /api/v1/tenants/:tenantId/downgrade
+ * Downgrade tenant plan
  */
-router.post('/transform', async (req, res) => {
-  try {
-    const { component, transformationType = 'all' } = req.body;
-
-    if (!component) {
-      return res.status(400).json({
+router.post('/:tenantId/downgrade',
+  [
+    body('newPlan').isIn(['starter', 'professional', 'enterprise']).withMessage('Invalid plan'),
+    body('reason').optional().isString()
+  ],
+  validateRequest,
+  authenticateToken,
+  authorizeRoles(['superadmin']),
+  async (req, res) => {
+    try {
+      const result = await tenantManagementService.downgradeTenantPlan(
+        req.params.tenantId,
+        req.body.newPlan,
+        req.body.reason
+      );
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
         success: false,
-        message: 'Component data required'
+        message: error.message
       });
     }
-
-    const transformedComponent = tenantConfigurationManager.transformComponent(
-      component,
-      req.tenant.config,
-      transformationType
-    );
-
-    res.json({
-      success: true,
-      data: transformedComponent,
-      message: 'Component transformed successfully'
-    });
-  } catch (error) {
-    logger.error('Failed to transform component:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to transform component',
-      error: error.message
-    });
   }
-});
+);
 
 /**
- * Get tenant analytics
+ * GET /api/v1/tenants/:tenantId/usage
+ * Get tenant usage details
  */
-router.get('/analytics', async (req, res) => {
-  try {
-    const analytics = {
-      tenant: req.tenant.slug,
-      features: req.tenant.config.features.length,
-      settings: Object.keys(req.tenant.config.settings).length,
-      integrations: Object.keys(req.tenant.config.integrations).length,
-      lastUpdated: req.tenant.config.lastUpdated,
-      timestamp: new Date().toISOString()
-    };
-
-    res.json({
-      success: true,
-      data: analytics
-    });
-  } catch (error) {
-    logger.error('Failed to get tenant analytics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get tenant analytics',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Clear tenant cache
- */
-router.post('/cache/clear', requireAuth, async (req, res) => {
-  try {
-    await tenantConfigurationManager.clearCache();
-
-    res.json({
-      success: true,
-      message: 'Tenant cache cleared successfully'
-    });
-  } catch (error) {
-    logger.error('Failed to clear tenant cache:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to clear tenant cache',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Helper function to calculate remaining limits
- */
-function calculateRemainingLimits (limits, usage) {
-  const remaining = {};
-
-  for (const [key, limit] of Object.entries(limits)) {
-    if (typeof limit === 'number' && typeof usage[key] === 'number') {
-      remaining[key] = Math.max(0, limit - usage[key]);
+router.get('/:tenantId/usage',
+  authenticateToken,
+  authorizeRoles(['superadmin', 'admin']),
+  async (req, res) => {
+    try {
+      const usage = await tenantManagementService.getTenantUsage(req.params.tenantId);
+      res.json({
+        success: true,
+        data: usage,
+        message: 'Tenant usage retrieved successfully'
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
     }
   }
+);
 
-  return remaining;
-}
+/**
+ * POST /api/v1/tenants/:tenantId/reset-usage
+ * Reset tenant usage counters
+ */
+router.post('/:tenantId/reset-usage',
+  authenticateToken,
+  authorizeRoles(['superadmin']),
+  async (req, res) => {
+    try {
+      const result = await tenantManagementService.resetTenantUsage(req.params.tenantId);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
 
-// Apply error handling middleware
-router.use(TenantMiddleware.handleTenantErrors());
+/**
+ * GET /api/v1/tenants/:tenantId/health
+ * Get tenant health status
+ */
+router.get('/:tenantId/health',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const health = await tenantManagementService.getTenantHealth(req.params.tenantId);
+      res.json({
+        success: true,
+        data: health,
+        message: 'Tenant health retrieved successfully'
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/tenants/:tenantId/backup
+ * Create tenant backup
+ */
+router.post('/:tenantId/backup',
+  authenticateToken,
+  authorizeRoles(['superadmin']),
+  async (req, res) => {
+    try {
+      const result = await tenantManagementService.createTenantBackup(req.params.tenantId);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/tenants/:tenantId/restore
+ * Restore tenant from backup
+ */
+router.post('/:tenantId/restore',
+  [
+    body('backupId').notEmpty().withMessage('Backup ID is required')
+  ],
+  validateRequest,
+  authenticateToken,
+  authorizeRoles(['superadmin']),
+  async (req, res) => {
+    try {
+      const result = await tenantManagementService.restoreTenantFromBackup(
+        req.params.tenantId,
+        req.body.backupId
+      );
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/v1/tenants/:tenantId/backups
+ * Get tenant backups
+ */
+router.get('/:tenantId/backups',
+  authenticateToken,
+  authorizeRoles(['superadmin']),
+  async (req, res) => {
+    try {
+      const backups = await tenantManagementService.getTenantBackups(req.params.tenantId);
+      res.json({
+        success: true,
+        data: backups,
+        message: 'Tenant backups retrieved successfully'
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/tenants/:tenantId/migrate
+ * Migrate tenant data
+ */
+router.post('/:tenantId/migrate',
+  [
+    body('targetTenantId').notEmpty().withMessage('Target tenant ID is required'),
+    body('migrationOptions').optional().isObject()
+  ],
+  validateRequest,
+  authenticateToken,
+  authorizeRoles(['superadmin']),
+  async (req, res) => {
+    try {
+      const result = await tenantManagementService.migrateTenantData(
+        req.params.tenantId,
+        req.body.targetTenantId,
+        req.body.migrationOptions
+      );
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/v1/tenants/:tenantId/audit-log
+ * Get tenant audit log
+ */
+router.get('/:tenantId/audit-log',
+  authenticateToken,
+  authorizeRoles(['superadmin', 'admin']),
+  async (req, res) => {
+    try {
+      const auditLog = await tenantManagementService.getTenantAuditLog(
+        req.params.tenantId,
+        req.query
+      );
+      res.json({
+        success: true,
+        data: auditLog,
+        message: 'Tenant audit log retrieved successfully'
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/tenants/:tenantId/notify
+ * Send notification to tenant
+ */
+router.post('/:tenantId/notify',
+  [
+    body('type').isIn(['email', 'in-app', 'sms']).withMessage('Invalid notification type'),
+    body('subject').notEmpty().withMessage('Subject is required'),
+    body('message').notEmpty().withMessage('Message is required'),
+    body('recipients').optional().isArray()
+  ],
+  validateRequest,
+  authenticateToken,
+  authorizeRoles(['superadmin']),
+  async (req, res) => {
+    try {
+      const result = await tenantManagementService.sendTenantNotification(
+        req.params.tenantId,
+        req.body
+      );
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/v1/tenants/export
+ * Export tenant data
+ */
+router.get('/export',
+  authenticateToken,
+  authorizeRoles(['superadmin']),
+  async (req, res) => {
+    try {
+      const exportData = await tenantManagementService.exportTenantData(req.query);
+      res.json({
+        success: true,
+        data: exportData,
+        message: 'Tenant data exported successfully'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/tenants/import
+ * Import tenant data
+ */
+router.post('/import',
+  authenticateToken,
+  authorizeRoles(['superadmin']),
+  async (req, res) => {
+    try {
+      const result = await tenantManagementService.importTenantData(req.body);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
 
 module.exports = router;

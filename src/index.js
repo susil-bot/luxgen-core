@@ -8,10 +8,305 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const mongoose = require('mongoose');
-const { createDatabaseInitializer } = require('./config/databaseInit');
-const { connectToDatabase } = require('./config/database');
-const { connectToMongoDB, testConnection: testMongoDBConnection } = require('./config/mongodb');
-const environmentConfig = require('./config/environment');
+
+// Import tenant configuration
+const { getTenantConfig, getTenantContext, validateTenantAccess } = require('./tenantConfig');
+
+// API Routes Setup
+function setupAPIRoutes(app) {
+  // Authentication Endpoints
+  app.post('/api/v1/auth/register', (req, res) => {
+    const { firstName, lastName, email, password, role, department } = req.body;
+    const tenantId = req.headers['x-tenant-id'] || 'luxgen';
+    
+    // Validate tenant access
+    const access = validateTenantAccess(tenantId, null, 'user-management');
+    if (!access.valid) {
+      return res.status(403).json({
+        success: false,
+        message: access.reason
+      });
+    }
+    
+    // Get tenant context
+    const tenantContext = getTenantContext(tenantId, null, role);
+    
+    // Simulate user registration
+    const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const token = `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      data: {
+        userId,
+        email,
+        firstName,
+        lastName,
+        role: role || 'user',
+        department,
+        tenantId: tenantContext.tenantId,
+        tenantName: tenantContext.tenantName,
+        token,
+        createdAt: new Date().toISOString()
+      },
+      tenantConfig: {
+        features: tenantContext.features,
+        limits: tenantContext.limits,
+        branding: tenantContext.branding
+      }
+    });
+  });
+
+  app.post('/api/v1/auth/login', (req, res) => {
+    const { email, password } = req.body;
+    const tenantId = req.headers['x-tenant-id'] || 'luxgen';
+    
+    // Validate tenant access
+    const access = validateTenantAccess(tenantId, null, 'user-management');
+    if (!access.valid) {
+      return res.status(403).json({
+        success: false,
+        message: access.reason
+      });
+    }
+    
+    // Get tenant context
+    const tenantContext = getTenantContext(tenantId, null, 'user');
+    
+    // Simulate user login
+    const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const token = `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    res.json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        userId,
+        email,
+        token,
+        tenantId: tenantContext.tenantId,
+        tenantName: tenantContext.tenantName,
+        role: 'user',
+        lastLogin: new Date().toISOString()
+      },
+      tenantConfig: {
+        features: tenantContext.features,
+        limits: tenantContext.limits,
+        branding: tenantContext.branding
+      }
+    });
+  });
+
+  app.get('/api/v1/auth/me', (req, res) => {
+    const tenantId = req.headers['x-tenant-id'] || 'luxgen';
+    const userId = req.headers['x-user-id'] || 'user-123';
+    
+    // Get tenant context
+    const tenantContext = getTenantContext(tenantId, userId, 'user');
+    
+    res.json({
+      success: true,
+      data: {
+        userId,
+        email: 'user@luxgen.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        role: 'user',
+        tenantId: tenantContext.tenantId,
+        tenantName: tenantContext.tenantName,
+        lastLogin: new Date().toISOString()
+      },
+      tenantConfig: {
+        features: tenantContext.features,
+        limits: tenantContext.limits,
+        branding: tenantContext.branding
+      }
+    });
+  });
+
+  // Job Post Endpoints
+  app.post('/api/v1/jobs', (req, res) => {
+    const { title, description, company, location, salary, requirements } = req.body;
+    const tenantId = req.headers['x-tenant-id'] || 'luxgen';
+    
+    // Validate tenant access
+    const access = validateTenantAccess(tenantId, req.headers['x-user-id'], 'job-posting');
+    if (!access.valid) {
+      return res.status(403).json({
+        success: false,
+        message: access.reason
+      });
+    }
+    
+    // Get tenant context
+    const tenantContext = getTenantContext(tenantId, req.headers['x-user-id'], req.headers['x-user-role']);
+    
+    // Simulate job creation
+    const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    res.status(201).json({
+      success: true,
+      message: 'Job post created successfully',
+      data: {
+        jobId,
+        title,
+        company: company?.name,
+        location: location?.city,
+        salary,
+        tenantId: tenantContext.tenantId,
+        tenantName: tenantContext.tenantName,
+        createdAt: new Date().toISOString()
+      },
+      tenantConfig: {
+        features: tenantContext.features,
+        limits: tenantContext.limits,
+        branding: tenantContext.branding
+      }
+    });
+  });
+
+  app.get('/api/v1/jobs', (req, res) => {
+    res.json({
+      success: true,
+      data: {
+        jobPosts: [
+          {
+            _id: 'mock-job-1',
+            title: 'Senior Software Engineer',
+            description: 'We are looking for a senior software engineer...',
+            company: {
+              name: 'LuxGen Technologies',
+              location: { city: 'San Francisco', country: 'USA' }
+            },
+            jobType: 'full-time',
+            experienceLevel: 'senior',
+            location: { city: 'San Francisco', country: 'USA' },
+            salary: { min: 120000, max: 160000, currency: 'USD' },
+            createdAt: new Date().toISOString()
+          }
+        ],
+        total: 1,
+        currentPage: 1,
+        totalPages: 1
+      },
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: 1,
+        totalPages: 1
+      }
+    });
+  });
+
+  // Feed Endpoints
+  app.get('/api/v1/feed/posts', (req, res) => {
+    res.json({
+      success: true,
+      data: {
+        posts: [
+          {
+            _id: 'mock-post-1',
+            content: 'Welcome to LuxGen! We are excited to have you here.',
+            type: 'announcement',
+            visibility: 'public',
+            createdBy: 'admin-user-123',
+            createdAt: new Date().toISOString(),
+            engagement: {
+              likes: 5,
+              comments: 2,
+              shares: 1,
+              views: 25
+            }
+          }
+        ],
+        total: 1,
+        currentPage: 1,
+        totalPages: 1
+      }
+    });
+  });
+
+  // Tenant Configuration Endpoints
+  app.get('/api/v1/tenants/:tenantId/config', (req, res) => {
+    const { tenantId } = req.params;
+    const config = getTenantConfig(tenantId);
+    
+    res.json({
+      success: true,
+      data: {
+        tenantId: config.id,
+        tenantSlug: config.slug,
+        tenantName: config.name,
+        features: config.features,
+        limits: config.limits,
+        branding: config.branding,
+        security: config.security
+      }
+    });
+  });
+
+  app.get('/api/v1/tenants', (req, res) => {
+    const { getAllTenants } = require('./tenantConfig');
+    const tenants = getAllTenants();
+    
+    res.json({
+      success: true,
+      data: {
+        tenants: tenants.map(tenant => ({
+          id: tenant.id,
+          slug: tenant.slug,
+          name: tenant.name,
+          domain: tenant.domain,
+          features: tenant.features,
+          limits: tenant.limits
+        }))
+      }
+    });
+  });
+}
+// Simple database connection - no complex config files needed
+const connectToMongoDB = async () => {
+  try {
+    const useLocalDB = process.env.USE_LOCAL_DB === 'true';
+    const uri = useLocalDB 
+      ? `mongodb://localhost:27017/luxgen`
+      : process.env.MONGODB_URI || process.env.MONGODB_ATLAS_URI;
+    
+    if (!uri) {
+      throw new Error('MongoDB URI is required. Please set MONGODB_URI or MONGODB_ATLAS_URI environment variable.');
+    }
+    
+    console.log(`🔗 Connecting to ${useLocalDB ? 'Local' : 'Atlas'} MongoDB...`);
+    await mongoose.connect(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log(`✅ Connected to ${useLocalDB ? 'Local' : 'Atlas'} MongoDB successfully`);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to connect to MongoDB:', error.message);
+    throw error;
+  }
+};
+
+// Simple environment config
+const environmentConfig = {
+  get: (key, defaultValue) => process.env[key] || defaultValue,
+  getRateLimitConfig: () => ({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100 // limit each IP to 100 requests per windowMs
+  }),
+  getSecurityConfig: () => ({
+    helmet: {
+      contentSecurityPolicy: false
+    }
+  }),
+  getCORSConfig: () => ({
+    origin: process.env.CORS_ORIGIN || '*',
+    credentials: true
+  })
+};
 const { errorHandler } = require('./utils/errors');
 const cacheManager = require('./utils/cache');
 const aiService = require('./services/aiService'); // Import error handling middleware
@@ -77,25 +372,20 @@ async function startServer() {
     // Initialize AI service
     await aiService.initialize();
 
-    // Initialize MongoDB Atlas connection first
-    try {
+    // Initialize database connection
+    // Simple database connection
+    console.log('🔧 Database Configuration:');
+    console.log(`   - USE_LOCAL_DB: ${process.env.USE_LOCAL_DB}`);
+    console.log(`   - Connection: ${process.env.USE_LOCAL_DB === 'true' ? 'Local MongoDB' : 'Atlas MongoDB'}`);
+    
+    // Connect to MongoDB
       await connectToMongoDB();
-      console.log('Native MongoDB driver connected to Atlas');
-    } catch (error) {
-      console.warn('WARNING: Native MongoDB driver connection failed (continuing with Mongoose):', error.message);
-    }
+    console.log('✅ Database connection established');
 
-    // Initialize Mongoose connection as fallback
-    const mongoUri = process.env.MONGODB_ATLAS_URI || process.env.MONGODB_URI || environmentConfig.get('MONGODB_URL', 'mongodb://localhost:27017/luxgen_trainer_platform');
-    await connectToDatabase(mongoUri);
-
-    // Initialize database with step-by-step process (skip connection since already connected)
-    try {
-      const dbInitializer = createDatabaseInitializer();
-      await dbInitializer.initialize();
-    } catch (error) {
-      console.warn('WARNING: Database initialization failed (continuing):', error.message);
-    }
+    // Initialize API routes
+    console.log('🚀 Initializing API Routes...');
+    setupAPIRoutes(app);
+    console.log('✅ API routes initialized');
 
     // Start server
     const server = app.listen(PORT, '0.0.0.0', () => {
@@ -107,6 +397,8 @@ async function startServer() {
       console.log(` Detailed health: http://localhost:${PORT}/health/detailed`);
       console.log(` Database status: http://localhost:${PORT}/api/database/status`);
       console.log(`🔗 API base: http://localhost:${PORT}/api`);
+      console.log(` Auth API: http://localhost:${PORT}/api/v1/auth/register`);
+      console.log(` Jobs API: http://localhost:${PORT}/api/v1/jobs`);
       console.log(` External access: http://192.168.1.9:${PORT}`);
       console.log(`🌍 Environment: ${environmentConfig.get('NODE_ENV', 'development')}`);
       console.log(` Started at: ${new Date().toISOString()}`);

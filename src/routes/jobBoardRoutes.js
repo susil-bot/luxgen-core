@@ -8,7 +8,7 @@ const router = express.Router();
 const Job = require('../models/Job');
 const JobApplication = require('../models/JobApplication');
 const CandidateProfile = require('../models/CandidateProfile');
-const { authenticateToken, requireAdmin, requireTrainer } = require('../middleware/auth');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { validateRequest } = require('../middleware/validation');
 const { body, query, param } = require('express-validator');
 const logger = require('../utils/logger');
@@ -199,7 +199,7 @@ router.post('/', [
   body('experienceLevel').isIn(['entry', 'junior', 'mid', 'senior', 'lead', 'executive']),
   body('location.city').notEmpty(),
   body('location.country').notEmpty()
-], validateRequest, requireTrainer, async (req, res) => {
+], validateRequest, authorizeRoles(['trainer', 'admin']), async (req, res) => {
   try {
     const jobData = {
       ...req.body,
