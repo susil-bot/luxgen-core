@@ -13,9 +13,6 @@ const tenantDatabaseRoutes = require('./tenantDatabaseRoutes');
 const TenantDatabaseRoutesBuilder = require('./builder/TenantDatabaseRoutesBuilder');
 const TenantWorkflowRoutesBuilder = require('./builder/TenantWorkflowRoutesBuilder');
 
-// Comprehensive Tenant Routes
-const TenantRoutesComprehensive = require('./tenantRoutesComprehensive');
-
 // Robust Multi-Tenant Architecture Routes
 const tenantManagementRoutes = require('./tenantManagementRoutes');
 
@@ -156,17 +153,6 @@ router.use(`${API_PREFIX}/activities`, activityRoutes);
 
 // Robust Multi-Tenant Architecture Routes
 router.use(`${API_PREFIX}/tenants`, tenantManagementRoutes);
-
-// Tenant Database Routes
-router.use(`${API_PREFIX}/tenant-db`, tenantDatabaseRoutes);
-
-// Tenant Workflow Routes (using new routes builder)
-const tenantWorkflowRoutes = new TenantWorkflowRoutesBuilder().build();
-router.use(`${API_PREFIX}/tenant-workflow`, tenantWorkflowRoutes);
-
-// Comprehensive Tenant Routes (using comprehensive routes builder)
-const tenantRoutesComprehensive = new TenantRoutesComprehensive().build();
-router.use(`${API_PREFIX}/tenant-comprehensive`, tenantRoutesComprehensive);
 
 // Brand Identity Routes
 router.use(`${API_PREFIX}/brand-identity`, brandIdentityRoutes);

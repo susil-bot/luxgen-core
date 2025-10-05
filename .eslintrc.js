@@ -83,6 +83,7 @@ module.exports = {
     'no-new-object': 'error',
     'no-new-wrappers': 'error',
     'no-array-constructor': 'error',
+    'no-new-array': 'error',
     
     // Documentation
     'valid-jsdoc': ['warn', {
