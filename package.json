@@ -5,7 +5,9 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "start:prod": "NODE_ENV=production node src/index.js",
     "start:hapi": "ts-node src/hapi/index.ts",
+    "start:hapi:prod": "NODE_ENV=production ts-node src/hapi/index.ts",
     "dev": "nodemon src/index.js",
     "dev:hapi": "nodemon --exec ts-node src/hapi/index.ts",
     "test": "jest",
@@ -16,7 +18,9 @@
     "test:all": "jest tests/",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "spec:validate": "npm run test:all && echo 'All specifications validated successfully!'"
+    "spec:validate": "npm run test:all && echo 'All specifications validated successfully!'",
+    "build": "echo 'Backend build complete'",
+    "postinstall": "echo 'Backend dependencies installed'"
   },
   "dependencies": {
     "@hapi/hapi": "^21.3.0",
