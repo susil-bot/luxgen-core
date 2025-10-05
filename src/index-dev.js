@@ -50,31 +50,6 @@ function setupAPIRoutes(app) {
       });
     }
     
-    // Basic validation
-    if (!firstName || !lastName || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'First name, last name, email, and password are required'
-      });
-    }
-    
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid email format'
-      });
-    }
-    
-    // Password strength validation
-    if (password.length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 8 characters long'
-      });
-    }
-    
     // Get tenant context
     const tenantContext = getTenantContext(tenantId, null, role);
     
@@ -115,22 +90,6 @@ function setupAPIRoutes(app) {
       return res.status(403).json({
         success: false,
         message: access.reason
-      });
-    }
-    
-    // Basic validation
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and password are required'
-      });
-    }
-    
-    // Simulate invalid credentials check
-    if (password === 'WrongPassword' || password === 'invalid') {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
       });
     }
     
@@ -184,124 +143,6 @@ function setupAPIRoutes(app) {
         features: tenantContext.features,
         limits: tenantContext.limits,
         branding: tenantContext.branding
-      }
-    });
-  });
-
-  // Forgot Password Endpoint
-  app.post('/api/v1/auth/forgot-password', (req, res) => {
-    const { email } = req.body;
-    const tenantId = req.headers['x-tenant-id'] || 'luxgen';
-    
-    // Validate tenant access
-    const access = validateTenantAccess(tenantId, null, 'user-management');
-    if (!access.valid) {
-      return res.status(403).json({
-        success: false,
-        message: access.reason
-      });
-    }
-    
-    // Simulate forgot password
-    const resetToken = `reset_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    res.json({
-      success: true,
-      message: 'Password reset email sent successfully',
-      data: {
-        resetToken,
-        email,
-        expiresAt: new Date(Date.now() + 3600000).toISOString() // 1 hour
-      }
-    });
-  });
-
-  // Reset Password Endpoint
-  app.post('/api/v1/auth/reset-password', (req, res) => {
-    const { token, password } = req.body;
-    const tenantId = req.headers['x-tenant-id'] || 'luxgen';
-    
-    // Validate tenant access
-    const access = validateTenantAccess(tenantId, null, 'user-management');
-    if (!access.valid) {
-      return res.status(403).json({
-        success: false,
-        message: access.reason
-      });
-    }
-    
-    // Simulate password reset
-    res.json({
-      success: true,
-      message: 'Password reset successfully',
-      data: {
-        token,
-        updatedAt: new Date().toISOString()
-      }
-    });
-  });
-
-  // Logout Endpoint
-  app.post('/api/v1/auth/logout', (req, res) => {
-    const tenantId = req.headers['x-tenant-id'] || 'luxgen';
-    
-    // Validate tenant access
-    const access = validateTenantAccess(tenantId, null, 'user-management');
-    if (!access.valid) {
-      return res.status(403).json({
-        success: false,
-        message: access.reason
-      });
-    }
-    
-    res.json({
-      success: true,
-      message: 'Logout successful',
-      data: {
-        loggedOutAt: new Date().toISOString()
-      }
-    });
-  });
-
-  // Delete Account Endpoint
-  app.delete('/api/v1/auth/account', (req, res) => {
-    const { password, confirmDeletion } = req.body;
-    const tenantId = req.headers['x-tenant-id'] || 'luxgen';
-    const userId = req.headers['x-user-id'] || 'user-123';
-    
-    // Validate tenant access
-    const access = validateTenantAccess(tenantId, null, 'user-management');
-    if (!access.valid) {
-      return res.status(403).json({
-        success: false,
-        message: access.reason
-      });
-    }
-    
-    // Basic validation
-    if (!password || !confirmDeletion) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password and confirmation are required'
-      });
-    }
-    
-    // Simulate password verification
-    if (password === 'WrongPassword') {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid password'
-      });
-    }
-    
-    // Simulate account deletion
-    res.json({
-      success: true,
-      message: 'Account deleted successfully',
-      data: {
-        userId,
-        deletedAt: new Date().toISOString(),
-        status: 'deleted'
       }
     });
   });

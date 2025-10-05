@@ -4,8 +4,6 @@
  */
 
 const tenantManagementService = require('../services/TenantManagementService');
-const tenantDatabaseManager = require('../config/tenant/TenantDatabaseManager');
-const tenantConfigSwitcher = require('../config/tenant/TenantConfigSwitcher');
 const { AuthenticationError, AuthorizationError } = require('../utils/errors');
 
 class TenantMiddleware {
@@ -68,7 +66,7 @@ class TenantMiddleware {
               req.tenant = tenant;
             }
           } catch (error) {
-            // Tenant not found, using default configuration
+            console.log('⚠️ Tenant not found, using default configuration');
             // Use default tenant configuration
             req.tenantId = 'default';
             req.tenantSlug = 'luxgen';
@@ -94,17 +92,6 @@ class TenantMiddleware {
           const accessValidation = await tenantManagementService.validateTenantAccess(tenantId, req.user.id);
           if (!accessValidation.success) {
             throw new AuthorizationError('User does not have access to this tenant');
-          }
-        }
-
-        // Initialize tenant database if tenant is identified
-        if (tenantId && tenantId !== 'default') {
-          try {
-            await tenantConfigSwitcher.switchToTenant(tenantId, req);
-            console.log(`🔄 Switched to tenant database: ${tenantId}`);
-          } catch (error) {
-            console.error(`❌ Failed to switch to tenant database ${tenantId}:`, error);
-            // Continue without database switching for now
           }
         }
 
