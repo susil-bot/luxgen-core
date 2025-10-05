@@ -96,10 +96,6 @@ const authorizeRoles = (...allowedRoles) => {
       return next(new AuthenticationError('Authentication required'));
     }
 
-    console.log('🔍 Authorization check:');
-    console.log('   User role:', req.user.role);
-    console.log('   Allowed roles:', allowedRoles);
-    console.log('   User object:', req.user);
 
     if (!allowedRoles.includes(req.user.role)) {
       return next(new AuthorizationError(`Access denied. Required roles: ${allowedRoles.join(', ')}`));
