@@ -42,7 +42,7 @@ class DatabaseConfig {
 
     return {
       useLocal,
-      uri: useLocal 
+      uri: useLocal
         ? `mongodb://${localHost}:${localPort}/${localDatabase}`
         : atlasUri,
       timeout: 30000,
