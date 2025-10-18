@@ -13,16 +13,12 @@
 # Completely disable secrets scanning
 [build.processing.secrets]
   enabled = false
+  scan_build_output = false
+  scan_repo_code = false
 
 # Disable all processing that might trigger secrets scanning
 [build.processing]
   skip_processing = true
-
-# Force disable secrets scanning
-[build.processing.secrets]
-  enabled = false
-  scan_build_output = false
-  scan_repo_code = false
 
 # Redirect all API calls to serverless functions
 [[redirects]]
