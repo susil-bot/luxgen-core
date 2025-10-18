@@ -5,6 +5,8 @@
   publish = "dist"
   # Functions directory for serverless functions
   functions = "netlify/functions"
+  # Base directory (since this is in a subdirectory)
+  base = "luxgen-backend"
 
 [build.environment]
   NODE_VERSION = "18"

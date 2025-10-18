@@ -101,7 +101,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Netlify Deployment
+  # Netlify Deployment (Primary)
   netlify-deploy:
     name: 🌐 Netlify Deployment
     runs-on: ubuntu-latest
@@ -175,6 +175,6 @@ jobs:
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📦 Deployment Methods" >> $GITHUB_STEP_SUMMARY
-          echo "1. **Netlify (Serverless)**: Automatic deployment for main branch" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Netlify (Primary)**: Automatic deployment for main branch" >> $GITHUB_STEP_SUMMARY
           echo "2. **Docker (Container)**: Available for any deployment platform" >> $GITHUB_STEP_SUMMARY
           echo "3. **Manual**: Use Docker image for custom deployments" >> $GITHUB_STEP_SUMMARY
