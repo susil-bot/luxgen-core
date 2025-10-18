@@ -1,6 +1,6 @@
 [build]
   # Build command for Node.js backend
-  command = "npm run build"
+  command = "npm run build:netlify"
   # Directory to serve
   publish = "dist"
   # Functions directory for serverless functions
