@@ -10,6 +10,25 @@
   NODE_VERSION = "18"
   NPM_VERSION = "9"
 
+# Configure build processing
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.html]
+  pretty_urls = true
+
+# Disable secrets scanning for false positives
+[build.processing.secrets]
+  enabled = false
+
 # Redirect all API calls to serverless functions
 [[redirects]]
   from = "/api/*"

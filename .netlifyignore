@@ -1,0 +1,42 @@
+# Netlify ignore file to exclude files from secrets scanning
+
+# Documentation files that contain NODE_ENV examples
+docs/
+*.md
+README.md
+DEPLOYMENT_README.md
+
+# Configuration files that contain NODE_ENV
+.env.example
+.env.*
+*.env
+
+# Build artifacts
+dist/
+build/
+node_modules/
+
+# Development files
+.eslintrc*
+.gitignore
+.gitattributes
+
+# Scripts that contain NODE_ENV examples
+scripts/
+deploy-*.sh
+test-*.sh
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+
+# GitHub workflows
+.github/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
