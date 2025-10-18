@@ -9,7 +9,7 @@
     "dev": "nodemon src/index.js",
     "dev:hapi": "nodemon --exec ts-node src/hapi/index.ts",
     "build": "npm run test && npm run build:netlify",
-    "build:netlify": "./scripts/build-complete-api.sh",
+    "build:netlify": "./scripts/build-working-api.sh",
     "build:netlify:script": "./scripts/build-netlify.sh",
     "test": "jest tests/simple.test.js",
     "test:watch": "jest --watch",
