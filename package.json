@@ -9,7 +9,7 @@
     "dev": "nodemon src/index.js",
     "dev:hapi": "nodemon --exec ts-node src/hapi/index.ts",
     "build": "npm run test && npm run build:netlify",
-    "build:netlify": "mkdir -p dist && cp -r src dist/ && cp -r netlify dist/ && cp package.json dist/ && cp netlify.toml dist/ && cp .netlifyignore dist/ && echo 'Netlify build completed successfully' && echo 'Environment variables are legitimate app configuration, not secrets' && echo 'Secrets scanning disabled for legitimate environment variables'",
+    "build:netlify": "./scripts/build-minimal.sh",
     "build:netlify:script": "./scripts/build-netlify.sh",
     "test": "jest tests/simple.test.js",
     "test:watch": "jest --watch",
