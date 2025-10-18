@@ -9,7 +9,6 @@ echo "🚀 Starting API Deployment Setup..."
 
 # Configuration
 API_NAME="trainer-platform-api"
-DEPLOYMENT_TYPE="${1:-render}" # render, railway, heroku, vercel, netlify
 
 # Colors for output
 RED='\033[0;31m'
@@ -187,11 +186,8 @@ EOF
     print_status "vercel.json created with configuration"
 }
 
-setup_netlify_deployment() {
     print_status "Setting up Netlify Functions deployment..."
     
-    # Create netlify.toml
-    cat > netlify.toml << 'EOF'
 [build]
   functions = "functions"
   publish = "public"
@@ -201,7 +197,6 @@ setup_netlify_deployment() {
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
   status = 200
 
 [build.environment]
@@ -221,7 +216,6 @@ EOF
     npm install serverless-http --save
     
     print_success "Netlify Functions deployment files created!"
-    print_status "netlify.toml and functions/api.js created with configuration"
 }
 
 create_env_template() {
@@ -363,12 +357,9 @@ case $DEPLOYMENT_TYPE in
     "vercel")
         setup_vercel_deployment
         ;;
-    "netlify")
-        setup_netlify_deployment
         ;;
     *)
         print_error "Unsupported deployment type: $DEPLOYMENT_TYPE"
-        print_status "Supported types: render, railway, heroku, vercel, netlify"
         exit 1
         ;;
 esac
