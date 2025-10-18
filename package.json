@@ -24,7 +24,10 @@
     "spec:validate": "npm run test:all && echo 'All specifications validated successfully!'",
     "pre-commit": "npm run lint && npm run test && npm run build",
     "deploy:netlify": "netlify deploy --prod --dir=dist",
-    "deploy:preview": "netlify deploy --dir=dist"
+    "deploy:preview": "netlify deploy --dir=dist",
+    "cursor:test": "node scripts/test-cursor-review.js",
+    "cursor:install": "npm install -g @cursor-ai/cursor-review-bot",
+    "cursor:config": "echo 'Cursor review bot configuration available in .cursor-review.yml'"
   },
   "dependencies": {
     "@hapi/good": "^9.0.0",

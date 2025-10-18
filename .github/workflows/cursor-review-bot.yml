@@ -1,0 +1,120 @@
+name: 🤖 Cursor Code Review Bot
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main, develop]
+
+jobs:
+  cursor-review:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🛠️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: |
+          npm ci
+          npm install -g @cursor-ai/cursor-review-bot
+
+      - name: 🔍 Run Cursor Code Review
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🤖 Starting Cursor Code Review Bot..."
+          
+          # Check if this is a PR
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "📝 Analyzing pull request: ${{ github.event.pull_request.title }}"
+            
+            # Run Cursor review on changed files
+            cursor-review-bot \
+              --repo="${{ github.repository }}" \
+              --pr="${{ github.event.pull_request.number }}" \
+              --token="${{ secrets.GITHUB_TOKEN }}" \
+              --cursor-key="${{ secrets.CURSOR_API_KEY }}" \
+              --output-format=github \
+              --include-patterns="src/**/*.{js,ts,jsx,tsx}" \
+              --exclude-patterns="node_modules/**,dist/**,build/**" \
+              --max-files=50
+          else
+            echo "📝 Analyzing recent commits..."
+            
+            # Run Cursor review on recent changes
+            cursor-review-bot \
+              --repo="${{ github.repository }}" \
+              --commit="${{ github.sha }}" \
+              --token="${{ secrets.GITHUB_TOKEN }}" \
+              --cursor-key="${{ secrets.CURSOR_API_KEY }}" \
+              --output-format=github \
+              --include-patterns="src/**/*.{js,ts,jsx,tsx}" \
+              --exclude-patterns="node_modules/**,dist/**,build/**" \
+              --max-files=20
+          fi
+
+      - name: 📊 Generate Review Summary
+        if: always()
+        run: |
+          echo "## 🤖 Cursor Code Review Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Review Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Repository**: ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Event**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "### 🔍 Pull Request Analysis" >> $GITHUB_STEP_SUMMARY
+            echo "- **PR Title**: ${{ github.event.pull_request.title }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **PR Number**: #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Author**: ${{ github.event.pull_request.user.login }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Files Changed**: ${{ github.event.pull_request.changed_files }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Additions**: +${{ github.event.pull_request.additions }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Deletions**: -${{ github.event.pull_request.deletions }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 Review Focus Areas" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Code Quality & Best Practices" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Security Vulnerabilities" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Performance Optimizations" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Documentation & Comments" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Error Handling" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Testing Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📚 Resources" >> $GITHUB_STEP_SUMMARY
+          echo "- [Cursor Documentation](https://cursor.sh/docs)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Code Review Best Practices](https://github.com/microsoft/vscode/wiki/Code-Review-Guidelines)" >> $GITHUB_STEP_SUMMARY
+          echo "- [LuxGen Coding Standards](./docs/CODE_QUALITY_GUIDE.md)" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🚨 Handle Review Errors
+        if: failure()
+        run: |
+          echo "❌ Cursor Code Review failed"
+          echo "This could be due to:"
+          echo "- Missing CURSOR_API_KEY secret"
+          echo "- Network connectivity issues"
+          echo "- Invalid repository permissions"
+          echo "- Large file size or too many changes"
+          echo ""
+          echo "Please check the logs above for detailed error information."
+
+      - name: ✅ Review Complete
+        if: success()
+        run: |
+          echo "✅ Cursor Code Review completed successfully!"
+          echo "Check the comments above for detailed feedback and suggestions."
