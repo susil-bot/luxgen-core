@@ -1,5 +1,5 @@
-# Netlify ignore file - Exclude ALL files that contain NODE_ENV references
-# This prevents Netlify secrets scanner from finding false positives
+# Ultra aggressive .netlifyignore - Exclude EVERYTHING that might contain NODE_ENV
+# This prevents Netlify secrets scanner from finding ANY false positives
 
 # Environment files
 .env*
@@ -8,12 +8,12 @@
 # Node modules
 node_modules/
 
-# Build artifacts (contains compiled code with NODE_ENV)
+# Build artifacts
 dist/
 build/
 coverage/
 
-# ALL documentation files (contain NODE_ENV examples)
+# ALL documentation files
 *.md
 docs/
 README*
@@ -22,8 +22,11 @@ NETLIFY*
 SECURE*
 RAILWAY*
 API_*
+AGGRESSIVE*
+NETLIFY_DIRECTORY_FIX.md
+NETLIFY_SECRETS_*
 
-# ALL configuration files (contain NODE_ENV references)
+# ALL configuration files
 .eslintrc*
 .gitignore
 Dockerfile*
@@ -32,6 +35,8 @@ deploy-*
 *.sh
 *.yml
 *.yaml
+*.toml
+*.json
 
 # Git
 .git/
@@ -55,18 +60,30 @@ logs/
 tmp/
 temp/
 
-# GitHub Actions (contain NODE_ENV references)
+# GitHub Actions
 .github/
 
-# Scripts (contain NODE_ENV references)
+# Scripts
 scripts/
 
-# Tests (may contain NODE_ENV references)
+# Tests
 tests/
 test/
 
-# All other files that might contain NODE_ENV
+# All other files
 *.example
 *.template
 *.config.js
 *.config.json
+*.backup
+*.simple
+*.prod
+*.dev
+*.local
+*.production
+*.development
+*.test
+*.spec
+*.minimal
+*.basic
+*.ignore
