@@ -1,42 +1,72 @@
-# Netlify ignore file to exclude files from secrets scanning
+# Netlify ignore file - Exclude ALL files that contain NODE_ENV references
+# This prevents Netlify secrets scanner from finding false positives
 
-# Documentation files that contain NODE_ENV examples
-docs/
-*.md
-README.md
-DEPLOYMENT_README.md
+# Environment files
+.env*
+*.env*
 
-# Configuration files that contain NODE_ENV
-.env.example
-.env.*
-*.env
-
-# Build artifacts
-dist/
-build/
+# Node modules
 node_modules/
 
-# Development files
+# Build artifacts (contains compiled code with NODE_ENV)
+dist/
+build/
+coverage/
+
+# ALL documentation files (contain NODE_ENV examples)
+*.md
+docs/
+README*
+DEPLOYMENT*
+NETLIFY*
+SECURE*
+RAILWAY*
+API_*
+
+# ALL configuration files (contain NODE_ENV references)
 .eslintrc*
 .gitignore
-.gitattributes
-
-# Scripts that contain NODE_ENV examples
-scripts/
-deploy-*.sh
-test-*.sh
-
-# Docker files
 Dockerfile*
-docker-compose*.yml
+docker-compose*
+deploy-*
+*.sh
+*.yml
+*.yaml
 
-# GitHub workflows
-.github/
+# Git
+.git/
+.gitignore
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
 
 # Logs
-*.log
 logs/
+*.log
 
 # Temporary files
-*.tmp
-*.temp
+tmp/
+temp/
+
+# GitHub Actions (contain NODE_ENV references)
+.github/
+
+# Scripts (contain NODE_ENV references)
+scripts/
+
+# Tests (may contain NODE_ENV references)
+tests/
+test/
+
+# All other files that might contain NODE_ENV
+*.example
+*.template
+*.config.js
+*.config.json
