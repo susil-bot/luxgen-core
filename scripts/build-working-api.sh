@@ -63,7 +63,19 @@ const bcrypt = require('bcryptjs');
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://luxgen-lac.vercel.app',
+    'https://luxgen.vercel.app',
+    'https://demo-luxgen.vercel.app',
+    'https://test-luxgen.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 app.use(express.json());
 
 // Simple in-memory storage
@@ -217,6 +229,74 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({
     success: true,
     message: 'Logout successful'
+  });
+});
+
+// Tenant endpoints
+app.get('/api/tenants/:tenantId', (req, res) => {
+  const { tenantId } = req.params;
+  
+  // Mock tenant data
+  const tenant = {
+    id: tenantId,
+    name: 'LuxGen',
+    slug: tenantId,
+    domain: 'luxgen-lac.vercel.app',
+    subdomain: tenantId,
+    apiUrl: 'https://luxgen-backend.netlify.app/api/v1',
+    theme: {
+      primaryColor: '#2563eb',
+      secondaryColor: '#1e40af',
+      logo: '/assets/logos/luxgen-logo.svg'
+    },
+    features: {
+      analytics: true,
+      notifications: true,
+      chat: true,
+      reports: true
+    },
+    limits: {
+      maxUsers: 1000,
+      maxStorage: 10000,
+      maxApiCalls: 100000
+    },
+    status: 'active',
+    createdAt: new Date().toISOString()
+  };
+  
+  res.json({
+    success: true,
+    data: tenant,
+    message: 'Tenant retrieved successfully'
+  });
+});
+
+app.get('/api/tenants', (req, res) => {
+  const tenants = [
+    {
+      id: 'luxgen-lac',
+      name: 'LuxGen LAC',
+      slug: 'luxgen-lac',
+      domain: 'luxgen-lac.vercel.app',
+      subdomain: 'luxgen-lac',
+      apiUrl: 'https://luxgen-backend.netlify.app/api/v1',
+      status: 'active'
+    },
+    {
+      id: 'luxgen',
+      name: 'LuxGen',
+      slug: 'luxgen',
+      domain: 'luxgen.vercel.app',
+      subdomain: 'luxgen',
+      apiUrl: 'https://luxgen-backend.netlify.app/api/v1',
+      status: 'active'
+    }
+  ];
+  
+  res.json({
+    success: true,
+    data: tenants,
+    message: 'Tenants retrieved successfully'
   });
 });
 
