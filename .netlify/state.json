@@ -1,0 +1,14 @@
+{
+  "siteId": "luxgen-backend",
+  "buildSettings": {
+    "secretsScanning": {
+      "enabled": true,
+      "ignorePatterns": [
+        "NODE_ENV",
+        "PORT",
+        "API_VERSION",
+        "API_PREFIX"
+      ]
+    }
+  }
+}

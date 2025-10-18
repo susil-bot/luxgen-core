@@ -1,46 +1,107 @@
-# Documentation Index Welcome to the LuxGen Trainer Platform documentation. This directory contains comprehensive documentation for the multi-tenant backend platform. ## 📋 Table of Contents ### 🏗️ **System Architecture**
-1. [🏢 Multi-Tenant Architecture](./MULTI_TENANT_ARCHITECTURE.md) - System design and architecture patterns - Tenant isolation and data separation - Security considerations 2. [ Directory-Based Tenant System](./DIRECTORY_BASED_TENANT_SYSTEM.md) - Complete guide to tenant configuration - Directory structure and organization - Dynamic tenant loading ### **Database & Setup**
-3. [ Database Setup](./DATABASE_SETUP.md) - MongoDB configuration and initialization - Database schemas and models - Migration and seeding ### **Deployment & Operations**
-4. [ Deployment Guide](./DEPLOYMENT.md) - Production deployment instructions - Environment configuration - Monitoring and logging ### 🎨 **Frontend Integration**
-5. [ Frontend Setup Guide](./FRONTEND_SETUP_GUIDE.md) - Frontend integration instructions - API client setup - Authentication flow 6. [ Tenant Configuration Guide](./TENANT_CONFIGURATION_GUIDE.md) - Tenant configuration system - Feature flags and limits - Branding customization ### 🔌 **API Reference**
-7. [🔌 API Documentation](./TENANT_API_DOCUMENTATION.md) - Complete API reference - Endpoint documentation - Request/response examples ### 📖 **Project Overview**
-8. [📖 Project Documentation](./README.md) - Detailed project overview - Technology stack - Getting started guide --- ## **Quick Navigation** ### **For Developers**
-- Start with [Project Documentation](./README.md)
-- Read [Multi-Tenant Architecture](./MULTI_TENANT_ARCHITECTURE.md)
-- Follow [Database Setup](./DATABASE_SETUP.md) ### **For Frontend Integration**
-- Read [Frontend Setup Guide](./FRONTEND_SETUP_GUIDE.md)
-- Check [API Documentation](./TENANT_API_DOCUMENTATION.md)
-- Review [Tenant Configuration Guide](./TENANT_CONFIGURATION_GUIDE.md) ### **For DevOps/Deployment**
-- Follow [Deployment Guide](./DEPLOYMENT.md)
-- Review [Database Setup](./DATABASE_SETUP.md)
-- Check [Multi-Tenant Architecture](./MULTI_TENANT_ARCHITECTURE.md) ### **For System Design**
-- Study [Directory-Based Tenant System](./DIRECTORY_BASED_TENANT_SYSTEM.md)
-- Review [Multi-Tenant Architecture](./MULTI_TENANT_ARCHITECTURE.md)
-- Check [Tenant Configuration Guide](./TENANT_CONFIGURATION_GUIDE.md) --- ## **Documentation Structure** ```
-docs/
-├── INDEX.md # This file - Documentation index
-├── README.md # Project overview and setup
-├── MULTI_TENANT_ARCHITECTURE.md # System architecture
-├── DIRECTORY_BASED_TENANT_SYSTEM.md # Tenant configuration system
-├── DATABASE_SETUP.md # Database configuration
-├── DEPLOYMENT.md # Deployment instructions
-├── FRONTEND_SETUP_GUIDE.md # Frontend integration
-├── TENANT_CONFIGURATION_GUIDE.md # Tenant configuration
-└── TENANT_API_DOCUMENTATION.md # API reference
-``` --- ## **Search by Topic** ### **Multi-Tenancy**
-- [Multi-Tenant Architecture](./MULTI_TENANT_ARCHITECTURE.md)
-- [Directory-Based Tenant System](./DIRECTORY_BASED_TENANT_SYSTEM.md)
-- [Tenant Configuration Guide](./TENANT_CONFIGURATION_GUIDE.md) ### **API & Integration**
-- [API Documentation](./TENANT_API_DOCUMENTATION.md)
-- [Frontend Setup Guide](./FRONTEND_SETUP_GUIDE.md) ### **Database**
-- [Database Setup](./DATABASE_SETUP.md) ### **Deployment**
-- [Deployment Guide](./DEPLOYMENT.md) ### **Getting Started**
-- [Project Documentation](./README.md) --- ## **Documentation Standards** All documentation follows these standards: - **Clear Structure**: Each document has a table of contents
-- **Code Examples**: Practical examples for all concepts
-- **Visual Aids**: Diagrams and screenshots where helpful
-- **Cross-References**: Links between related documents
-- **Regular Updates**: Documentation updated with code changes --- ## 🤝 **Contributing to Documentation** When updating documentation: 1. **Update this index** if adding new documents
-2. **Maintain cross-references** between related documents
-3. **Include code examples** for all concepts
-4. **Test all examples** before committing
-5. **Update version numbers** when applicable --- **For the latest updates, check the main [README.md](../README.md) file.** 
+# 📚 LuxGen Backend Documentation
+
+## 🎯 **Quick Navigation**
+
+### **🚀 Getting Started**
+- [README](../README.md) - Main project documentation
+- [Quick Start Guide](DEVELOPMENT_GUIDE.md) - Get up and running quickly
+- [Environment Setup](ENVIRONMENT_CONFIGURATION.md) - Configure your environment
+
+### **🏗️ Architecture & Design**
+- [Database Architecture](DATABASE_ARCHITECTURE.md) - Database design and structure
+- [Multi-Tenancy Architecture](MULTI_TENANCY_ARCHITECTURE.md) - Multi-tenant system design
+- [API Architecture](API_ARCHITECTURE.md) - API design patterns
+- [Security Architecture](SECURITY_ARCHITECTURE.md) - Security implementation
+
+### **📊 Database**
+- [Database Setup Guide](DATABASE_SETUP_GUIDE.md) - MongoDB Atlas setup
+- [Database Structure](DATABASE_STRUCTURE.md) - Schema and collections
+- [Database Migration](DATABASE_MIGRATION.md) - Schema migrations
+- [Database Optimization](DATABASE_OPTIMIZATION.md) - Performance tuning
+
+### **🔧 Development**
+- [Development Guide](DEVELOPMENT_GUIDE.md) - Development workflow
+- [Code Quality Guide](CODE_QUALITY_GUIDE.md) - Code standards and practices
+- [Testing Guide](TESTING_GUIDE.md) - Testing strategies and tools
+- [API Development](API_DEVELOPMENT_GUIDE.md) - API development best practices
+
+### **🚀 Deployment**
+- [Secure Deployment Guide](deployment/SECURE_DEPLOYMENT_GUIDE.md) - Production deployment
+- [Netlify Deployment](deployment/NETLIFY_DEPLOYMENT_GUIDE.md) - Netlify setup
+- [MongoDB Setup](deployment/MONGODB_SETUP_INSTRUCTIONS.md) - Database configuration
+- [Environment Configuration](deployment/ENVIRONMENT_CONFIGURATION.md) - Environment setup
+
+### **🔐 Security**
+- [Security Guide](SECURITY_GUIDE.md) - Security best practices
+- [Authentication Guide](AUTHENTICATION_GUIDE.md) - Auth implementation
+- [Authorization Guide](AUTHORIZATION_GUIDE.md) - Access control
+- [Security Checklist](SECURITY_CHECKLIST.md) - Security verification
+
+### **📡 API Documentation**
+- [Complete API Reference](api/COMPLETE_API_DOCUMENTATION.md) - All API endpoints
+- [Authentication API](api/AUTHENTICATION_API.md) - Auth endpoints
+- [User Management API](api/USER_MANAGEMENT_API.md) - User operations
+- [Tenant Management API](api/TENANT_MANAGEMENT_API.md) - Tenant operations
+
+### **🧪 Testing**
+- [Testing Strategy](TESTING_STRATEGY.md) - Testing approach
+- [Unit Testing](UNIT_TESTING.md) - Unit test guidelines
+- [Integration Testing](INTEGRATION_TESTING.md) - Integration test setup
+- [Performance Testing](PERFORMANCE_TESTING.md) - Performance benchmarks
+
+### **📈 Monitoring & Analytics**
+- [Health Monitoring](HEALTH_CHECK_FEATURE.md) - Health check implementation
+- [Performance Monitoring](PERFORMANCE_MONITORING.md) - Performance tracking
+- [Error Handling](ERROR_HANDLING.md) - Error management
+- [Analytics](ANALYTICS.md) - Usage analytics
+
+### **🔧 Configuration**
+- [Environment Variables](ENVIRONMENT_VARIABLES.md) - All environment variables
+- [Configuration Guide](CONFIGURATION_GUIDE.md) - System configuration
+- [Feature Flags](FEATURE_FLAGS.md) - Feature toggle system
+- [Tenant Configuration](TENANT_CONFIGURATION_GUIDE.md) - Tenant settings
+
+### **📋 Guides**
+- [Postman Setup](POSTMAN_SETUP_GUIDE.md) - API testing with Postman
+- [Docker Setup](DOCKER_SETUP.md) - Docker configuration
+- [CI/CD Pipeline](CI_CD_PIPELINE.md) - Continuous integration
+- [Troubleshooting](TROUBLESHOOTING.md) - Common issues and solutions
+
+## 🎯 **Documentation Standards**
+
+### **Writing Guidelines**
+- **Clear and concise**: Easy to understand
+- **Code examples**: Practical examples
+- **Step-by-step**: Detailed instructions
+- **Up-to-date**: Current information
+- **Well-structured**: Logical organization
+
+### **Documentation Types**
+- **Guides**: Step-by-step instructions
+- **References**: Complete API documentation
+- **Tutorials**: Learning materials
+- **Troubleshooting**: Problem-solving guides
+
+### **Maintenance**
+- **Regular updates**: Keep documentation current
+- **Version control**: Track changes
+- **Review process**: Quality assurance
+- **User feedback**: Continuous improvement
+
+## 📞 **Getting Help**
+
+### **Documentation Issues**
+- **Missing docs**: Create an issue
+- **Outdated info**: Submit a PR
+- **Unclear content**: Request clarification
+- **Suggestions**: Share your ideas
+
+### **Contact Information**
+- **GitHub Issues**: [Create an issue](https://github.com/susil-bot/luxgen-core/issues)
+- **Email**: docs@luxgen.com
+- **Discord**: [Join our community](https://discord.gg/luxgen)
+- **Documentation**: [Full docs site](https://docs.luxgen.com)
+
+---
+
+**📚 This documentation is maintained by the LuxGen Team**

@@ -1,0 +1,272 @@
+# Cursor Code Review Bot Configuration
+# This file configures the Cursor AI code review bot for the LuxGen project
+
+# Review Settings
+review:
+  # Enable/disable specific review features
+  features:
+    code_quality: true
+    security: true
+    performance: true
+    documentation: true
+    testing: true
+    best_practices: true
+    accessibility: false  # Not applicable for backend
+    i18n: false          # Not applicable for backend
+
+  # File patterns to include in review
+  include_patterns:
+    - "src/**/*.js"
+    - "src/**/*.ts"
+    - "src/**/*.jsx"
+    - "src/**/*.tsx"
+    - "tests/**/*.js"
+    - "tests/**/*.ts"
+    - "scripts/**/*.js"
+    - "*.json"
+    - "*.yml"
+    - "*.yaml"
+    - "*.md"
+
+  # File patterns to exclude from review
+  exclude_patterns:
+    - "node_modules/**"
+    - "dist/**"
+    - "build/**"
+    - "coverage/**"
+    - "*.log"
+    - "*.tmp"
+    - ".git/**"
+    - ".github/workflows/**"  # Exclude workflow files from review
+
+  # Maximum number of files to review per run
+  max_files: 50
+
+  # Maximum file size to review (in KB)
+  max_file_size: 500
+
+# Code Quality Rules
+code_quality:
+  # JavaScript/TypeScript specific rules
+  javascript:
+    - "no-unused-vars"
+    - "no-console"
+    - "prefer-const"
+    - "no-var"
+    - "prefer-arrow-functions"
+    - "no-duplicate-imports"
+    - "no-unused-expressions"
+
+  # General code quality rules
+  general:
+    - "function-complexity"
+    - "cyclomatic-complexity"
+    - "cognitive-complexity"
+    - "duplicate-code"
+    - "long-parameter-list"
+    - "too-many-parameters"
+
+# Security Rules
+security:
+  # Common security vulnerabilities to check
+  vulnerabilities:
+    - "sql-injection"
+    - "xss"
+    - "csrf"
+    - "insecure-random"
+    - "hardcoded-secrets"
+    - "insecure-dependencies"
+    - "path-traversal"
+    - "command-injection"
+
+  # Security best practices
+  best_practices:
+    - "input-validation"
+    - "output-encoding"
+    - "authentication"
+    - "authorization"
+    - "session-management"
+    - "cryptography"
+
+# Performance Rules
+performance:
+  # Performance anti-patterns to detect
+  anti_patterns:
+    - "n-plus-one-queries"
+    - "inefficient-algorithms"
+    - "memory-leaks"
+    - "unnecessary-computations"
+    - "blocking-operations"
+    - "large-objects"
+
+  # Performance best practices
+  best_practices:
+    - "caching"
+    - "lazy-loading"
+    - "database-optimization"
+    - "async-operations"
+    - "resource-cleanup"
+
+# Documentation Rules
+documentation:
+  # Documentation requirements
+  requirements:
+    - "function-documentation"
+    - "class-documentation"
+    - "api-documentation"
+    - "readme-completeness"
+    - "code-comments"
+
+  # Documentation quality
+  quality:
+    - "clear-explanations"
+    - "examples"
+    - "parameter-descriptions"
+    - "return-value-descriptions"
+    - "error-handling-docs"
+
+# Testing Rules
+testing:
+  # Test coverage requirements
+  coverage:
+    - "function-coverage"
+    - "branch-coverage"
+    - "line-coverage"
+    - "statement-coverage"
+
+  # Test quality
+  quality:
+    - "test-clarity"
+    - "test-isolation"
+    - "test-maintainability"
+    - "test-performance"
+    - "edge-cases"
+
+# Project-specific Rules
+project_specific:
+  # LuxGen backend specific rules
+  luxgen_backend:
+    - "multi-tenancy-patterns"
+    - "api-consistency"
+    - "error-handling-consistency"
+    - "logging-standards"
+    - "database-schema-consistency"
+    - "security-headers"
+    - "cors-configuration"
+    - "rate-limiting"
+    - "input-validation"
+    - "output-formatting"
+
+  # Express.js specific rules
+  express:
+    - "middleware-order"
+    - "route-organization"
+    - "error-middleware"
+    - "request-validation"
+    - "response-formatting"
+
+  # MongoDB specific rules
+  mongodb:
+    - "query-optimization"
+    - "index-usage"
+    - "aggregation-pipelines"
+    - "connection-management"
+    - "transaction-handling"
+
+# Review Output Settings
+output:
+  # Output format
+  format: "github"
+  
+  # Comment style
+  comment_style: "detailed"
+  
+  # Include suggestions
+  include_suggestions: true
+  
+  # Include code examples
+  include_examples: true
+  
+  # Maximum comments per file
+  max_comments_per_file: 10
+  
+  # Comment severity levels
+  severity_levels:
+    - "error"
+    - "warning"
+    - "info"
+    - "suggestion"
+
+# Integration Settings
+integration:
+  # GitHub integration
+  github:
+    # Create issues for critical findings
+    create_issues: false
+    
+    # Label issues
+    issue_labels:
+      - "cursor-review"
+      - "code-quality"
+      - "security"
+      - "performance"
+    
+    # Assign issues
+    assign_issues: false
+
+  # Slack integration (if configured)
+  slack:
+    enabled: false
+    webhook_url: ""
+    channel: "#code-reviews"
+
+# Notification Settings
+notifications:
+  # Notify on review completion
+  on_completion: true
+  
+  # Notify on critical findings
+  on_critical: true
+  
+  # Notify on security issues
+  on_security: true
+  
+  # Email notifications
+  email:
+    enabled: false
+    recipients: []
+
+# Advanced Settings
+advanced:
+  # AI model settings
+  ai_model: "gpt-4"
+  
+  # Review depth
+  review_depth: "comprehensive"
+  
+  # Context window
+  context_window: 8000
+  
+  # Temperature (creativity)
+  temperature: 0.3
+  
+  # Max tokens per request
+  max_tokens: 2000
+
+# Custom Rules
+custom_rules:
+  # Add custom rules specific to your project
+  - name: "luxgen-api-consistency"
+    description: "Ensure API endpoints follow LuxGen conventions"
+    pattern: "src/routes/**/*.js"
+    check: "api-consistency"
+  
+  - name: "luxgen-error-handling"
+    description: "Ensure consistent error handling patterns"
+    pattern: "src/**/*.js"
+    check: "error-handling-consistency"
+  
+  - name: "luxgen-logging"
+    description: "Ensure proper logging practices"
+    pattern: "src/**/*.js"
+    check: "logging-standards"

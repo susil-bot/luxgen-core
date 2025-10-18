@@ -1,0 +1,57 @@
+# Pre-commit hooks configuration
+repos:
+  # General hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: detect-private-key
+
+  # Node.js specific hooks
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v8.57.0
+    hooks:
+      - id: eslint
+        files: \.(js|ts|jsx|tsx)$
+        additional_dependencies:
+          - eslint@^8.57.0
+          - eslint-config-airbnb-base@^15.0.0
+          - eslint-plugin-import@^2.29.1
+
+  # Security checks
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+
+  # Package.json validation
+  - repo: local
+    hooks:
+      - id: npm-audit
+        name: npm audit
+        entry: npm audit --audit-level=moderate
+        language: system
+        files: package-lock\.json$
+
+      - id: npm-test
+        name: npm test
+        entry: npm test
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: npm-build
+        name: npm build
+        entry: npm run build
+        language: system
+        pass_filenames: false
+        always_run: true
