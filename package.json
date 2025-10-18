@@ -26,8 +26,7 @@
     "deploy:netlify": "netlify deploy --prod --dir=dist",
     "deploy:preview": "netlify deploy --dir=dist",
     "cursor:test": "node scripts/test-cursor-review.js",
-    "cursor:install": "npm install -g @cursor-ai/cursor-review-bot",
-    "cursor:config": "echo 'Cursor review bot configuration available in .cursor-review.yml'"
+    "cursor:config": "echo 'Code quality review configuration available in .cursor-review.yml'"
   },
   "dependencies": {
     "@hapi/good": "^9.0.0",

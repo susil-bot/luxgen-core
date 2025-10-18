@@ -1,10 +1,10 @@
-# 🤖 Cursor Code Review Bot Setup Guide
+# 🤖 Code Quality Review Bot Setup Guide
 
-This guide explains how to set up and configure the Cursor AI code review bot for the LuxGen backend project.
+This guide explains how to set up and configure the automated code quality review bot for the LuxGen backend project.
 
 ## 📋 **Overview**
 
-The Cursor Code Review Bot provides automated code reviews using AI to analyze:
+The Code Quality Review Bot provides automated code reviews using built-in tools to analyze:
 - ✅ Code quality and best practices
 - ✅ Security vulnerabilities
 - ✅ Performance optimizations
@@ -14,29 +14,13 @@ The Cursor Code Review Bot provides automated code reviews using AI to analyze:
 
 ## 🚀 **Quick Setup**
 
-### 1. **Get Cursor API Key**
-1. Visit [Cursor AI](https://cursor.sh/)
-2. Sign up for a free account
-3. Navigate to API settings
-4. Generate a new API key
-5. Copy the API key for later use
-
-### 2. **Add GitHub Secrets**
-1. Go to your GitHub repository: `susil-bot/luxgen-core`
-2. Navigate to **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret**
-4. Add the following secrets:
-
-```bash
-# Required secrets
-CURSOR_API_KEY=your_cursor_api_key_here
-GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}  # Already available
-```
-
-### 3. **Enable the Workflow**
+### 1. **Enable the Workflow**
 The workflow is already configured in `.github/workflows/cursor-review-bot.yml` and will automatically run on:
 - Pull requests (opened, updated, reopened)
 - Pushes to main/develop branches
+
+### 2. **No Additional Setup Required**
+The code quality review bot uses built-in GitHub Actions and standard tools, so no additional API keys or secrets are needed.
 
 ## ⚙️ **Configuration**
 
