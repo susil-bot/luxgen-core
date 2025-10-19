@@ -10,7 +10,6 @@ const tenantSchema = new mongoose.Schema({
   slug: {
     type: String,
     required: true,
-    unique: true,
     lowercase: true,
     trim: true,
     match: [/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens']
@@ -18,7 +17,6 @@ const tenantSchema = new mongoose.Schema({
   domain: {
     type: String,
     required: true,
-    unique: true,
     trim: true
   },
   status: {

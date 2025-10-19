@@ -26,9 +26,7 @@ let client;
 let clientPromise;
 
 // Global variable for development hot reloads
-declare global {
-  var _mongoClientPromise: Promise<MongoClient>;
-}
+// This prevents multiple connections during development hot reloads
 
 if (process.env.NODE_ENV === 'development') {
   // Reuse the client in dev to prevent hot reloads creating multiple connections
