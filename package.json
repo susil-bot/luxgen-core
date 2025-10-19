@@ -7,6 +7,8 @@
     "start": "node src/index.js",
     "start:production": "NODE_ENV=production node src/index.js",
     "start:development": "NODE_ENV=development node src/index.js",
+    "start:atlas": "NODE_ENV=production USE_LOCAL_DB=false USE_ATLAS=true MONGODB_URI=\"mongodb+srv://susilfreelancer_db_user:tsmuDpaXoVV17AYg@cluster0.lcnv7k5.mongodb.net/luxgen?retryWrites=true&w=majority\" PORT=4004 node src/index.js",
+    "deploy": "NODE_ENV=production USE_LOCAL_DB=false USE_ATLAS=true MONGODB_URI=\"mongodb+srv://susilfreelancer_db_user:tsmuDpaXoVV17AYg@cluster0.lcnv7k5.mongodb.net/luxgen?retryWrites=true&w=majority\" PORT=4004 node src/index.js",
     "dev": "nodemon src/index.js",
     "dev:production": "NODE_ENV=production nodemon src/index.js",
     "dev:development": "NODE_ENV=development nodemon src/index.js",

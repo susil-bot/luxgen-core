@@ -18,6 +18,7 @@ class DatabaseConfig {
   }
 
   loadConfiguration() {
+    // Use Atlas database for production setup
     const useLocal = process.env.USE_LOCAL_DB === 'true';
     const atlasUri = process.env.MONGODB_URI;
     const localHost = process.env.LOCAL_MONGODB_HOST || 'localhost';

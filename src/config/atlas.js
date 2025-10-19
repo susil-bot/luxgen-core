@@ -11,7 +11,7 @@ class AtlasConfig {
   loadAtlasConfiguration() {
     // Check for Atlas credentials
     const atlasUri = process.env.MONGODB_ATLAS_URI || process.env.MONGODB_URI;
-    const useAtlas = process.env.USE_ATLAS === 'true' || (!process.env.USE_LOCAL_DB && atlasUri);
+    const useAtlas = process.env.USE_ATLAS === 'true' || (process.env.USE_LOCAL_DB === 'false' && atlasUri);
     
     if (!useAtlas || !atlasUri) {
       return {

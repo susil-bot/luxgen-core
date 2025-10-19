@@ -7,6 +7,10 @@ const mongoose = require('mongoose');
 const PORT = process.env.PORT || 4004;
 const HOST = process.env.HOST || '0.0.0.0';
 
+// Force production environment with Atlas database
+process.env.NODE_ENV = 'production';
+process.env.USE_LOCAL_DB = 'false';
+
 // Enhanced database connection with Atlas and local fallback
 const DatabaseConfig = require('./config/database');
 const AtlasConfig = require('./config/atlas');
@@ -28,7 +32,14 @@ const connectDB = async () => {
       try {
         console.log('🌐 Attempting Atlas connection...');
         const atlasUri = atlasConfig.getUri();
-        const atlasOptions = atlasConfig.getOptions();
+        const atlasOptions = {
+          // Optimize connection for speed
+          maxPoolSize: 10,
+          serverSelectionTimeoutMS: 5000,
+          socketTimeoutMS: 45000,
+          retryWrites: true,
+          w: 'majority'
+        };
         
         await mongoose.connect(atlasUri, atlasOptions);
         console.log('✅ MongoDB Atlas connected successfully');
@@ -106,11 +117,10 @@ const startServer = async () => {
       console.log(`🏥 Health check: http://localhost:${PORT}/health`);
       console.log(`📊 API endpoint: http://localhost:${PORT}/api`);
       
-      if (process.env.NODE_ENV === 'production') {
-        console.log('🔒 Production mode enabled');
-        console.log('🛡️ Security features active');
-        console.log('📈 Monitoring enabled');
-      }
+      console.log('🔒 Production mode enabled');
+      console.log('🛡️ Security features active');
+      console.log('📈 Monitoring enabled');
+      console.log('🌐 Using MongoDB Atlas for production setup');
     });
 
     // Handle server errors
