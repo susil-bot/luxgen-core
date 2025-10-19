@@ -11,11 +11,11 @@ describe('Basic Backend Tests', () => {
     expect(packageJson.scripts.test).toBeDefined();
   });
 
-  test('Netlify configuration should exist', () => {
+  test('Docker configuration should exist', () => {
     const fs = require('fs');
-    expect(fs.existsSync('netlify.toml')).toBe(true);
-    expect(fs.existsSync('netlify/functions/api.js')).toBe(true);
-    expect(fs.existsSync('netlify/functions/health.js')).toBe(true);
+    expect(fs.existsSync('Dockerfile')).toBe(true);
+    expect(fs.existsSync('Dockerfile.dev')).toBe(true);
+    expect(fs.existsSync('docker-compose.yml')).toBe(true);
   });
 
   test('Basic math should work', () => {
