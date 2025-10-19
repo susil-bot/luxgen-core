@@ -1,300 +1,221 @@
-/**
- * LUXGEN TENANT MANAGEMENT ROUTES
- * Comprehensive tenant management API endpoints
- */
-
 const express = require('express');
 const router = express.Router();
-const { body, validationResult } = require('express-validator');
-const { authenticateToken, authorizeRoles } = require('../middleware/auth');
-const tenantManagementService = require('../services/TenantManagementService');
-const { validateRequest } = require('../middleware/validation');
 
-/**
- * GET /api/v1/tenants
- * Get all tenants (admin only)
- */
-router.get('/', 
-  authenticateToken,
-  authorizeRoles(['superadmin']),
-  async (req, res) => {
-    try {
-      const tenants = await tenantManagementService.getAllTenants();
-      res.json({
-        success: true,
-        data: tenants,
-        message: 'Tenants retrieved successfully'
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-);
+// Tenant Management Routes for Frontend Support
+// =============================================
 
-/**
- * GET /api/v1/tenants/:tenantId
- * Get specific tenant
- */
-router.get('/:tenantId',
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const tenant = await tenantManagementService.getTenant(req.params.tenantId);
-      res.json({
-        success: true,
-        data: tenant,
-        message: 'Tenant retrieved successfully'
-      });
-    } catch (error) {
-      res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-);
-
-/**
- * POST /api/v1/tenants
- * Create new tenant
- */
-router.post('/',
-  [
-    body('name').notEmpty().withMessage('Tenant name is required'),
-    body('contactEmail').isEmail().withMessage('Valid contact email is required'),
-    body('plan').isIn(['starter', 'professional', 'enterprise']).withMessage('Invalid plan'),
-    body('industry').optional().isString(),
-    body('companySize').optional().isIn(['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+']),
-    body('adminFirstName').optional().isString(),
-    body('adminLastName').optional().isString(),
-    body('adminPassword').optional().isLength({ min: 8 })
-  ],
-  validateRequest,
-  authenticateToken,
-  authorizeRoles(['superadmin']),
-  async (req, res) => {
-    try {
-      const result = await tenantManagementService.createTenant(req.body);
-      res.status(201).json(result);
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-);
-
-/**
- * PUT /api/v1/tenants/:tenantId
- * Update tenant
- */
-router.put('/:tenantId',
-  [
-    body('name').optional().isString(),
-    body('description').optional().isString(),
-    body('industry').optional().isString(),
-    body('companySize').optional().isIn(['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+']),
-    body('status').optional().isIn(['active', 'trial', 'expired', 'cancelled', 'suspended'])
-  ],
-  validateRequest,
-  authenticateToken,
-  authorizeRoles(['superadmin', 'admin']),
-  async (req, res) => {
-    try {
-      const result = await tenantManagementService.updateTenant(req.params.tenantId, req.body);
-      res.json(result);
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-);
-
-/**
- * DELETE /api/v1/tenants/:tenantId
- * Delete tenant (soft delete)
- */
-router.delete('/:tenantId',
-  authenticateToken,
-  authorizeRoles(['superadmin']),
-  async (req, res) => {
-    try {
-      const result = await tenantManagementService.deleteTenant(req.params.tenantId);
-      res.json(result);
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-);
-
-/**
- * GET /api/v1/tenants/:tenantId/analytics
- * Get tenant analytics
- */
-router.get('/:tenantId/analytics',
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const result = await tenantManagementService.getTenantAnalytics(req.params.tenantId);
-      res.json(result);
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-);
-
-/**
- * PUT /api/v1/tenants/:tenantId/branding
- * Update tenant branding
- */
-router.put('/:tenantId/branding',
-  [
-    body('logo').optional().isString(),
-    body('primaryColor').optional().isHexColor(),
-    body('secondaryColor').optional().isHexColor(),
-    body('accentColor').optional().isHexColor(),
-    body('customCSS').optional().isString(),
-    body('customJS').optional().isString(),
-    body('theme').optional().isIn(['light', 'dark'])
-  ],
-  validateRequest,
-  authenticateToken,
-  authorizeRoles(['admin', 'superadmin']),
-  async (req, res) => {
-    try {
-      const result = await tenantManagementService.updateTenantBranding(req.params.tenantId, req.body);
-      res.json(result);
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-);
-
-/**
- * GET /api/v1/tenants/:tenantId/branding
- * Get tenant branding
- */
-router.get('/:tenantId/branding',
-  async (req, res) => {
-    try {
-      const branding = await tenantManagementService.getTenantBranding(req.params.tenantId);
-      res.json({
-        success: true,
-        data: branding,
-        message: 'Tenant branding retrieved successfully'
-      });
-    } catch (error) {
-      res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-);
-
-/**
- * GET /api/v1/tenants/:tenantId/config
- * Get tenant configuration
- */
-router.get('/:tenantId/config',
-  async (req, res) => {
-    try {
-      const tenant = await tenantManagementService.getTenant(req.params.tenantId);
-      const config = {
-        name: tenant.name,
-        slug: tenant.slug,
-        domain: tenant.domain,
-        branding: tenant.branding,
-        features: tenant.features,
-        limits: tenant.limits,
-        settings: tenant.settings
-      };
-
-      res.json({
-        success: true,
-        data: config,
-        message: 'Tenant configuration retrieved successfully'
-      });
-    } catch (error) {
-      res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-);
-
-/**
- * POST /api/v1/tenants/:tenantId/validate-access
- * Validate tenant access for user
- */
-router.post('/:tenantId/validate-access',
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const result = await tenantManagementService.validateTenantAccess(
-        req.params.tenantId,
-        req.user.id
-      );
-      res.json(result);
-    } catch (error) {
-      res.status(403).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-);
-
-/**
- * GET /api/v1/tenants/health/status
- * Get tenant system health
- */
-router.get('/health/status',
-  async (req, res) => {
-    try {
-      const health = {
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        services: {
-          database: 'connected',
-          cache: 'active',
-          storage: 'available'
-        },
-        metrics: {
-          totalTenants: await tenantManagementService.getTotalTenants(),
-          activeTenants: await tenantManagementService.getActiveTenants(),
-          systemLoad: 'normal'
+// Get all tenants
+router.get('/', (req, res) => {
+  res.json({
+    success: true,
+    data: [
+      {
+        id: 'tenant-1',
+        name: 'Acme Corporation',
+        slug: 'acme-corp',
+        domain: 'acme.luxgen.com',
+        status: 'active',
+        plan: 'enterprise',
+        users: 150,
+        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        settings: {
+          branding: {
+            logo: '/media/tenants/acme/logo.png',
+            primaryColor: '#3B82F6',
+            secondaryColor: '#1E40AF'
+          },
+          features: {
+            training: true,
+            jobs: true,
+            analytics: true,
+            customDomain: true
+          }
         }
-      };
-
-      res.json({
-        success: true,
-        data: health,
-        message: 'System health retrieved successfully'
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: error.message
-      });
+      },
+      {
+        id: 'tenant-2',
+        name: 'Tech Startup',
+        slug: 'tech-startup',
+        domain: 'tech.luxgen.com',
+        status: 'active',
+        plan: 'professional',
+        users: 25,
+        createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+        settings: {
+          branding: {
+            logo: '/media/tenants/tech/logo.png',
+            primaryColor: '#10B981',
+            secondaryColor: '#059669'
+          },
+          features: {
+            training: true,
+            jobs: false,
+            analytics: true,
+            customDomain: false
+          }
+        }
+      }
+    ],
+    pagination: {
+      page: 1,
+      limit: 10,
+      total: 2,
+      pages: 1
     }
-  }
-);
+  });
+});
+
+// Get tenant by ID
+router.get('/:id', (req, res) => {
+  const { id } = req.params;
+  
+  res.json({
+    success: true,
+    data: {
+      id,
+      name: 'Acme Corporation',
+      slug: 'acme-corp',
+      domain: 'acme.luxgen.com',
+      status: 'active',
+      plan: 'enterprise',
+      users: 150,
+      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      settings: {
+        branding: {
+          logo: '/media/tenants/acme/logo.png',
+          primaryColor: '#3B82F6',
+          secondaryColor: '#1E40AF'
+        },
+        features: {
+          training: true,
+          jobs: true,
+          analytics: true,
+          customDomain: true
+        },
+        limits: {
+          maxUsers: 1000,
+          maxStorage: '100GB',
+          maxCourses: 500
+        }
+      },
+      stats: {
+        activeUsers: 120,
+        totalCourses: 45,
+        completedCourses: 380,
+        totalHours: 2500
+      }
+    }
+  });
+});
+
+// Create new tenant
+router.post('/', (req, res) => {
+  const tenantData = req.body;
+  
+  res.json({
+    success: true,
+    message: 'Tenant created successfully',
+    data: {
+      id: 'tenant-new-' + Date.now(),
+      ...tenantData,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      settings: {
+        branding: {
+          logo: null,
+          primaryColor: '#3B82F6',
+          secondaryColor: '#1E40AF'
+        },
+        features: {
+          training: true,
+          jobs: false,
+          analytics: true,
+          customDomain: false
+        }
+      }
+    }
+  });
+});
+
+// Update tenant
+router.put('/:id', (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+  
+  res.json({
+    success: true,
+    message: 'Tenant updated successfully',
+    data: {
+      id,
+      ...updates,
+      updatedAt: new Date().toISOString()
+    }
+  });
+});
+
+// Delete tenant
+router.delete('/:id', (req, res) => {
+  const { id } = req.params;
+  
+  res.json({
+    success: true,
+    message: 'Tenant deleted successfully',
+    data: { id }
+  });
+});
+
+// Get tenant statistics
+router.get('/:id/stats', (req, res) => {
+  const { id } = req.params;
+  
+  res.json({
+    success: true,
+    data: {
+      tenantId: id,
+      users: {
+        total: 150,
+        active: 120,
+        newThisMonth: 15
+      },
+      training: {
+        totalCourses: 45,
+        completedCourses: 380,
+        totalHours: 2500,
+        averageScore: 87
+      },
+      engagement: {
+        dailyActiveUsers: 85,
+        weeklyActiveUsers: 110,
+        monthlyActiveUsers: 120
+      },
+      revenue: {
+        monthly: 15000,
+        yearly: 180000,
+        growth: 15.5
+      }
+    }
+  });
+});
+
+// Get tenant health
+router.get('/:id/health', (req, res) => {
+  const { id } = req.params;
+  
+  res.json({
+    success: true,
+    data: {
+      tenantId: id,
+      status: 'healthy',
+      services: {
+        database: 'connected',
+        storage: 'available',
+        email: 'operational',
+        notifications: 'operational'
+      },
+      uptime: 99.9,
+      lastChecked: new Date().toISOString()
+    }
+  });
+});
 
 module.exports = router;

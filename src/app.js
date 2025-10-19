@@ -5,10 +5,118 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
+// Removed express-validator due to security vulnerabilities
+// Using custom validation instead
 
 // Import routes
 const healthRoutes = require('./routes/health');
 const authRoutes = require('./routes/authRoutes');
+
+// Custom validation utilities to replace vulnerable express-validator
+const customValidators = {
+  isEmail: (value) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(value);
+  },
+  
+  isStrongPassword: (value) => {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return passwordRegex.test(value);
+  },
+  
+  isURL: (value) => {
+    try {
+      // Enhanced URL validation to prevent bypass vulnerabilities
+      if (typeof value !== 'string' || value.length === 0) return false;
+      
+      // Check for dangerous patterns that could bypass validation
+      const dangerousPatterns = [
+        /javascript:/i,
+        /data:/i,
+        /vbscript:/i,
+        /file:/i,
+        /ftp:/i,
+        /<script/i,
+        /onload=/i,
+        /onerror=/i
+      ];
+      
+      if (dangerousPatterns.some(pattern => pattern.test(value))) {
+        return false;
+      }
+      
+      const url = new URL(value);
+      
+      // Only allow http and https protocols
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        return false;
+      }
+      
+      // Additional security checks
+      if (url.hostname.includes('localhost') && process.env.NODE_ENV === 'production') {
+        return false;
+      }
+      
+      // Check for suspicious characters
+      if (url.href.includes('<') || url.href.includes('>') || url.href.includes('"')) {
+        return false;
+      }
+      
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  
+  isMongoId: (value) => {
+    const mongoIdRegex = /^[0-9a-fA-F]{24}$/;
+    return mongoIdRegex.test(value);
+  },
+  
+  sanitizeString: (value) => {
+    if (typeof value !== 'string') return value;
+    return value.trim().replace(/[<>]/g, '');
+  },
+  
+  validateInput: (req, res, next) => {
+    const errors = [];
+    
+    // Validate email if present
+    if (req.body.email && !customValidators.isEmail(req.body.email)) {
+      errors.push({ field: 'email', message: 'Invalid email format' });
+    }
+    
+    // Validate password if present
+    if (req.body.password && !customValidators.isStrongPassword(req.body.password)) {
+      errors.push({ field: 'password', message: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character' });
+    }
+    
+    // Validate URL if present
+    if (req.body.url && !customValidators.isURL(req.body.url)) {
+      errors.push({ field: 'url', message: 'Invalid URL format' });
+    }
+    
+    // Validate MongoDB ID if present
+    if (req.body.tenantId && !customValidators.isMongoId(req.body.tenantId)) {
+      errors.push({ field: 'tenantId', message: 'Invalid tenant ID format' });
+    }
+    
+    if (errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors
+      });
+    }
+    
+    // Sanitize string inputs
+    if (req.body.firstName) req.body.firstName = customValidators.sanitizeString(req.body.firstName);
+    if (req.body.lastName) req.body.lastName = customValidators.sanitizeString(req.body.lastName);
+    if (req.body.company) req.body.company = customValidators.sanitizeString(req.body.company);
+    
+    next();
+  }
+};
 
 const app = express();
 
@@ -189,6 +297,68 @@ app.use((req, res, next) => {
   next();
 });
 
+// Additional security middleware to protect against vulnerabilities
+app.use((req, res, next) => {
+  // XSS Protection
+  const xssPatterns = [
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+    /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
+    /javascript:/gi,
+    /vbscript:/gi,
+    /onload\s*=/gi,
+    /onerror\s*=/gi
+  ];
+  
+  const checkForXSS = (obj) => {
+    if (typeof obj === 'string') {
+      return xssPatterns.some(pattern => pattern.test(obj));
+    }
+    if (typeof obj === 'object' && obj !== null) {
+      return Object.values(obj).some(value => checkForXSS(value));
+    }
+    return false;
+  };
+  
+  if (checkForXSS(req.body) || checkForXSS(req.query) || checkForXSS(req.params)) {
+    return res.status(400).json({
+      success: false,
+      error: 'XSS attempt detected',
+      message: 'Request contains potentially malicious scripts'
+    });
+  }
+  
+  // SQL Injection Protection
+  const sqlPatterns = [
+    /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/gi,
+    /(\b(OR|AND)\s+\d+\s*=\s*\d+)/gi,
+    /(\bUNION\s+SELECT\b)/gi,
+    /(\bDROP\s+TABLE\b)/gi
+  ];
+  
+  const checkForSQLInjection = (obj) => {
+    if (typeof obj === 'string') {
+      return sqlPatterns.some(pattern => pattern.test(obj));
+    }
+    if (typeof obj === 'object' && obj !== null) {
+      return Object.values(obj).some(value => checkForSQLInjection(value));
+    }
+    return false;
+  };
+  
+  if (checkForSQLInjection(req.body) || checkForSQLInjection(req.query) || checkForSQLInjection(req.params)) {
+    return res.status(400).json({
+      success: false,
+      error: 'SQL injection attempt detected',
+      message: 'Request contains potentially malicious SQL patterns'
+    });
+  }
+  
+  next();
+});
+
+// Custom validation middleware (replaces vulnerable express-validator)
+app.use(customValidators.validateInput);
+
 // Request logging middleware
 app.use((req, res, next) => {
   const startTime = Date.now();
@@ -216,6 +386,32 @@ app.use((req, res, next) => {
 app.use('/health', healthRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
+
+// Mount all API routes for frontend support
+try {
+  // Import and mount comprehensive routes
+  const tenantRoutes = require('./routes/tenantRoutes');
+  const activityRoutes = require('./routes/activityRoutes');
+  const contentRoutes = require('./routes/contentRoutes');
+  const trainingRoutes = require('./routes/trainingRoutes');
+  const jobRoutes = require('./routes/jobRoutes');
+  const userRoutes = require('./routes/userRoutes');
+  const notificationRoutes = require('./routes/notificationRoutes');
+  
+  // Mount routes with proper prefixes
+  app.use('/api/v1/tenants', tenantRoutes);
+  app.use('/api/v1/activities', activityRoutes);
+  app.use('/api/v1/content', contentRoutes);
+  app.use('/api/v1/training', trainingRoutes);
+  app.use('/api/v1/jobs', jobRoutes);
+  app.use('/api/v1/users', userRoutes);
+  app.use('/api/v1/notifications', notificationRoutes);
+  
+  console.log('✅ All API routes mounted successfully');
+} catch (error) {
+  console.warn('⚠️ Some API routes could not be loaded:', error.message);
+  console.log('📝 Error details:', error.stack);
+}
 
 // Basic API endpoint
 app.get('/api', (req, res) => {

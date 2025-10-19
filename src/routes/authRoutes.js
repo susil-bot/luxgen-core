@@ -1,44 +1,68 @@
 const express = require('express');
-const { body } = require('express-validator');
+// Removed express-validator due to security vulnerabilities
+// Using custom validation instead
 const authController = require('../controllers/authController');
-const { validateRequest } = require('../middleware/validation');
 
 const router = express.Router();
 
-// Validation schemas
-const loginValidation = [
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Please provide a valid email address'),
-  body('password')
-    .notEmpty()
-    .withMessage('Password is required'),
-  validateRequest
-];
+// Custom validation middleware (replaces express-validator)
+const validateLogin = (req, res, next) => {
+  const { email, password } = req.body;
+  const errors = [];
+  
+  if (!email || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+    errors.push({ field: 'email', message: 'Please provide a valid email address' });
+  }
+  
+  if (!password || password.trim().length === 0) {
+    errors.push({ field: 'password', message: 'Password is required' });
+  }
+  
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'Validation failed',
+      details: errors
+    });
+  }
+  
+  next();
+};
 
-const registerValidation = [
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Please provide a valid email address'),
-  body('password')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters long'),
-  body('firstName')
-    .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('First name must be between 2 and 50 characters'),
-  body('lastName')
-    .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('Last name must be between 2 and 50 characters'),
-  validateRequest
-];
+const validateRegister = (req, res, next) => {
+  const { firstName, lastName, email, password } = req.body;
+  const errors = [];
+  
+  if (!firstName || firstName.trim().length < 2 || firstName.trim().length > 50) {
+    errors.push({ field: 'firstName', message: 'First name must be between 2 and 50 characters' });
+  }
+  
+  if (!lastName || lastName.trim().length < 2 || lastName.trim().length > 50) {
+    errors.push({ field: 'lastName', message: 'Last name must be between 2 and 50 characters' });
+  }
+  
+  if (!email || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+    errors.push({ field: 'email', message: 'Please provide a valid email address' });
+  }
+  
+  if (!password || password.length < 6) {
+    errors.push({ field: 'password', message: 'Password must be at least 6 characters long' });
+  }
+  
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'Validation failed',
+      details: errors
+    });
+  }
+  
+  next();
+};
 
 // Routes
-router.post('/login', loginValidation, authController.login);
-router.post('/register', registerValidation, authController.register);
+router.post('/login', validateLogin, authController.login);
+router.post('/register', validateRegister, authController.register);
 router.post('/logout', authController.logout);
 router.post('/refresh', authController.refreshToken);
 router.post('/forgot-password', authController.forgotPassword);
