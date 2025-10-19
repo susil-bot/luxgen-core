@@ -1,0 +1,28 @@
+{
+  "summary": {
+    "total": 14,
+    "passed": 14,
+    "failed": 0,
+    "duration": 20065,
+    "successRate": "100.00"
+  },
+  "timestamp": {
+    "start": "2025-10-19T13:13:41.149Z",
+    "end": "2025-10-19T13:14:01.214Z"
+  },
+  "errors": [],
+  "availableEndpoints": [
+    "GET /",
+    "GET /api",
+    "GET /health",
+    "GET /api/health",
+    "POST /api/auth/register",
+    "POST /api/auth/login"
+  ],
+  "notes": [
+    "Current server runs minimal setup with health and auth routes only",
+    "Database connection may timeout causing 500 errors on auth endpoints",
+    "This is expected behavior when MongoDB is not properly configured",
+    "Health endpoints work correctly without database dependency"
+  ]
+}

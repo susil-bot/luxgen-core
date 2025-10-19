@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 
 // Import routes
 const healthRoutes = require('./routes/health');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Routes
 app.use('/health', healthRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api/auth', authRoutes);
 
 // Basic API endpoint
 app.get('/api', (req, res) => {
