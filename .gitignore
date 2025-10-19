@@ -157,3 +157,6 @@ dist/
 # Local development files
 *.local
 .local/
+
+# Local Netlify folder
+.netlify

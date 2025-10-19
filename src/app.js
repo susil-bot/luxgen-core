@@ -12,6 +12,9 @@ const MongoStore = require('connect-mongo');
 const healthRoutes = require('./routes/health');
 const authRoutes = require('./routes/authRoutes');
 
+// Import tenant detection middleware
+const { tenantDetection, validateTenant, getTenantInfo } = require('./middleware/tenantDetection');
+
 // Custom validation utilities to replace vulnerable express-validator
 const customValidators = {
   isEmail: (value) => {
@@ -96,9 +99,15 @@ const customValidators = {
       errors.push({ field: 'url', message: 'Invalid URL format' });
     }
     
-    // Validate MongoDB ID if present
-    if (req.body.tenantId && !customValidators.isMongoId(req.body.tenantId)) {
-      errors.push({ field: 'tenantId', message: 'Invalid tenant ID format' });
+    // Validate tenantId if present (allow both MongoDB ObjectId and slug formats)
+    if (req.body.tenantId) {
+      // Allow MongoDB ObjectId format or slug format
+      const isMongoId = customValidators.isMongoId(req.body.tenantId);
+      const isSlug = /^[a-z0-9-]+$/.test(req.body.tenantId);
+      
+      if (!isMongoId && !isSlug) {
+        errors.push({ field: 'tenantId', message: 'Invalid tenant ID format. Must be a valid MongoDB ObjectId or slug' });
+      }
     }
     
     if (errors.length > 0) {
@@ -174,7 +183,13 @@ const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = process.env.CORS_ORIGINS ? 
       process.env.CORS_ORIGINS.split(',').map(o => o.trim()) : 
-      ['http://localhost:3000', 'http://localhost:3001'];
+      [
+        'http://localhost:3000', 
+        'http://localhost:3001',
+        'https://luxgen-lac.vercel.app',
+        'https://luxgen-frontend.vercel.app',
+        'https://luxgen-multi-tenant.vercel.app'
+      ];
     
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
@@ -357,7 +372,14 @@ app.use((req, res, next) => {
 });
 
 // Custom validation middleware (replaces vulnerable express-validator)
-app.use(customValidators.validateInput);
+// Note: Auth routes have their own validation, so we skip global validation for them
+app.use((req, res, next) => {
+  // Skip validation for auth routes as they have their own validation
+  if (req.path.startsWith('/api/auth')) {
+    return next();
+  }
+  return customValidators.validateInput(req, res, next);
+});
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -385,7 +407,12 @@ app.use((req, res, next) => {
 // Routes
 app.use('/health', healthRoutes);
 app.use('/api/health', healthRoutes);
-app.use('/api/auth', authRoutes);
+
+// Tenant detection for auth routes
+app.use('/api/auth', tenantDetection, authRoutes);
+
+// Tenant info endpoint
+app.get('/api/tenant', tenantDetection, getTenantInfo);
 
 // Mount all API routes for frontend support
 try {
@@ -411,6 +438,15 @@ try {
 } catch (error) {
   console.warn('⚠️ Some API routes could not be loaded:', error.message);
   console.log('📝 Error details:', error.stack);
+}
+
+// Mount new tenant-aware routes
+try {
+  const tenantAwareRoutes = require('./routes/tenantAwareRoutes');
+  app.use('/api', tenantAwareRoutes);
+  console.log('✅ Tenant-aware routes mounted successfully');
+} catch (error) {
+  console.warn('⚠️ Tenant-aware routes could not be loaded:', error.message);
 }
 
 // Basic API endpoint

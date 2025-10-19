@@ -1,13 +1,17 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-  // Core user information
-  tenantId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Tenant',
-    required: false, // Temporarily make optional to allow registration
-    index: true
+  firstName: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 50
+  },
+  lastName: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 50
   },
   email: {
     type: String,
@@ -15,147 +19,95 @@ const userSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
-    match: [/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/, 'Invalid email format']
+    match: [/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Please provide a valid email']
   },
   password: {
     type: String,
     required: true,
-    minlength: 6
+    minlength: 8
   },
-  firstName: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 100
-  },
-  lastName: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 100
-  },
-  phone: {
-    type: String,
-    trim: true,
-    match: [/^\+?[1-9]\d{1,14}$/, 'Invalid phone format']
-  },
-  company: {
-    type: String,
-    trim: true,
-    maxlength: 255
-  },
-  
-  // Role and permissions
   role: {
     type: String,
-    enum: ['user', 'trainer', 'admin', 'super_admin'],
-    default: 'user',
-    required: true
+    enum: ['user', 'trainer', 'admin'],
+    default: 'user'
   },
-  
-  // Status flags
+  tenantId: {
+    type: String,
+    required: true,
+    index: true
+  },
+  profile: {
+    avatar: {
+      type: String,
+      default: null
+    },
+    bio: {
+      type: String,
+      maxlength: 500,
+      default: ''
+    },
+    location: {
+      type: String,
+      maxlength: 100,
+      default: ''
+    },
+    website: {
+      type: String,
+      default: ''
+    },
+    social: {
+      linkedin: { type: String, default: '' },
+      github: { type: String, default: '' },
+      twitter: { type: String, default: '' }
+    }
+  },
+  preferences: {
+    notifications: {
+      email: { type: Boolean, default: true },
+      push: { type: Boolean, default: true },
+      sms: { type: Boolean, default: false }
+    },
+    privacy: {
+      profileVisibility: { type: String, enum: ['public', 'private'], default: 'public' },
+      showEmail: { type: Boolean, default: false },
+      showLocation: { type: Boolean, default: true }
+    },
+    learning: {
+      preferredLanguage: { type: String, default: 'en' },
+      difficulty: { type: String, enum: ['beginner', 'intermediate', 'advanced'], default: 'intermediate' },
+      interests: [{ type: String }]
+    }
+  },
+  stats: {
+    coursesCompleted: { type: Number, default: 0 },
+    totalHours: { type: Number, default: 0 },
+    certificates: { type: Number, default: 0 },
+    currentStreak: { type: Number, default: 0 },
+    achievements: [{ type: String }]
+  },
   isActive: {
     type: Boolean,
     default: true
   },
-  isEmailVerified: {
+  lastLogin: {
+    type: Date,
+    default: null
+  },
+  emailVerified: {
     type: Boolean,
     default: false
   },
-  
-  // Email verification
   emailVerificationToken: {
     type: String,
-    sparse: true
+    default: null
   },
-  emailVerificationExpiresAt: {
-    type: Date
-  },
-  
-  // Password reset
   passwordResetToken: {
     type: String,
-    sparse: true
+    default: null
   },
-  passwordResetExpiresAt: {
-    type: Date
-  },
-  
-  // Login tracking
-  lastLoginAt: {
-    type: Date
-  },
-  loginAttempts: {
-    type: Number,
-    default: 0
-  },
-  lockedUntil: {
-    type: Date
-  },
-  
-  // User preferences and metadata
-  preferences: {
-    type: mongoose.Schema.Types.Mixed,
-    default: {}
-  },
-  
-  // Profile information
-  avatar: {
-    type: String
-  },
-  bio: {
-    type: String,
-    maxlength: 500
-  },
-  timezone: {
-    type: String,
-    default: 'UTC'
-  },
-  language: {
-    type: String,
-    default: 'en'
-  },
-  
-  // Contact information
-  address: {
-    street: String,
-    city: String,
-    state: String,
-    country: String,
-    postalCode: String
-  },
-  
-  // Professional information
-  jobTitle: {
-    type: String,
-    trim: true
-  },
-  department: {
-    type: String,
-    trim: true
-  },
-  
-  // Social links
-  socialLinks: {
-    linkedin: String,
-    twitter: String,
-    website: String
-  },
-  
-  // Notification preferences
-  notificationPreferences: {
-    email: {
-      type: Boolean,
-      default: true
-    },
-    push: {
-      type: Boolean,
-      default: true
-    },
-    sms: {
-      type: Boolean,
-      default: false
-    }
+  passwordResetExpires: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true,
@@ -163,28 +115,23 @@ const userSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+// Indexes for performance
+userSchema.index({ email: 1, tenantId: 1 }, { unique: true });
+userSchema.index({ tenantId: 1 });
+userSchema.index({ role: 1 });
+userSchema.index({ isActive: 1 });
+
 // Virtual for full name
 userSchema.virtual('fullName').get(function() {
   return `${this.firstName} ${this.lastName}`;
 });
-
-// Virtual for isLocked
-userSchema.virtual('isLocked').get(function() {
-  return this.lockedUntil && this.lockedUntil > new Date();
-});
-
-// Indexes for performance
-userSchema.index({ tenantId: 1, email: 1 });
-userSchema.index({ tenantId: 1, role: 1 });
-userSchema.index({ tenantId: 1, isActive: 1 });
-userSchema.index({ lastLoginAt: -1 });
-userSchema.index({ createdAt: -1 });
 
 // Pre-save middleware to hash password
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   
   try {
+    const bcrypt = require('bcryptjs');
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
     next();
@@ -193,75 +140,20 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-// Instance method to compare password
+// Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
+  const bcrypt = require('bcryptjs');
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Instance method to increment login attempts
-userSchema.methods.incrementLoginAttempts = async function() {
-  this.loginAttempts += 1;
-  
-  // Lock account after 5 failed attempts for 15 minutes
-  if (this.loginAttempts >= 5) {
-    this.lockedUntil = new Date(Date.now() + 15 * 60 * 1000);
-  }
-  
-  return this.save();
-};
-
-// Instance method to reset login attempts
-userSchema.methods.resetLoginAttempts = async function() {
-  this.loginAttempts = 0;
-  this.lockedUntil = null;
-  return this.save();
-};
-
-// Instance method to update last login
-userSchema.methods.updateLastLogin = async function() {
-  this.lastLoginAt = new Date();
-  return this.save();
-};
-
-// Static method to find by email and tenant
-userSchema.statics.findByEmailAndTenant = function(email, tenantId) {
-  return this.findOne({ 
-    email: email.toLowerCase(), 
-    tenantId, 
-    isActive: true 
-  });
-};
-
-// Static method to find active users by tenant
-userSchema.statics.findActiveByTenant = function(tenantId) {
-  return this.find({ 
-    tenantId, 
-    isActive: true 
-  });
-};
-
-// Static method to get user statistics by tenant
-userSchema.statics.getUserStatistics = function(tenantId) {
-  return this.aggregate([
-    { $match: { tenantId: new mongoose.Types.ObjectId(tenantId) } },
-    {
-      $group: {
-        _id: null,
-        totalUsers: { $sum: 1 },
-        activeUsers: { $sum: { $cond: ['$isActive', 1, 0] } },
-        verifiedUsers: { $sum: { $cond: ['$isEmailVerified', 1, 0] } },
-        recentUsers: {
-          $sum: {
-            $cond: [
-              { $gt: ['$lastLoginAt', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)] },
-              1,
-              0
-            ]
-          }
-        }
-      }
-    }
-  ]);
+// Method to get public profile
+userSchema.methods.getPublicProfile = function() {
+  const user = this.toObject();
+  delete user.password;
+  delete user.emailVerificationToken;
+  delete user.passwordResetToken;
+  delete user.passwordResetExpires;
+  return user;
 };
 
 module.exports = mongoose.model('User', userSchema);
