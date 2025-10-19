@@ -279,6 +279,159 @@ router.post('/jobs', async (req, res) => {
 });
 
 /**
+ * GET /api/tenants/default - Get default tenant configuration
+ */
+router.get('/tenants/default', async (req, res) => {
+  try {
+    // Return default tenant configuration
+    const defaultTenant = {
+      id: 'default',
+      name: 'Default Tenant',
+      slug: 'default',
+      status: 'active',
+      settings: {
+        theme: 'light',
+        language: 'en',
+        timezone: 'UTC'
+      },
+      features: {
+        analytics: true,
+        notifications: true,
+        chat: true,
+        reports: true
+      },
+      limits: {
+        maxUsers: 1000,
+        maxStorage: 10000,
+        maxApiCalls: 100000
+      },
+      branding: {
+        logo: '/assets/logos/default-logo.svg',
+        primaryColor: '#2563eb',
+        secondaryColor: '#1e40af'
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    res.json({
+      success: true,
+      data: defaultTenant
+    });
+    
+  } catch (error) {
+    console.error('❌ Get default tenant error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get default tenant',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/tenants/:tenantId - Get specific tenant
+ */
+router.get('/tenants/:tenantId', async (req, res) => {
+  try {
+    const { tenantId } = req.params;
+    
+    // For now, return a basic tenant configuration
+    // In a real implementation, this would fetch from database
+    const tenant = {
+      id: tenantId,
+      name: tenantId === 'default' ? 'Default Tenant' : `${tenantId.charAt(0).toUpperCase() + tenantId.slice(1)} Tenant`,
+      slug: tenantId,
+      status: 'active',
+      settings: {
+        theme: 'light',
+        language: 'en',
+        timezone: 'UTC'
+      },
+      features: {
+        analytics: true,
+        notifications: true,
+        chat: true,
+        reports: true
+      },
+      limits: {
+        maxUsers: 1000,
+        maxStorage: 10000,
+        maxApiCalls: 100000
+      },
+      branding: {
+        logo: `/assets/logos/${tenantId}-logo.svg`,
+        primaryColor: '#2563eb',
+        secondaryColor: '#1e40af'
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    res.json({
+      success: true,
+      data: tenant
+    });
+    
+  } catch (error) {
+    console.error('❌ Get tenant error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get tenant',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/tenants/:tenantId/users - Get users for specific tenant
+ */
+router.get('/tenants/:tenantId/users', async (req, res) => {
+  try {
+    const { tenantId } = req.params;
+    
+    // For now, return mock users for the tenant
+    // In a real implementation, this would fetch from database
+    const users = [
+      {
+        id: 'user_1',
+        name: 'John Doe',
+        email: 'john@example.com',
+        role: 'admin',
+        status: 'active',
+        tenantId: tenantId,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+      },
+      {
+        id: 'user_2',
+        name: 'Jane Smith',
+        email: 'jane@example.com',
+        role: 'user',
+        status: 'active',
+        tenantId: tenantId,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+      }
+    ];
+    
+    res.json({
+      success: true,
+      data: users,
+      count: users.length
+    });
+    
+  } catch (error) {
+    console.error('❌ Get tenant users error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get tenant users',
+      message: error.message
+    });
+  }
+});
+
+/**
  * GET /api/admin/tenants - Get all tenants (admin only)
  */
 router.get('/admin/tenants', async (req, res) => {

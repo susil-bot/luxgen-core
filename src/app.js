@@ -180,36 +180,7 @@ app.use(limiter);
 
 // Enhanced CORS configuration
 const corsOptions = {
-  origin: (origin, callback) => {
-    const allowedOrigins = process.env.CORS_ORIGINS ? 
-      process.env.CORS_ORIGINS.split(',').map(o => o.trim()) : 
-      [
-        'http://localhost:3000', 
-        'http://localhost:3001',
-        'https://luxgen-lac.vercel.app',
-        'https://luxgen-frontend.vercel.app',
-        'https://luxgen-multi-tenant.vercel.app'
-      ];
-    
-    // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    
-    // Check for wildcard subdomains
-    const wildcardOrigins = allowedOrigins.filter(o => o.includes('*'));
-    for (const wildcard of wildcardOrigins) {
-      const pattern = wildcard.replace('*', '.*');
-      const regex = new RegExp(`^${pattern}$`);
-      if (regex.test(origin)) {
-        return callback(null, true);
-      }
-    }
-    
-    callback(new Error('Not allowed by CORS'));
-  },
+  origin: true, // Temporarily allow all origins for testing
   credentials: process.env.CORS_CREDENTIALS === 'true',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Tenant-ID', 'X-Request-ID'],
