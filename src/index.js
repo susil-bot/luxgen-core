@@ -7,54 +7,90 @@ const mongoose = require('mongoose');
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
-// Enhanced database connection with production options
+// Enhanced database connection with Atlas and local fallback
+const DatabaseConfig = require('./config/database');
+const AtlasConfig = require('./config/atlas');
+
 const connectDB = async () => {
   try {
-    if (process.env.MONGODB_URI || process.env.MONGODB_ATLAS_URI) {
-      const mongoUri = process.env.MONGODB_URI || process.env.MONGODB_ATLAS_URI;
-      
-      // Skip connection if URI is empty or contains placeholder
-      if (!mongoUri || mongoUri.includes('<db_password>') || mongoUri.trim() === '') {
-        console.log('⚠️ MongoDB URI not properly configured, running without database');
-        return;
+    const dbConfig = new DatabaseConfig();
+    const atlasConfig = new AtlasConfig();
+    
+    // Log configurations
+    dbConfig.logConfiguration();
+    atlasConfig.logConfiguration();
+    
+    let connected = false;
+    let connectionType = 'none';
+    
+    // Try Atlas connection first if enabled
+    if (atlasConfig.isEnabled()) {
+      try {
+        console.log('🌐 Attempting Atlas connection...');
+        const atlasUri = atlasConfig.getUri();
+        const atlasOptions = atlasConfig.getOptions();
+        
+        await mongoose.connect(atlasUri, atlasOptions);
+        console.log('✅ MongoDB Atlas connected successfully');
+        connected = true;
+        connectionType = 'atlas';
+        
+      } catch (atlasError) {
+        console.warn('⚠️ Atlas connection failed:', atlasError.message);
+        console.log('🔄 Falling back to local MongoDB...');
       }
-      
-      const options = {
-        maxPoolSize: parseInt(process.env.MONGODB_MAX_POOL_SIZE) || 10,
-        minPoolSize: parseInt(process.env.MONGODB_MIN_POOL_SIZE) || 2,
-        maxIdleTimeMS: parseInt(process.env.MONGODB_MAX_IDLE_TIME) || 30000,
-        serverSelectionTimeoutMS: parseInt(process.env.MONGODB_SERVER_SELECTION_TIMEOUT) || 5000,
-        connectTimeoutMS: parseInt(process.env.MONGODB_CONNECT_TIMEOUT) || 10000,
-        socketTimeoutMS: parseInt(process.env.MONGODB_SOCKET_TIMEOUT) || 45000,
-        retryWrites: true,
-        w: 'majority',
-        readPreference: 'primary'
-      };
-
-      await mongoose.connect(mongoUri, options);
-      console.log('✅ MongoDB connected successfully');
-      
-      // Set up connection event listeners
-      mongoose.connection.on('error', (error) => {
-        console.error('❌ MongoDB connection error:', error.message);
-      });
-
-      mongoose.connection.on('disconnected', () => {
-        console.warn('⚠️ MongoDB disconnected');
-      });
-
-      mongoose.connection.on('reconnected', () => {
-        console.log('🔄 MongoDB reconnected');
-      });
-
-    } else {
-      console.log('⚠️ MongoDB URI not provided, running without database');
     }
+    
+    // Try local MongoDB if Atlas failed or not enabled
+    if (!connected) {
+      try {
+        console.log('🏠 Attempting local MongoDB connection...');
+        const localUri = 'mongodb://localhost:27017/luxgen';
+        const localOptions = {
+          useNewUrlParser: true,
+          useUnifiedTopology: true,
+          serverSelectionTimeoutMS: 5000,
+          connectTimeoutMS: 5000,
+          socketTimeoutMS: 45000,
+          maxPoolSize: 10,
+          minPoolSize: 2,
+          maxIdleTimeMS: 30000,
+          retryWrites: true,
+          w: 'majority',
+          readPreference: 'primary'
+        };
+        
+        await mongoose.connect(localUri, localOptions);
+        console.log('✅ Local MongoDB connected successfully');
+        connected = true;
+        connectionType = 'local';
+        
+      } catch (localError) {
+        console.error('❌ Local MongoDB connection failed:', localError.message);
+        throw new Error('No database connection available');
+      }
+    }
+    
+    // Set up connection event listeners
+    mongoose.connection.on('error', (error) => {
+      console.error('❌ MongoDB connection error:', error.message);
+    });
+
+    mongoose.connection.on('disconnected', () => {
+      console.warn('⚠️ MongoDB disconnected');
+    });
+
+    mongoose.connection.on('reconnected', () => {
+      console.log('🔄 MongoDB reconnected');
+    });
+    
+    console.log(`🎯 Database connection established: ${connectionType.toUpperCase()}`);
+
   } catch (error) {
     console.error('❌ Database connection error:', error.message);
     // Don't exit in production, allow server to start without DB
     if (process.env.NODE_ENV !== 'production') {
-      process.exit(1);
+      console.log('⚠️ Running without database connection');
     }
   }
 };
