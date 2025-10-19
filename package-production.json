@@ -1,0 +1,153 @@
+{
+  "name": "luxgen-core-production",
+  "version": "1.0.0",
+  "description": "LuxGen Backend - Production Ready Multi-Tenant Platform",
+  "main": "src/index-production.js",
+  "scripts": {
+    "start": "node src/index-production.js",
+    "start:prod": "NODE_ENV=production node src/index-production.js",
+    "dev": "nodemon src/index-production.js",
+    "build": "npm run test && npm run build:production",
+    "build:production": "./scripts/build-simple.sh",
+    "deploy": "./scripts/deploy-production.sh",
+    "deploy:rollback": "./scripts/deploy-production.sh rollback",
+    "health": "./scripts/deploy-production.sh health",
+    "backup": "./scripts/deploy-production.sh backup",
+    "cleanup": "./scripts/deploy-production.sh cleanup",
+    "docker:build": "docker build -f Dockerfile.prod -t luxgen-backend-prod .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env luxgen-backend-prod",
+    "docker:compose:up": "docker-compose -f docker-compose.production.yml up -d",
+    "docker:compose:down": "docker-compose -f docker-compose.production.yml down",
+    "docker:compose:logs": "docker-compose -f docker-compose.production.yml logs -f",
+    "docker:compose:restart": "docker-compose -f docker-compose.production.yml restart",
+    "test": "jest tests/simple.test.js",
+    "test:all": "jest tests/",
+    "test:api": "node test-all-apis.js",
+    "test:api:crud": "node tests/api-crud-test.js",
+    "test:api:comprehensive": "jest tests/comprehensive-api.test.js",
+    "test:api:runner": "node tests/test-runner.js",
+    "test:production": "NODE_ENV=production npm test",
+    "test:integration": "jest tests/integration/",
+    "test:performance": "jest tests/performance/",
+    "test:security": "jest tests/security/",
+    "test:multi-tenant": "jest tests/multi-tenant/",
+    "lint": "eslint src/ --ext .js,.ts",
+    "lint:fix": "eslint src/ --ext .js,.ts --fix",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/",
+    "security:audit": "npm audit",
+    "security:audit:fix": "npm audit fix",
+    "security:scan": "npm audit --audit-level moderate",
+    "monitoring:start": "docker-compose -f docker-compose.production.yml up -d prometheus grafana",
+    "monitoring:stop": "docker-compose -f docker-compose.production.yml stop prometheus grafana",
+    "monitoring:logs": "docker-compose -f docker-compose.production.yml logs -f prometheus grafana",
+    "logs": "docker-compose -f docker-compose.production.yml logs -f luxgen-backend",
+    "logs:all": "docker-compose -f docker-compose.production.yml logs -f",
+    "metrics": "curl -s http://localhost:3000/metrics | jq .",
+    "health": "curl -s http://localhost:3000/health | jq .",
+    "status": "docker-compose -f docker-compose.production.yml ps",
+    "restart": "docker-compose -f docker-compose.production.yml restart luxgen-backend",
+    "scale": "docker-compose -f docker-compose.production.yml up -d --scale luxgen-backend=3",
+    "backup:db": "docker-compose -f docker-compose.production.yml exec mongodb mongodump --out /data/backup",
+    "restore:db": "docker-compose -f docker-compose.production.yml exec mongodb mongorestore /data/backup",
+    "ssl:generate": "openssl req -x509 -newkey rsa:4096 -keyout nginx/ssl/key.pem -out nginx/ssl/cert.pem -days 365 -nodes",
+    "ssl:renew": "certbot renew --nginx",
+    "update": "git pull && npm install && npm run deploy",
+    "rollback": "./scripts/deploy-production.sh rollback",
+    "maintenance:on": "docker-compose -f docker-compose.production.yml exec nginx nginx -s reload",
+    "maintenance:off": "docker-compose -f docker-compose.production.yml exec nginx nginx -s reload"
+  },
+  "keywords": [
+    "luxgen",
+    "backend",
+    "api",
+    "multi-tenant",
+    "production",
+    "microservices",
+    "nodejs",
+    "express",
+    "mongodb",
+    "redis",
+    "docker",
+    "monitoring",
+    "security"
+  ],
+  "author": "LuxGen Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "mongodb": "^5.7.0",
+    "redis": "^4.6.8",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "express-rate-limit": "^6.10.0",
+    "express-session": "^1.17.3",
+    "connect-mongo": "^5.0.0",
+    "compression": "^1.7.4",
+    "express-validator": "^7.0.1",
+    "winston": "^3.10.0",
+    "dotenv": "^16.3.1",
+    "nodemailer": "^6.9.4",
+    "multer": "^1.4.5-lts.1",
+    "sharp": "^0.32.5",
+    "joi": "^17.9.2",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4",
+    "uuid": "^9.0.0",
+    "crypto": "^1.0.1",
+    "os": "^0.1.2",
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "jest": "^29.6.2",
+    "supertest": "^6.3.3",
+    "nodemon": "^3.0.1",
+    "eslint": "^8.47.0",
+    "prettier": "^3.0.2",
+    "husky": "^8.0.3",
+    "lint-staged": "^14.0.1",
+    "@types/node": "^20.5.0",
+    "typescript": "^5.1.6",
+    "ts-node": "^10.9.1"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "npm test"
+    }
+  },
+  "lint-staged": {
+    "*.{js,ts}": [
+      "eslint --fix",
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverage": true,
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "lcov", "html"],
+    "testMatch": [
+      "**/tests/**/*.test.js",
+      "**/tests/**/*.spec.js"
+    ],
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/susil-bot/luxgen-core.git"
+  },
+  "bugs": {
+    "url": "https://github.com/susil-bot/luxgen-core/issues"
+  },
+  "homepage": "https://github.com/susil-bot/luxgen-core#readme"
+}

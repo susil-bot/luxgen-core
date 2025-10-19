@@ -1,11 +1,15 @@
-# Production Dockerfile for Render.com deployment
-FROM node:20-alpine AS base
+# Production Dockerfile for LuxGen Backend
+FROM node:18-alpine AS base
 
-# Set working directory
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+# Create app directory
 WORKDIR /app
 
-# Install dependencies for native modules
-RUN apk add --no-cache python3 make g++
+# Create non-root user
+RUN addgroup -g 1001 -S luxgen && \
+    adduser -S luxgen -u 1001 -G luxgen
 
 # Copy package files
 COPY package*.json ./
@@ -13,23 +17,35 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy source code
-COPY . .
+# Copy application code
+COPY --chown=luxgen:luxgen . .
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+# Create necessary directories
+RUN mkdir -p logs uploads && \
+    chown -R luxgen:luxgen logs uploads
 
-# Set ownership
-RUN chown -R nodejs:nodejs /app
-USER nodejs
+# Build stage
+FROM base AS builder
+
+# Install build dependencies
+RUN npm ci
+
+# Build application (if needed)
+# RUN npm run build
+
+# Production stage
+FROM base AS production
+
+# Switch to non-root user
+USER luxgen
 
 # Expose port
-EXPOSE 3001
+EXPOSE 3000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Start the application
-CMD ["npm", "start"] 
+# Start application with dumb-init
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "src/index-production.js"]
