@@ -48,11 +48,14 @@ class DatabaseConfig {
         : atlasUri,
       timeout: 30000,
       options: {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
         serverSelectionTimeoutMS: 30000,
         connectTimeoutMS: 30000,
-        socketTimeoutMS: 30000
+        socketTimeoutMS: 30000,
+        maxPoolSize: 20,
+        minPoolSize: 5,
+        maxIdleTimeMS: 30000,
+        retryWrites: true,
+        w: 'majority'
       }
     };
   }
@@ -84,7 +87,7 @@ class DatabaseConfig {
 
   logConfiguration() {
     const info = this.getEnvironmentInfo();
-    console.log('🔧 Database Configuration:');
+    console.log('Database Configuration:');
     console.log(`   Mode: ${info.mode}`);
     console.log(`   URI: ${info.uri}`);
     console.log(`   Timeout: ${info.timeout}ms`);

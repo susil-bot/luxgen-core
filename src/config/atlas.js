@@ -34,13 +34,11 @@ class AtlasConfig {
       enabled: true,
       uri: atlasUri,
       options: {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
         serverSelectionTimeoutMS: 10000,
         connectTimeoutMS: 10000,
         socketTimeoutMS: 45000,
-        maxPoolSize: 10,
-        minPoolSize: 2,
+        maxPoolSize: 20,
+        minPoolSize: 5,
         maxIdleTimeMS: 30000,
         retryWrites: true,
         w: 'majority',
@@ -70,12 +68,12 @@ class AtlasConfig {
 
   logConfiguration() {
     if (this.config.enabled) {
-      console.log('🌐 Atlas Configuration:');
+      console.log('Atlas Configuration:');
       console.log(`   URI: ${this.config.uri}`);
       console.log(`   SSL: ${this.config.options.ssl}`);
       console.log(`   Timeout: ${this.config.options.serverSelectionTimeoutMS}ms`);
     } else {
-      console.log('🌐 Atlas Configuration:');
+      console.log('Atlas Configuration:');
       console.log(`   Status: Disabled`);
       console.log(`   Reason: ${this.config.reason}`);
     }

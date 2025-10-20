@@ -178,9 +178,11 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Enhanced CORS configuration
+// Enhanced CORS configuration - Production Ready
 const corsOptions = {
-  origin: true, // Temporarily allow all origins for testing
+  origin: process.env.NODE_ENV === 'production' 
+    ? [process.env.FRONTEND_URL, process.env.API_URL].filter(Boolean)
+    : ['http://localhost:3003', 'http://localhost:4004'],
   credentials: process.env.CORS_CREDENTIALS === 'true',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Tenant-ID', 'X-Request-ID'],
@@ -405,19 +407,19 @@ try {
   app.use('/api/v1/users', userRoutes);
   app.use('/api/v1/notifications', notificationRoutes);
   
-  console.log('✅ All API routes mounted successfully');
+  console.log('All API routes mounted successfully');
 } catch (error) {
-  console.warn('⚠️ Some API routes could not be loaded:', error.message);
-  console.log('📝 Error details:', error.stack);
+  console.warn('Some API routes could not be loaded:', error.message);
+  console.log('Error details:', error.stack);
 }
 
 // Mount new tenant-aware routes
 try {
   const tenantAwareRoutes = require('./routes/tenantAwareRoutes');
   app.use('/api', tenantAwareRoutes);
-  console.log('✅ Tenant-aware routes mounted successfully');
+  console.log('Tenant-aware routes mounted successfully');
 } catch (error) {
-  console.warn('⚠️ Tenant-aware routes could not be loaded:', error.message);
+  console.warn('Tenant-aware routes could not be loaded:', error.message);
 }
 
 // Basic API endpoint
