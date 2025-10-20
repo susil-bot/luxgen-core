@@ -7,9 +7,9 @@ const mongoose = require('mongoose');
 const PORT = process.env.PORT || 4004;
 const HOST = process.env.HOST || '0.0.0.0';
 
-// Force production environment with Atlas database
-process.env.NODE_ENV = 'production';
-process.env.USE_LOCAL_DB = 'false';
+// Use development environment with local database
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+process.env.USE_LOCAL_DB = process.env.USE_LOCAL_DB || 'true';
 
 // Enhanced database connection with Atlas and local fallback
 const DatabaseConfig = require('./config/database');
@@ -49,6 +49,12 @@ const connectDB = async () => {
       } catch (atlasError) {
         console.warn('⚠️ Atlas connection failed:', atlasError.message);
         console.log('🔄 Falling back to local MongoDB...');
+        // Close any partial Atlas connection
+        try {
+          await mongoose.disconnect();
+        } catch (disconnectError) {
+          // Ignore disconnect errors
+        }
       }
     }
     
@@ -58,8 +64,6 @@ const connectDB = async () => {
         console.log('🏠 Attempting local MongoDB connection...');
         const localUri = 'mongodb://localhost:27017/luxgen';
         const localOptions = {
-          useNewUrlParser: true,
-          useUnifiedTopology: true,
           serverSelectionTimeoutMS: 5000,
           connectTimeoutMS: 5000,
           socketTimeoutMS: 45000,
@@ -96,6 +100,7 @@ const connectDB = async () => {
     });
     
     console.log(`🎯 Database connection established: ${connectionType.toUpperCase()}`);
+    return connectionType;
 
   } catch (error) {
     console.error('❌ Database connection error:', error.message);
@@ -103,13 +108,14 @@ const connectDB = async () => {
     if (process.env.NODE_ENV !== 'production') {
       console.log('⚠️ Running without database connection');
     }
+    return 'none';
   }
 };
 
 // Start server with enhanced error handling
 const startServer = async () => {
   try {
-    await connectDB();
+    const connectionResult = await connectDB();
     
     const server = app.listen(PORT, HOST, () => {
       console.log(`🚀 Server running on ${HOST}:${PORT}`);
@@ -117,10 +123,10 @@ const startServer = async () => {
       console.log(`🏥 Health check: http://localhost:${PORT}/health`);
       console.log(`📊 API endpoint: http://localhost:${PORT}/api`);
       
-      console.log('🔒 Production mode enabled');
+      console.log(`🔒 ${process.env.NODE_ENV} mode enabled`);
       console.log('🛡️ Security features active');
       console.log('📈 Monitoring enabled');
-      console.log('🌐 Using MongoDB Atlas for production setup');
+      console.log(`🌐 Using ${connectionResult || 'Local MongoDB'} for ${process.env.NODE_ENV} setup`);
     });
 
     // Handle server errors
@@ -173,7 +179,17 @@ process.on('uncaughtException', (error) => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-  gracefulShutdown('unhandledRejection');
+  
+  // Don't shutdown for Atlas connection failures - they're handled gracefully
+  if (reason && reason.message && reason.message.includes('bad auth')) {
+    console.log('⚠️ Atlas authentication failed - continuing with local database');
+    return;
+  }
+  
+  // Only shutdown for critical errors
+  if (reason && reason.code && reason.code !== 8000) {
+    gracefulShutdown('unhandledRejection');
+  }
 });
 
 // Start the server
